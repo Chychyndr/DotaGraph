@@ -25,8 +25,8 @@ export const getHeroSpriteCell = (spriteIndex: number) => {
 
 export const getHeroSpriteStyle = (spriteIndex: number): CSSProperties => {
   const { column, row } = getHeroSpriteCell(spriteIndex);
-  const x = HERO_ATLAS_COLUMNS === 1 ? 0 : (column / (HERO_ATLAS_COLUMNS - 1)) * 100;
-  const y = HERO_ATLAS_ROWS === 1 ? 0 : (row / (HERO_ATLAS_ROWS - 1)) * 100;
+  const x = (column / (HERO_ATLAS_COLUMNS - 1)) * 100;
+  const y = (row / (HERO_ATLAS_ROWS - 1)) * 100;
 
   return {
     backgroundImage: `url("${HERO_ATLAS_URL}")`,
