@@ -62,6 +62,8 @@ Examples:
 - Provider A 2,400 + Provider B 1,900 remains two observations: 2,400 and 1,900.
 - A future aggregation method may use both observations as evidence, but it must not report 4,300 samples unless non-overlap is actually proven and the aggregation methodology explicitly allows it.
 
+If a future published win rate is calculated from multiple provider observations, the generated schema must represent those observations and aggregate metadata explicitly. It must not attach a fabricated summed `sampleSize` to the aggregate rate.
+
 ### Reliability threshold
 
 The approved normal-candidate minimum is **500 qualifying matches per source observation**.
