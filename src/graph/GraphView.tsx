@@ -555,7 +555,6 @@ export function GraphView({
             const shouldDim = Boolean(selectedHeroId && !isSelected && !isActive);
             const size = isSelected ? 72 : isActive ? 42 : isHovered ? 36 : 28;
             const radius = size / 2;
-            const showLabel = isSelected || isActive || isHovered;
             const nodeClass = [
               "hero-node",
               isSelected ? "hero-selected" : "",
