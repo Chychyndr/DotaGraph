@@ -24,3 +24,16 @@ test("capture Overview, Focus and Matchup states", async ({ page }) => {
   await page.waitForTimeout(200);
   await page.screenshot({ path: `${output}/matchup-shadow-demon-viper.png`, fullPage: true });
 });
+
+
+test("capture mobile Focus and Matchup states", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/?hero=viper", { waitUntil: "networkidle" });
+
+  await expect(page.getByLabel("Viper counter summary")).toBeVisible();
+  await page.screenshot({ path: `${output}/mobile-focus-viper.png`, fullPage: true });
+
+  await page.getByRole("button", { name: /Shadow Demon counters Viper/ }).click();
+  await expect(page.getByLabel("Shadow Demon counters Viper")).toBeVisible();
+  await page.screenshot({ path: `${output}/mobile-matchup-shadow-demon-viper.png`, fullPage: true });
+});
