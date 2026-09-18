@@ -623,6 +623,22 @@ Do not guess current Dota mechanics, patch details, API terms, source permission
 
 Research current primary/official sources, record decisions, and keep the implementation conservative when evidence remains unclear.
 
+# Project memory
+
+Durable cross-session project context lives under `project_memory/`.
+
+At the start of substantial DotaGraph work:
+1. read `project_memory/index.md`;
+2. read `project_memory/handoff.md`;
+3. load only the relevant `project_memory/active/` files;
+4. verify volatile facts against current code, GitHub, and primary sources.
+
+Use the local `dotagraph-memory` skill under `.agents/skills/dotagraph-memory/` when resuming the project, preserving decisions, preparing a handoff, or recovering from context drift.
+
+Project memory is a cache and routing layer. It never overrides current code/tests, accepted ADRs, living documentation, owner-approved Figma, or a newer explicit owner decision.
+
+After substantial product, architecture, methodology, deployment, or workflow changes, refresh the relevant memory files in the same PR.
+
 # Tooling, plugins, and skills
 
 This section replaces the separate TOOLS_AND_SKILLS.md. Keep project-tooling guidance here so agents have one durable instruction file.
@@ -806,7 +822,8 @@ For normal DotaGraph work:
 4. junior-to-senior for major decisions
 5. last-20-percent before milestones
 6. context-canary for long sessions
-7. deslopify or humanizer for public prose
-8. Impeccable detector for frontend review
+7. dotagraph-memory for cross-session context and handoffs
+8. deslopify or humanizer for public prose
+9. Impeccable detector for frontend review
 
 Add loop-factory when task volume grows. Use grill-me when a difficult decision needs pressure-testing.
