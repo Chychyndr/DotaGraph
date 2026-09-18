@@ -1,3 +1,4 @@
+import { mkdirSync } from "node:fs";
 import { expect, test } from "@playwright/test";
 
 test("search, focus, matchup and reset flow", async ({ page }) => {
@@ -22,6 +23,9 @@ test("search, focus, matchup and reset flow", async ({ page }) => {
 test("overview renders the complete hero roster and search reaches the newest hero", async ({ page }) => {
   await page.goto("/");
   await expect(page.locator(".hero-node")).toHaveCount(127);
+
+  mkdirSync("artifacts/screenshots", { recursive: true });
+  await page.screenshot({ path: "artifacts/screenshots/full-roster-overview.png", fullPage: true });
 
   const search = page.getByRole("textbox", { name: "Search for a hero" });
   await search.fill("largo");
