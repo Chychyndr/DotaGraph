@@ -61,9 +61,13 @@ def _request_json(url: str, *, attempts: int = 4) -> Any:
             with urlopen(request, timeout=120) as response:
                 return json.loads(response.read().decode("utf-8"))
         except HTTPError as exc:
-            last_error = exc
+            body = exc.read().decode("utf-8", errors="replace")
+            detail = RuntimeError(
+                f"OpenDota HTTP {exc.code} for {exc.url}: {body[:2000]}"
+            )
+            last_error = detail
             if exc.code not in {429, 500, 502, 503, 504}:
-                raise
+                raise detail from exc
         except (URLError, TimeoutError) as exc:
             last_error = exc
 
