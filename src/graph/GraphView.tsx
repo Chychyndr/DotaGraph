@@ -138,7 +138,7 @@ export function GraphView({
   const cameraRef = useRef(camera);
   const svgRef = useRef<SVGSVGElement>(null);
   const animationFrameRef = useRef<number | null>(null);
-  const previousCameraTargetRef = useRef(`${selectedHeroId ?? ""}:${initialCompactViewport}`);
+  const previousCameraTargetRef = useRef(`${selectedHeroId ?? ""}:${initialCompactViewport}:${targetFocusScale.toFixed(4)}`);
   const previousKeyboardSelectionRef = useRef(selectedHeroId);
   const dragRef = useRef<DragState | null>(null);
 
