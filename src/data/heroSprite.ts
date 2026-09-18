@@ -23,13 +23,13 @@ export const getHeroSpriteCell = (spriteIndex: number) => {
   };
 };
 
-export const getHeroSpriteStyle = (spriteIndex: number): CSSProperties => {
+export const getHeroSpriteStyle = (spriteIndex: number, atlasUrl = HERO_ATLAS_URL): CSSProperties => {
   const { column, row } = getHeroSpriteCell(spriteIndex);
   const x = (column / (HERO_ATLAS_COLUMNS - 1)) * 100;
   const y = (row / (HERO_ATLAS_ROWS - 1)) * 100;
 
   return {
-    backgroundImage: `url("${HERO_ATLAS_URL}")`,
+    backgroundImage: `url("${atlasUrl}")`,
     backgroundPosition: `${x}% ${y}%`,
     backgroundRepeat: "no-repeat",
     backgroundSize: `${HERO_ATLAS_COLUMNS * 100}% ${HERO_ATLAS_ROWS * 100}%`
