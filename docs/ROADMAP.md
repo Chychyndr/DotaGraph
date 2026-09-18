@@ -13,15 +13,17 @@ Roadmap order describes dependency and product logic, not release dates.
 - fixture-only data;
 - tests and GitHub Pages deployment.
 
-## Renderer and visual hardening
+## Completed frontend hardening
 
-- validate the current SVG UX with owner review;
-- compare source-side win-rate label variants;
-- test full 127+ hero density;
-- run Sigma.js + Graphology spike;
-- choose long-term renderer;
-- improve viewport behavior and accessibility;
-- performance budgets.
+Current completed results:
+- deterministic SVG renderer retained after the Sigma.js + Graphology spike;
+- source-anchored, collision-aware win-rate labels;
+- full 127-hero density validation;
+- responsive viewport and accessibility hardening;
+- adaptive focus framing for distant active relationships;
+- single local hero portrait atlas with explicit failure fallback;
+- loading, stale, malformed-data, and unavailable-data states;
+- CI, Playwright, Impeccable, and GitHub Pages verification.
 
 ## Source/legal methodology gate
 
