@@ -20,6 +20,21 @@ See `docs/adr/0001-graph-renderer.md`.
 
 Future production pipeline should live under `pipeline/` and use Python + `uv`.
 
+## Stable data-driven layout
+
+Hero coordinates are generated offline and committed as a patch-scoped snapshot.
+
+The layout build:
+- reads the canonical hero catalog;
+- derives weighted hero-pair affinities from approved real matchup evidence;
+- runs a deterministic force-directed solver;
+- performs deterministic collision relaxation;
+- writes fixed coordinates and layout-quality/provenance metadata.
+
+The browser never runs a force simulation. Overview, hover, and focus reuse the same stable coordinates, so graph topology does not jump between page loads.
+
+Real-data layout affinity is separate from the public counter-ranking contract. Changing how the graph is arranged must not silently change what `A -> B` means or promote a relationship into the product.
+
 ## Static hosting
 
 The product targets GitHub Pages. Graph state uses query parameters so direct refresh does not require server routing.
