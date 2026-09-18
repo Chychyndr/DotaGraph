@@ -14,7 +14,7 @@
 ## Hover
 
 - Hovered node grows slightly.
-- Hero name appears.
+- Hero name appears in a dedicated top label layer so nearby portrait nodes cannot cover it.
 - Local edges gain contrast.
 - Unrelated graph dims.
 - No large panel opens.
@@ -22,10 +22,13 @@
 
 ## Focus
 
-- Selected hero is comfortably centered.
+- Selected hero remains the camera anchor and stays centered on desktop.
+- Focus scale adapts to the active relationship spread: close matchups keep the normal scale, while distant counters trigger only as much zoom-out as needed to fit the active set with padding.
+- Compact focus keeps its upward offset for the context card and uses the cropped visible graph span when calculating scale.
 - Gold ring.
 - Up to five incoming relationships in coral.
 - Up to five outgoing relationships in cyan.
+- Hero names render above portrait nodes.
 - Tiny arrowheads clarify direction.
 - Win-rate pills appear nearer the source hero.
 - HeroCard appears.

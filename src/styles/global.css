@@ -447,12 +447,16 @@ button:focus-visible, input:focus-visible, [role="button"]:focus-visible {
   stroke-width: 2.6;
 }
 
+.hero-label-layer {
+  pointer-events: none;
+}
+
 .hero-label {
   fill: var(--text);
   font: 600 11px -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
-  paint-order: stroke;
+  paint-order: stroke fill;
   stroke: var(--canvas);
-  stroke-width: 4px;
+  stroke-width: 5px;
   stroke-linejoin: round;
   pointer-events: none;
 }
