@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Hero } from "../domain/types";
 import { searchHeroes } from "../domain/relationships";
+import { HeroPortrait } from "./HeroPortrait";
 
 interface SearchProps {
   heroes: Hero[];
@@ -86,7 +87,7 @@ export function Search({ heroes, onSelect }: SearchProps) {
               onMouseDown={(event) => event.preventDefault()}
               onClick={() => choose(hero)}
             >
-              <img src={hero.portrait} alt="" />
+              <HeroPortrait hero={hero} />
               <span>{hero.name}</span>
               {hero.aliases[0] && <small>{hero.aliases[0].toUpperCase()}</small>}
             </button>
