@@ -1,4 +1,13 @@
 import type { MatchupRelationship, ScopeConfig } from "../domain/types";
+import type { DatasetMetadata } from "./dataset";
+
+export const fixtureMetadata: DatasetMetadata = {
+  schemaVersion: 1,
+  generatedAt: "2026-09-18T00:00:00.000Z",
+  freshness: {
+    status: "current"
+  }
+};
 
 export const scope: ScopeConfig = {
   patch: "7.41e",
