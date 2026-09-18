@@ -50,6 +50,30 @@ export function GraphView({
       : []
   );
 
+  const radiusFor = (heroId: string) => {
+    if (heroId === selectedHeroId) return 36;
+    if (activeIds.has(heroId)) return 21;
+    if (heroId === hoveredHeroId) return 18;
+    return 14;
+  };
+
+  const edgeGeometry = (source: Hero, target: Hero) => {
+    const dx = target.x - source.x;
+    const dy = target.y - source.y;
+    const length = Math.hypot(dx, dy) || 1;
+    const ux = dx / length;
+    const uy = dy / length;
+    const sourcePadding = radiusFor(source.id) + 4;
+    const targetPadding = radiusFor(target.id) + 7;
+
+    return {
+      x1: source.x + ux * sourcePadding,
+      y1: source.y + uy * sourcePadding,
+      x2: target.x - ux * targetPadding,
+      y2: target.y - uy * targetPadding
+    };
+  };
+
   return (
     <svg
       className="graph"
@@ -97,17 +121,19 @@ export function GraphView({
               isMatchup ? "edge-matchup" : ""
             ].filter(Boolean).join(" ");
 
-            const labelX = source.x + (target.x - source.x) * 0.28;
-            const labelY = source.y + (target.y - source.y) * 0.28;
+            const geometry = edgeGeometry(source, target);
+            const labelT = isOutgoing ? 0.42 : 0.30;
+            const labelX = geometry.x1 + (geometry.x2 - geometry.x1) * labelT;
+            const labelY = geometry.y1 + (geometry.y2 - geometry.y1) * labelT;
 
             return (
               <g key={relationship.id}>
                 <line
                   className={edgeClass}
-                  x1={source.x}
-                  y1={source.y}
-                  x2={target.x}
-                  y2={target.y}
+                  x1={geometry.x1}
+                  y1={geometry.y1}
+                  x2={geometry.x2}
+                  y2={geometry.y2}
                   markerEnd={isIncoming ? "url(#arrow-incoming)" : isOutgoing ? "url(#arrow-outgoing)" : undefined}
                 />
                 {isActive && (
