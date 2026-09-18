@@ -90,6 +90,30 @@ test("mouse wheel zooms the graph", async ({ page }) => {
   expect(after).not.toBe(before);
 });
 
+test("selecting a distant hero moves the camera progressively", async ({ page }) => {
+  await page.goto("/");
+  const camera = page.locator(".graph-camera");
+  const search = page.getByRole("textbox", { name: "Search for a hero" });
+  const before = await camera.getAttribute("transform");
+
+  await search.fill("underlord");
+  await page.getByRole("option", { name: /Underlord/ }).click();
+  await page.waitForTimeout(90);
+  const during = await camera.getAttribute("transform");
+
+  await page.waitForTimeout(500);
+  const after = await camera.getAttribute("transform");
+
+  expect(during).not.toBe(before);
+  expect(after).not.toBe(during);
+  await expect(page).toHaveURL(/hero=underlord/);
+});
+
+test("site exposes the SVG favicon", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.locator('link[rel="icon"][href="/favicon.svg"]')).toHaveCount(1);
+});
+
 for (const viewport of [
   { width: 1280, height: 720 },
   { width: 1366, height: 768 },

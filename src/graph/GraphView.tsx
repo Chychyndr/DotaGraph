@@ -25,14 +25,30 @@ interface DragState {
   moved: boolean;
 }
 
+interface CameraState {
+  anchorX: number;
+  anchorY: number;
+  panX: number;
+  panY: number;
+  zoom: number;
+  focusScale: number;
+}
+
 const WIDTH = 1200;
 const HEIGHT = 760;
 const MIN_ZOOM = 0.55;
 const MAX_ZOOM = 2.4;
 const DRAG_THRESHOLD = 5;
+const CAMERA_DURATION = 460;
 
 const clamp = (value: number, min: number, max: number) =>
   Math.min(max, Math.max(min, value));
+
+const lerp = (from: number, to: number, progress: number) =>
+  from + (to - from) * progress;
+
+const easeOutQuart = (progress: number) =>
+  1 - Math.pow(1 - progress, 4);
 
 export function GraphView({
   heroes,
@@ -47,10 +63,88 @@ export function GraphView({
   onClearSelection
 }: GraphViewProps) {
   const byId = useMemo(() => new Map(heroes.map((hero) => [hero.id, hero])), [heroes]);
-  const [pan, setPan] = useState({ x: 0, y: 0 });
-  const [zoom, setZoom] = useState(1);
+  const initialHero = selectedHeroId ? byId.get(selectedHeroId) : undefined;
+  const initialCamera: CameraState = {
+    anchorX: initialHero?.x ?? WIDTH / 2,
+    anchorY: initialHero?.y ?? HEIGHT / 2,
+    panX: 0,
+    panY: 0,
+    zoom: 1,
+    focusScale: initialHero ? 1.04 : 1
+  };
+
+  const [camera, setCameraState] = useState<CameraState>(initialCamera);
   const [isPanning, setIsPanning] = useState(false);
+  const cameraRef = useRef(camera);
+  const animationFrameRef = useRef<number | null>(null);
+  const previousSelectionRef = useRef(selectedHeroId);
   const dragRef = useRef<DragState | null>(null);
+
+  const setCamera = (next: CameraState | ((current: CameraState) => CameraState)) => {
+    setCameraState((current) => {
+      const resolved = typeof next === "function" ? next(current) : next;
+      cameraRef.current = resolved;
+      return resolved;
+    });
+  };
+
+  const cancelCameraAnimation = () => {
+    if (animationFrameRef.current !== null) {
+      window.cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
+  };
+
+  useEffect(() => {
+    if (previousSelectionRef.current === selectedHeroId) return;
+    previousSelectionRef.current = selectedHeroId;
+
+    cancelCameraAnimation();
+
+    const selected = selectedHeroId ? byId.get(selectedHeroId) : undefined;
+    const target: CameraState = {
+      anchorX: selected?.x ?? WIDTH / 2,
+      anchorY: selected?.y ?? HEIGHT / 2,
+      panX: 0,
+      panY: 0,
+      zoom: 1,
+      focusScale: selected ? 1.04 : 1
+    };
+
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setCamera(target);
+      return;
+    }
+
+    const from = cameraRef.current;
+    const startedAt = performance.now();
+
+    const tick = (now: number) => {
+      const rawProgress = clamp((now - startedAt) / CAMERA_DURATION, 0, 1);
+      const progress = easeOutQuart(rawProgress);
+
+      setCamera({
+        anchorX: lerp(from.anchorX, target.anchorX, progress),
+        anchorY: lerp(from.anchorY, target.anchorY, progress),
+        panX: lerp(from.panX, target.panX, progress),
+        panY: lerp(from.panY, target.panY, progress),
+        zoom: lerp(from.zoom, target.zoom, progress),
+        focusScale: lerp(from.focusScale, target.focusScale, progress)
+      });
+
+      if (rawProgress < 1) {
+        animationFrameRef.current = window.requestAnimationFrame(tick);
+      } else {
+        animationFrameRef.current = null;
+      }
+    };
+
+    animationFrameRef.current = window.requestAnimationFrame(tick);
+
+    return cancelCameraAnimation;
+  }, [selectedHeroId, byId]);
+
+  useEffect(() => cancelCameraAnimation, []);
 
   const activeRelationships = [...selectedRelations.incoming, ...selectedRelations.outgoing];
   const activeIds = new Set(activeRelationships.flatMap((relationship) => [
@@ -58,18 +152,9 @@ export function GraphView({
     relationship.targetHeroId
   ]));
   const activeRelationshipIds = new Set(activeRelationships.map((relationship) => relationship.id));
-  const selectedHero = selectedHeroId ? byId.get(selectedHeroId) : undefined;
-  const focusScale = selectedHero ? 1.04 : 1;
-  const anchorX = selectedHero?.x ?? WIDTH / 2;
-  const anchorY = selectedHero?.y ?? HEIGHT / 2;
-  const cameraScale = zoom * focusScale;
+  const cameraScale = camera.zoom * camera.focusScale;
   const cameraTransform =
-    `translate(${WIDTH / 2 + pan.x} ${HEIGHT / 2 + pan.y}) scale(${cameraScale}) translate(${-anchorX} ${-anchorY})`;
-
-  useEffect(() => {
-    setPan({ x: 0, y: 0 });
-    setZoom(1);
-  }, [selectedHeroId]);
+    `translate(${WIDTH / 2 + camera.panX} ${HEIGHT / 2 + camera.panY}) scale(${cameraScale}) translate(${-camera.anchorX} ${-camera.anchorY})`;
 
   const hoverRelationshipIds = new Set(
     hoveredHeroId
@@ -110,6 +195,7 @@ export function GraphView({
     const target = event.target;
     if (target instanceof Element && target.closest(".hero-node")) return;
 
+    cancelCameraAnimation();
     dragRef.current = {
       pointerId: event.pointerId,
       startX: event.clientX,
@@ -145,7 +231,11 @@ export function GraphView({
 
     drag.lastX = event.clientX;
     drag.lastY = event.clientY;
-    setPan((current) => ({ x: current.x + dx, y: current.y + dy }));
+    setCamera((current) => ({
+      ...current,
+      panX: current.panX + dx,
+      panY: current.panY + dy
+    }));
   };
 
   const finishPointer = (event: ReactPointerEvent<SVGSVGElement>, cancelled = false) => {
@@ -165,6 +255,7 @@ export function GraphView({
 
   const handleWheel = (event: ReactWheelEvent<SVGSVGElement>) => {
     event.preventDefault();
+    cancelCameraAnimation();
 
     const svg = event.currentTarget;
     const ctm = svg.getScreenCTM();
@@ -174,23 +265,24 @@ export function GraphView({
     point.x = event.clientX;
     point.y = event.clientY;
     const cursor = point.matrixTransform(ctm.inverse());
-
+    const current = cameraRef.current;
     const nextZoom = clamp(
-      zoom * Math.exp(-event.deltaY * 0.0012),
+      current.zoom * Math.exp(-event.deltaY * 0.0012),
       MIN_ZOOM,
       MAX_ZOOM
     );
-    if (Math.abs(nextZoom - zoom) < 0.0001) return;
+    if (Math.abs(nextZoom - current.zoom) < 0.0001) return;
 
-    const ratio = nextZoom / zoom;
+    const ratio = nextZoom / current.zoom;
     const centerX = WIDTH / 2;
     const centerY = HEIGHT / 2;
 
-    setPan((current) => ({
-      x: cursor.x - centerX - ratio * (cursor.x - centerX - current.x),
-      y: cursor.y - centerY - ratio * (cursor.y - centerY - current.y)
-    }));
-    setZoom(nextZoom);
+    setCamera({
+      ...current,
+      panX: cursor.x - centerX - ratio * (cursor.x - centerX - current.panX),
+      panY: cursor.y - centerY - ratio * (cursor.y - centerY - current.panY),
+      zoom: nextZoom
+    });
   };
 
   return (
