@@ -59,3 +59,15 @@ Community discussion can inform explanation hypotheses, but never the headline n
 DotaGraph code is MIT.
 
 That license does not automatically cover Valve art/trademarks, third-party screenshots, third-party data, source text, or vendored agent skills.
+
+
+### OpenDota dotaconstants
+
+Used as the current roster/hero-identity reference for hero names and internal portrait slugs.
+
+Upstream:
+https://github.com/odota/dotaconstants
+
+Repository license: MIT.
+
+This use is limited to hero identity metadata. It does not make OpenDota matchup statistics a production source, and it does not change the separate API/data-terms review required before statistical ingestion.
