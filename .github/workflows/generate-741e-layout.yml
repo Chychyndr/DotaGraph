@@ -40,7 +40,8 @@ jobs:
 
       - name: Commit generated snapshot
         run: |
-          if git diff --quiet -- src/data/layout-7.41e.json; then
+          if git ls-files --error-unmatch src/data/layout-7.41e.json >/dev/null 2>&1 \
+            && git diff --quiet -- src/data/layout-7.41e.json; then
             echo "Layout snapshot is unchanged."
             exit 0
           fi
