@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { heroes } from "../data/heroes";
+import { heroById, heroes } from "../data/heroes";
 import { fixtureRelationships, scope } from "../data/fixtures";
 import { findRelationship, searchHeroes, selectRelations } from "./relationships";
 
