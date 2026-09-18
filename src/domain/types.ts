@@ -5,7 +5,7 @@ export interface Hero {
   slug: string;
   name: string;
   aliases: string[];
-  portrait: string;
+  spriteIndex: number;
   x: number;
   y: number;
   overallWinRate?: number;

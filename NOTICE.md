@@ -6,7 +6,7 @@ The project may reference third-party assets and data whose rights are separate 
 
 ## Dota 2 assets
 
-The current frontend references hero portraits from Valve/Steam-hosted Steamstatic URLs at runtime. Dota 2, hero artwork, names, and trademarks belong to their respective rights holders.
+The build pipeline downloads hero portraits from Valve/Steam-hosted Steamstatic URLs and produces one optimized WebP atlas that is served locally with DotaGraph. Dota 2, hero artwork, names, and trademarks belong to their respective rights holders.
 
 Before a public production asset strategy is finalized, review the applicable Valve/Steam terms and document provenance in `docs/SOURCES_AND_LICENSING.md`.
 

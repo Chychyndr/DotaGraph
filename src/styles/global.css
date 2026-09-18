@@ -171,11 +171,16 @@ button:focus-visible, input:focus-visible, [role="button"]:focus-visible {
   background: #21262d;
 }
 
-.search-result img {
+.hero-portrait {
+  display: inline-block;
+  flex: 0 0 auto;
+  background-color: #21262d;
+  border-radius: 50%;
+}
+
+.search-result .hero-portrait {
   width: 28px;
   height: 28px;
-  object-fit: cover;
-  border-radius: 50%;
 }
 
 .search-result span {
@@ -267,7 +272,7 @@ button:focus-visible, input:focus-visible, [role="button"]:focus-visible {
   transition: opacity 150ms ease;
 }
 
-.hero-node image { pointer-events: none; }
+.hero-portrait-node { pointer-events: none; }
 .node-hitarea { fill: transparent; }
 
 .node-ring {
@@ -337,11 +342,9 @@ button:focus-visible, input:focus-visible, [role="button"]:focus-visible {
   padding-bottom: 12px;
 }
 
-.card-hero img {
+.card-hero .hero-portrait {
   width: 38px;
   height: 38px;
-  object-fit: cover;
-  border-radius: 50%;
   border: 1px solid var(--border);
 }
 
@@ -415,11 +418,9 @@ button:focus-visible, input:focus-visible, [role="button"]:focus-visible {
   font-size: 11px;
 }
 
-.relation-hero img {
+.relation-hero .hero-portrait {
   width: 24px;
   height: 24px;
-  object-fit: cover;
-  border-radius: 50%;
 }
 
 .relation-hero span {
@@ -467,11 +468,9 @@ button:focus-visible, input:focus-visible, [role="button"]:focus-visible {
   gap: 7px;
 }
 
-.matchup-hero img {
+.matchup-hero .hero-portrait {
   width: 30px;
   height: 30px;
-  object-fit: cover;
-  border-radius: 50%;
 }
 
 .matchup-hero strong {

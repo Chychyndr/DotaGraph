@@ -22,7 +22,7 @@ Preferred for game identity/static data where permitted.
 
 API keys are secrets and must never ship to the browser.
 
-The frontend currently references Valve/Steamstatic hero portrait URLs rather than committing copied portrait binaries. Asset rights still require explicit production review.
+The build pipeline currently downloads Valve/Steamstatic hero portraits, crops them to small square thumbnails, and packages them into one optimized WebP atlas served from the DotaGraph origin. The generated atlas is not committed to source control. Asset rights still require explicit production review.
 
 ## OpenDota
 

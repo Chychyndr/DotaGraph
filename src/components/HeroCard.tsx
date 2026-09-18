@@ -1,6 +1,7 @@
 import type { Hero, MatchupRelationship } from "../domain/types";
 import { formatPercent } from "../domain/relationships";
 import { heroById } from "../data/heroes";
+import { HeroPortrait } from "./HeroPortrait";
 
 interface HeroCardProps {
   hero: Hero;
@@ -39,7 +40,7 @@ function RelationRows({
             onClick={() => onMatchup(neighborId)}
           >
             <span className="relation-hero">
-              <img src={neighbor.portrait} alt="" />
+              <HeroPortrait hero={neighbor} />
               <span>{neighbor.name}</span>
             </span>
             <strong>{formatPercent(relationship.sourceWinRate)}</strong>
@@ -54,7 +55,7 @@ export function HeroCard({ hero, incoming, outgoing, onMatchup }: HeroCardProps)
   return (
     <aside className="context-card" aria-label={`${hero.name} counter summary`}>
       <div className="card-hero">
-        <img src={hero.portrait} alt="" />
+        <HeroPortrait hero={hero} />
         <h2>{hero.name}</h2>
         {typeof hero.overallWinRate === "number" && (
           <strong className="overall-rate">{formatPercent(hero.overallWinRate)}</strong>
