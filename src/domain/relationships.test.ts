@@ -32,3 +32,41 @@ describe("hero search", () => {
     expect(searchHeroes(heroes, "wr")[0]?.id).toBe("windranger");
   });
 });
+
+
+describe("hero roster", () => {
+  it("contains the complete current 127-hero roster with stable unique identity", () => {
+    expect(heroes).toHaveLength(127);
+    expect(new Set(heroes.map((hero) => hero.id)).size).toBe(127);
+    expect(new Set(heroes.map((hero) => hero.slug)).size).toBe(127);
+    expect(heroes.some((hero) => hero.name === "Largo")).toBe(true);
+    expect(heroes.some((hero) => hero.name === "Kez")).toBe(true);
+    expect(heroes.some((hero) => hero.name === "Ringmaster")).toBe(true);
+  });
+
+  it("keeps the deterministic overview layout inside the graph with useful spacing", () => {
+    for (const hero of heroes) {
+      expect(hero.x).toBeGreaterThanOrEqual(48);
+      expect(hero.x).toBeLessThanOrEqual(1152);
+      expect(hero.y).toBeGreaterThanOrEqual(48);
+      expect(hero.y).toBeLessThanOrEqual(712);
+    }
+
+    let closest = Infinity;
+    for (let i = 0; i < heroes.length; i += 1) {
+      for (let j = i + 1; j < heroes.length; j += 1) {
+        closest = Math.min(
+          closest,
+          Math.hypot(heroes[i].x - heroes[j].x, heroes[i].y - heroes[j].y)
+        );
+      }
+    }
+
+    expect(closest).toBeGreaterThanOrEqual(40);
+  });
+
+  it("does not invent overall statistics for heroes without fixture observations", () => {
+    expect(heroById.get("largo")?.overallWinRate).toBeUndefined();
+    expect(heroById.get("largo")?.sampleSize).toBeUndefined();
+  });
+});
