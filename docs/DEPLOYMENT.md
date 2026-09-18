@@ -4,63 +4,68 @@ DotaGraph is a Vite application deployed at:
 
 https://chychyndr.github.io/DotaGraph/
 
-## Deployment model
+## GitHub Pages configuration
 
-The repository contains a custom workflow at `.github/workflows/pages.yml`.
+The repository should use:
 
-The workflow intentionally starts after the main `CI` workflow completes successfully. It checks out the exact SHA that passed CI, builds the Vite application with the `/DotaGraph/` base path, validates the generated `dist/` directory, deploys it with GitHub Pages, then checks the public site and its compiled JavaScript bundle.
+**Settings → Pages → Build and deployment → Source → GitHub Actions**
 
-This sequencing also prevents the old branch/Jekyll Pages build from becoming the final deployment while the repository is still configured with the legacy Pages source.
+The custom workflow is `.github/workflows/pages.yml`.
 
-## Recommended GitHub Pages setting
+## Deployment sequence
 
-The clean repository configuration is:
+1. A commit reaches `main`.
+2. The normal `CI` workflow runs type checking, unit tests, build checks, Impeccable, Playwright E2E tests, and a Pages-specific artifact verification.
+3. `Deploy GitHub Pages` starts only after that main CI run succeeds.
+4. The workflow checks out the exact tested SHA.
+5. Vite builds with `base=/DotaGraph/`.
+6. The compiled artifact is tagged with the exact Git commit SHA.
+7. The artifact is validated and deployed.
+8. A fresh Chromium browser opens the public canonical URL.
+9. Deployment verification waits until the page renders DotaGraph and exposes the exact expected build SHA.
 
-1. Open **Settings**.
-2. Open **Pages**.
-3. Under **Build and deployment**, set **Source** to **GitHub Actions**.
+## Why the build marker matters
 
-After that change, GitHub stops starting the generated Jekyll **pages build and deployment** workflow. DotaGraph's own **Deploy GitHub Pages** workflow remains the only publisher.
+A successful HTTP request is insufficient for a single-page application.
 
-## Why branch deployment is unsuitable
+A CDN can temporarily serve an older HTML document, and a JavaScript file can return HTTP 200 while still failing at runtime.
 
-The repository root contains Vite source files. A branch-based GitHub Pages deployment publishes/Jekyll-builds the repository source rather than the compiled Vite application.
+DotaGraph writes the deployment SHA to:
 
-The source `index.html` legitimately contains:
+`document.documentElement.dataset.dotagraphBuild`
+
+The post-deployment browser test compares that value with the exact SHA that passed CI. It also fails on:
+
+- a blank `#root`;
+- a missing visible DotaGraph heading;
+- uncaught JavaScript errors;
+- browser console errors;
+- failed same-origin requests;
+- stale deployment content.
+
+The browser check retries for up to one minute because GitHub Pages/CDN propagation is not always instantaneous.
+
+## Blank page diagnosis
+
+The source repository `index.html` contains the Vite development entry:
 
 ```html
 <script type="module" src="/src/main.tsx"></script>
 ```
 
-Vite replaces that entry during a production build. A raw branch deployment does not, so a browser receives a TypeScript/TSX source entry and the page becomes blank.
+A correct production deployment never serves that source entry. Vite replaces it with hashed files under:
 
-## Automated safeguards
+`/DotaGraph/assets/`
 
-Normal CI verifies:
+If a browser still shows an older blank version immediately after a successful deployment, use a hard refresh. GitHub Pages and the browser may still have the previously published HTML cached for a short period.
 
-- TypeScript type checking;
-- unit tests;
-- production build;
-- Impeccable design checks;
-- Playwright browser tests;
-- a dedicated GitHub Pages production build.
+On Windows browsers:
 
-The deployment workflow additionally verifies:
+- **Firefox:** `Ctrl+Shift+R`
+- **Chrome/Edge:** `Ctrl+Shift+R`
 
-- the exact tested commit is checked out;
-- `dist/index.html` contains compiled hashed assets;
-- no `/src/main.tsx` reference remains in the deployment artifact;
-- no unresolved `%BASE_URL%` placeholder remains;
-- all referenced JS/CSS files exist;
-- the favicon is present;
-- the public page eventually serves the compiled `/DotaGraph/assets/*.js` bundle.
+You can also test a cache-busting URL such as:
 
-The live verification retries for up to one minute to tolerate GitHub Pages propagation.
+`https://chychyndr.github.io/DotaGraph/?refresh=1`
 
-## Diagnosing Pages
-
-A run named **CI** checks the project itself.
-
-A run named **Deploy GitHub Pages** builds and publishes the tested application.
-
-A generated run named **pages build and deployment** means the repository is still using the legacy branch Pages source. The custom workflow is sequenced after CI so that its compiled deployment wins, but **Source → GitHub Actions** is still the preferred permanent configuration.
+If the cache-busting URL works while the bare URL does not, the deployed application itself is healthy and the remaining issue is cached HTML.

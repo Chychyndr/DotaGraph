@@ -30,10 +30,13 @@ jobs:
       - run: npm run test:e2e
 
       - name: Verify GitHub Pages production artifact
-        shell: bash
+        env:
+          DOTAGRAPH_PAGES: "1"
+          VITE_BUILD_SHA: ci-pages-build
+          EXPECTED_BUILD_SHA: ci-pages-build
         run: |
           rm -rf dist
-          DOTAGRAPH_PAGES=1 npm run build
+          npm run build
           npm run verify:pages
 
       - name: Upload UX screenshots

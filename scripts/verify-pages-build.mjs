@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const dist = join(root, "dist");
 const indexPath = join(dist, "index.html");
+const expectedBuildSha = process.env.EXPECTED_BUILD_SHA;
 
 const fail = (message) => {
   console.error(`Pages artifact verification failed: ${message}`);
@@ -48,4 +49,21 @@ if (!existsSync(join(dist, "favicon.svg"))) {
   fail("dist/favicon.svg is missing.");
 }
 
-console.log(`Pages artifact OK: ${assetPaths.length} hashed assets verified.`);
+if (expectedBuildSha) {
+  const javascript = assetPaths
+    .filter((assetPath) => assetPath.endsWith(".js"))
+    .map((assetPath) => readFileSync(join(dist, assetPath), "utf8"))
+    .join("\n");
+
+  if (!javascript.includes(expectedBuildSha)) {
+    fail(`compiled JavaScript does not contain expected build SHA ${expectedBuildSha}`);
+  }
+
+  if (!javascript.includes("dotagraphBuild")) {
+    fail("compiled JavaScript does not expose the DotaGraph build marker.");
+  }
+}
+
+console.log(
+  `Pages artifact OK: ${assetPaths.length} hashed assets verified${expectedBuildSha ? `, build ${expectedBuildSha}` : ""}.`
+);
