@@ -1,10 +1,10 @@
 # Architecture
 
-## First milestone
+## Current frontend architecture
 
-The first implementation uses React + TypeScript + Vite with a deterministic SVG graph renderer.
+The current implementation uses React + TypeScript + Vite with a deterministic SVG graph renderer.
 
-SVG is deliberately chosen for the first UX milestone because the fixture graph is small and custom portrait nodes, arrowheads, edge labels, keyboard focus, and DOM accessibility are straightforward.
+SVG is deliberately used for the current graph/frontend work because the fixture graph is small and custom portrait nodes, arrowheads, edge labels, keyboard focus, and DOM accessibility are straightforward.
 
 The domain model and relationship selection logic are independent from the renderer so a later Sigma.js + Graphology renderer can replace SVG without rewriting product logic.
 
@@ -32,4 +32,4 @@ Examples:
 
 Frontend consumes validated generated data. Production observations must retain explicit direction, source win rate, sample size, patch, rank scope, provenance, and generation metadata.
 
-No real source ingestion is part of this milestone.
+Real source ingestion is outside the current frontend work and requires source and methodology approval.
