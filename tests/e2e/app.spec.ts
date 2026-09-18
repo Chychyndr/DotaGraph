@@ -94,6 +94,9 @@ test("hero artwork loads from one local atlas without Steamstatic requests", asy
 test("graph exposes one keyboard tab stop and supports spatial arrow navigation", async ({ page }) => {
   await page.goto("/");
 
+  await expect(page.getByRole("group", { name: "Dota 2 hero counter relationships" })).toBeVisible();
+  await expect(page.getByRole("button", { name: /^Select / })).toHaveCount(127);
+
   const tabbableHeroes = page.locator('.hero-node[tabindex="0"]');
   await expect(tabbableHeroes).toHaveCount(1);
 
