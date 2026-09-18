@@ -59,6 +59,20 @@ button:focus-visible, input:focus-visible, [role="button"]:focus-visible {
   z-index: 30;
 }
 
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+
+.brand-logo {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  display: block;
+}
+
 .brand-block h1 {
   margin: 0;
   font-size: 20px;
