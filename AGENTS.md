@@ -392,14 +392,14 @@ Never use "publicly visible on the web" as proof that scraping is permitted.
 
 Current decisions:
 - **OpenDota dotaconstants:** approved for static identity/constants metadata under MIT.
-- **Dota2ProTracker:** blocked for ingestion under the reviewed Terms of Service; UX observation only.
-- **DOTABUFF:** research only; no automated ingestion.
-- **OpenDota hosted API:** conditional; API evaluation is allowed, but production derived-data publication and Ancient+ scope remain unresolved.
-- **STRATZ GraphQL API:** conditional; API evaluation is allowed, but caching/derived-data redistribution rights remain unresolved.
+- **OpenDota hosted API:** owner-approved direct statistical source. Prefer the official API/Explorer; retain exact scope and provenance.
+- **STRATZ GraphQL API:** owner-approved direct statistical source. Use the official token-authenticated API; keep tokens server-side/pipeline-only.
+- **DOTABUFF:** owner-approved direct statistical source. Public statistics may be cited/used directly, but automated HTML scraping/private-endpoint reverse engineering still requires a provider-compatible access method or explicit permission.
+- **Dota2ProTracker:** owner-approved direct professional/high-MMR source. Public statistics may be cited/used directly, but automated scraping remains disallowed under the currently reviewed site terms unless D2PT grants permission.
 - **Valve / Steam:** conditional; API use and Valve artwork rights are separate, and the multiplayer unfair-advantage clause needs product-specific review.
 - **Reddit/community:** qualitative only; community opinions never contribute directly to headline numerical statistics.
 
-Do not implement a production statistical adapter for a conditional source until the exact caching/derived-publication rights and approved rank/patch scope are explicit.
+Owner approval recorded on 2026-09-19 establishes OpenDota, STRATZ, DOTABUFF, and Dota2ProTracker as the allowed direct-source set for DotaGraph. Direct-source approval does not override provider terms: use official APIs where available, do not bypass authentication/rate limits, and do not automate a website when its current terms prohibit that automation.
 
 ## Aggregation
 
@@ -599,8 +599,8 @@ Only one relationship layer should dominate at a time.
 ## Human approval gates
 
 Ask the owner before:
-- beginning production scraping/data ingestion;
-- adding a new external data source;
+- adding a new external data source outside the owner-approved direct-source set;
+- introducing a new automated scraping/access method that is not already documented as provider-compatible;
 - changing headline rank scope;
 - changing the 500-match threshold;
 - changing aggregation methodology;
