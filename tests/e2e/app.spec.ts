@@ -31,3 +31,25 @@ test("direct URL state loads focus", async ({ page }) => {
   await page.goto("/?hero=viper");
   await expect(page.getByLabel("Viper counter summary")).toBeVisible();
 });
+
+test("a direction with no reliable fixture relationships shows an explicit empty state", async ({ page }) => {
+  await page.goto("/");
+  const search = page.getByRole("textbox", { name: "Search for a hero" });
+  await search.fill("night stalker");
+  await page.getByRole("option", { name: /Night Stalker/ }).click();
+  await expect(page.getByText("No reliable fixture relationships.")).toBeVisible();
+});
+
+for (const viewport of [
+  { width: 1280, height: 720 },
+  { width: 1366, height: 768 },
+  { width: 1920, height: 1080 }
+]) {
+  test(`focus state stays usable at ${viewport.width}x${viewport.height}`, async ({ page }) => {
+    await page.setViewportSize(viewport);
+    await page.goto("/?hero=viper");
+    await expect(page.getByRole("textbox", { name: "Search for a hero" })).toBeVisible();
+    await expect(page.getByLabel("Viper counter summary")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Reset" })).toBeVisible();
+  });
+}
