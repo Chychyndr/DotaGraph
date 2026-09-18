@@ -188,6 +188,7 @@ test("Sigma renderer spike mounts the full graph and preserves product state", a
   await expect(sigma).toBeVisible();
   await expect(sigma).toHaveAttribute("data-node-count", "127");
   await expect(sigma).toHaveAttribute("data-ready", "true");
+  await expect(sigma).toHaveAttribute("data-portraits-prepared", "true");
 
   const edgeCount = Number(await sigma.getAttribute("data-edge-count"));
   expect(edgeCount).toBeGreaterThan(0);
@@ -196,7 +197,12 @@ test("Sigma renderer spike mounts the full graph and preserves product state", a
   expect(firstRenderMs).toBeGreaterThanOrEqual(0);
   expect(firstRenderMs).toBeLessThan(1500);
 
+  console.log(
+    `Sigma spike metrics: nodes=127 edges=${edgeCount} firstRenderMs=${firstRenderMs}`
+  );
+
   await expect(sigma.locator("canvas")).not.toHaveCount(0);
+  await page.waitForTimeout(900);
   await expect(page.getByLabel("Viper counter summary")).toBeVisible();
   await expect(page).toHaveURL(/renderer=sigma/);
   await expect(page).toHaveURL(/hero=viper/);
