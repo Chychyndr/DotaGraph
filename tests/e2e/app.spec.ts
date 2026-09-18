@@ -91,6 +91,37 @@ test("hero artwork loads from one local atlas without Steamstatic requests", asy
   expect(atlasResponses).toBe(1);
 });
 
+test("graph exposes one keyboard tab stop and supports spatial arrow navigation", async ({ page }) => {
+  await page.goto("/");
+
+  const tabbableHeroes = page.locator('.hero-node[tabindex="0"]');
+  await expect(tabbableHeroes).toHaveCount(1);
+
+  await tabbableHeroes.first().focus();
+  const beforeId = await page.evaluate(() => document.activeElement?.id);
+  await page.keyboard.press("ArrowRight");
+  const afterId = await page.evaluate(() => document.activeElement?.id);
+
+  expect(beforeId).toMatch(/^graph-hero-/);
+  expect(afterId).toMatch(/^graph-hero-/);
+  expect(afterId).not.toBe(beforeId);
+  await expect(tabbableHeroes).toHaveCount(1);
+});
+
+test("keyboard search selection moves focus to the selected graph hero", async ({ page }) => {
+  await page.goto("/");
+
+  const search = page.getByRole("combobox", { name: "Search for a hero" });
+  await search.fill("viper");
+  await page.keyboard.press("Enter");
+
+  const selected = page.locator("#graph-hero-viper");
+  await expect(selected).toBeFocused();
+  await expect(selected).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("status")).toHaveText("Viper selected");
+  await expect(page).toHaveURL(/hero=viper/);
+});
+
 test("hero alias search resolves from metadata", async ({ page }) => {
   await page.goto("/");
   const search = page.getByRole("textbox", { name: "Search for a hero" });
