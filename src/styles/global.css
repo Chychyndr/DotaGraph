@@ -150,7 +150,10 @@ button:focus-visible, input:focus-visible, [role="button"]:focus-visible {
   left: 0;
   right: 0;
   z-index: 50;
-  overflow: hidden;
+  max-height: min(360px, calc(100dvh - 96px));
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 4px;
   background: var(--panel);
   border: 1px solid var(--border);
