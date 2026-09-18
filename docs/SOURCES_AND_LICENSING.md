@@ -117,6 +117,20 @@ Scope limitation:
 
 Review date: 2026-09-18.
 
+### Patch 7.41e layout evaluation
+
+Issue #26 uses the OpenDota hosted API only for a reproducible offline **layout evaluation**:
+- query source: OpenDota Explorer over `public_matches`;
+- patch window: 2026-08-01T00:00:00Z through 2026-09-15T00:00:00Z exclusive;
+- ranked All Pick and average rank tier >= 60;
+- only derived hero coordinates, query scope, coverage, and layout-quality metrics are committed;
+- raw match IDs, raw player data, and the full OpenDota matchup matrix are not committed;
+- the generated coordinates must not be described as OpenDota's own counter ranking.
+
+This does not change OpenDota's **Conditional** production-data decision above. Publishing headline OpenDota-derived matchup statistics remains a separate rights/methodology gate.
+
+DOTABUFF and Dota2ProTracker remain manual validation/reference sources for this task and must not be scraped. STRATZ remains available for API validation only when an authorized token and the applicable data-use rights are available.
+
 ## STRATZ GraphQL API
 
 **Decision: Conditional. API evaluation is allowed; production caching/redistribution remains blocked until STRATZ's rights for the intended derived-data publication are explicit or confirmed.**
