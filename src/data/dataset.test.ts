@@ -74,9 +74,7 @@ describe("validateDataset", () => {
 
   it("requires an explanation when upstream marks data stale", () => {
     const dataset = validDataset();
-    dataset.metadata.freshness = { status: "stale" } as {
-      status: "current";
-    };
+    dataset.metadata.freshness = { status: "stale" };
 
     const result = validateDataset(dataset);
 
