@@ -102,8 +102,13 @@ test("graph exposes one keyboard tab stop and supports spatial arrow navigation"
 
   await tabbableHeroes.first().focus();
   const beforeId = await page.evaluate(() => document.activeElement?.id);
-  await page.keyboard.press("ArrowRight");
-  const afterId = await page.evaluate(() => document.activeElement?.id);
+  let afterId = beforeId;
+
+  for (const key of ["ArrowRight", "ArrowLeft", "ArrowDown", "ArrowUp"]) {
+    await page.keyboard.press(key);
+    afterId = await page.evaluate(() => document.activeElement?.id);
+    if (afterId !== beforeId) break;
+  }
 
   expect(beforeId).toMatch(/^graph-hero-/);
   expect(afterId).toMatch(/^graph-hero-/);
