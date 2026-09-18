@@ -273,6 +273,8 @@ export function SigmaSpikeView({
       role="img"
       aria-label="Sigma renderer comparison graph"
       data-renderer="sigma"
+      data-node-count={graph.order}
+      data-edge-count={graph.size}
     />
   );
 }
