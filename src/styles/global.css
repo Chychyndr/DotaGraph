@@ -290,6 +290,12 @@ button:focus-visible, input:focus-visible, [role="button"]:focus-visible {
 .hero-matchup .node-ring { stroke-width: 2.4; }
 .hero-hovered:not(.hero-selected) .node-ring { stroke: var(--secondary); }
 
+.hero-node:focus { outline: none; }
+.hero-node:focus-visible .node-ring {
+  stroke: var(--outgoing-strong);
+  stroke-width: 2.6;
+}
+
 .hero-label {
   fill: var(--text);
   font: 600 11px -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
