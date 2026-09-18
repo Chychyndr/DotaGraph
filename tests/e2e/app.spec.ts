@@ -35,6 +35,42 @@ test("overview renders the complete hero roster and search reaches the newest he
   await expect(page.getByLabel("Largo counter summary")).toBeVisible();
 });
 
+test("focused win-rate labels stay source-anchored and do not overlap", async ({ page }) => {
+  await page.goto("/?hero=viper");
+
+  const labels = page.locator(".edge-label");
+  await expect(labels).toHaveCount(10);
+
+  const boxes = [];
+  for (let index = 0; index < await labels.count(); index += 1) {
+    const label = labels.nth(index);
+    const t = Number(await label.getAttribute("data-label-t"));
+    expect(t).toBeGreaterThanOrEqual(0.2);
+    expect(t).toBeLessThanOrEqual(0.62);
+
+    const box = await label.boundingBox();
+    expect(box).not.toBeNull();
+    boxes.push(box!);
+  }
+
+  for (let a = 0; a < boxes.length; a += 1) {
+    for (let b = a + 1; b < boxes.length; b += 1) {
+      const overlapWidth = Math.min(boxes[a].x + boxes[a].width, boxes[b].x + boxes[b].width)
+        - Math.max(boxes[a].x, boxes[b].x);
+      const overlapHeight = Math.min(boxes[a].y + boxes[a].height, boxes[b].y + boxes[b].height)
+        - Math.max(boxes[a].y, boxes[b].y);
+
+      expect(overlapWidth > 0 && overlapHeight > 0).toBe(false);
+    }
+  }
+
+  mkdirSync("artifacts/screenshots", { recursive: true });
+  await page.screenshot({
+    path: "artifacts/screenshots/focus-viper-label-layout.png",
+    fullPage: true
+  });
+});
+
 test("hero artwork loads from one local atlas without Steamstatic requests", async ({ page }) => {
   let atlasResponses = 0;
   let steamstaticRequests = 0;
