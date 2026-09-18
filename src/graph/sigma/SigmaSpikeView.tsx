@@ -170,6 +170,7 @@ export function SigmaSpikeView({
         }
 
         rendererRef.current?.refresh();
+        containerRef.current?.setAttribute("data-portraits-prepared", "true");
       })
       .catch((error: unknown) => {
         console.warn("Sigma portrait texture spike failed.", error);
