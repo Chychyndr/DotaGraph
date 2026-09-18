@@ -12,7 +12,7 @@ test("capture Overview, Focus and Matchup states", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "DotaGraph" })).toBeVisible();
   await page.screenshot({ path: `${output}/overview.png`, fullPage: true });
 
-  const search = page.getByRole("textbox", { name: "Search for a hero" });
+  const search = page.getByRole("combobox", { name: "Search for a hero" });
   await search.fill("viper");
   await page.getByRole("option", { name: /Viper/ }).click();
   await expect(page.getByLabel("Viper counter summary")).toBeVisible();
