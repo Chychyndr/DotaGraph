@@ -29,6 +29,7 @@ GAME_MODE = 22
 LOBBY_TYPE = 7
 MIN_SAMPLE = 500
 TOP_PER_DIRECTION = 5
+MIN_QUERY_SECONDS = 6 * 60 * 60
 
 OPENDOTA_BASE_URL = "https://api.opendota.com/api"
 USER_AGENT = "DotaGraph/0.1 (+https://github.com/Chychyndr/DotaGraph)"
@@ -154,7 +155,7 @@ def _fetch_pair_rows_for_range(
         )
     except RuntimeError as exc:
         duration = end_epoch - start_epoch
-        if not _is_explorer_timeout(str(exc)) or duration <= 86_400:
+        if not _is_explorer_timeout(str(exc)) or duration <= MIN_QUERY_SECONDS:
             raise
 
         midpoint = start_epoch + duration // 2
@@ -172,7 +173,7 @@ def _fetch_pair_rows_for_range(
     if payload.get("err"):
         message = str(payload["err"])
         duration = end_epoch - start_epoch
-        if _is_explorer_timeout(message) and duration > 86_400:
+        if _is_explorer_timeout(message) and duration > MIN_QUERY_SECONDS:
             midpoint = start_epoch + duration // 2
             midpoint -= midpoint % 86_400
             if midpoint <= start_epoch or midpoint >= end_epoch:
@@ -191,7 +192,7 @@ def _fetch_pair_rows_for_range(
 
 
 def _fetch_pair_rows() -> list[dict[str, Any]]:
-    chunk_seconds = 3 * 86_400
+    chunk_seconds = 86_400
     rows: list[dict[str, Any]] = []
     start_epoch = PATCH_START_EPOCH
 
