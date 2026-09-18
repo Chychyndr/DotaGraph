@@ -53,6 +53,8 @@ const MIN_ZOOM = 0.55;
 const MAX_ZOOM = 2.4;
 const DRAG_THRESHOLD = 5;
 const CAMERA_DURATION = 460;
+const COMPACT_VIEWPORT_QUERY = "(max-width: 640px)";
+const COMPACT_FOCUS_OFFSET_Y = -120;
 
 const clamp = (value: number, min: number, max: number) =>
   Math.min(max, Math.max(min, value));
@@ -76,12 +78,14 @@ export function GraphView({
   onClearSelection
 }: GraphViewProps) {
   const byId = useMemo(() => new Map(heroes.map((hero) => [hero.id, hero])), [heroes]);
+  const initialCompactViewport = window.matchMedia(COMPACT_VIEWPORT_QUERY).matches;
+  const [isCompactViewport, setIsCompactViewport] = useState(initialCompactViewport);
   const initialHero = selectedHeroId ? byId.get(selectedHeroId) : undefined;
   const initialCamera: CameraState = {
     anchorX: initialHero?.x ?? WIDTH / 2,
     anchorY: initialHero?.y ?? HEIGHT / 2,
     panX: 0,
-    panY: 0,
+    panY: initialHero && initialCompactViewport ? COMPACT_FOCUS_OFFSET_Y : 0,
     zoom: 1,
     focusScale: initialHero ? 1.04 : 1
   };
@@ -91,7 +95,7 @@ export function GraphView({
   const [keyboardHeroId, setKeyboardHeroId] = useState<string | null>(selectedHeroId ?? heroes[0]?.id ?? null);
   const cameraRef = useRef(camera);
   const animationFrameRef = useRef<number | null>(null);
-  const previousSelectionRef = useRef(selectedHeroId);
+  const previousCameraTargetRef = useRef(`${selectedHeroId ?? ""}:${initialCompactViewport}`);
   const previousKeyboardSelectionRef = useRef(selectedHeroId);
   const dragRef = useRef<DragState | null>(null);
 
@@ -111,8 +115,9 @@ export function GraphView({
   };
 
   useEffect(() => {
-    if (previousSelectionRef.current === selectedHeroId) return;
-    previousSelectionRef.current = selectedHeroId;
+    const cameraTargetKey = `${selectedHeroId ?? ""}:${isCompactViewport}`;
+    if (previousCameraTargetRef.current === cameraTargetKey) return;
+    previousCameraTargetRef.current = cameraTargetKey;
 
     cancelCameraAnimation();
 
@@ -121,7 +126,7 @@ export function GraphView({
       anchorX: selected?.x ?? WIDTH / 2,
       anchorY: selected?.y ?? HEIGHT / 2,
       panX: 0,
-      panY: 0,
+      panY: selected && isCompactViewport ? COMPACT_FOCUS_OFFSET_Y : 0,
       zoom: 1,
       focusScale: selected ? 1.04 : 1
     };
@@ -157,9 +162,19 @@ export function GraphView({
     animationFrameRef.current = window.requestAnimationFrame(tick);
 
     return cancelCameraAnimation;
-  }, [selectedHeroId, byId]);
+  }, [selectedHeroId, byId, isCompactViewport]);
 
   useEffect(() => cancelCameraAnimation, []);
+
+  useEffect(() => {
+    const media = window.matchMedia(COMPACT_VIEWPORT_QUERY);
+    const onChange = (event: MediaQueryListEvent) => setIsCompactViewport(event.matches);
+
+    setIsCompactViewport(media.matches);
+    media.addEventListener("change", onChange);
+    return () => media.removeEventListener("change", onChange);
+  }, []);
+
 
   useEffect(() => {
     if (previousKeyboardSelectionRef.current === selectedHeroId) return;
@@ -344,6 +359,7 @@ export function GraphView({
       <svg
       className={isPanning ? "graph graph-panning" : "graph"}
       viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
+      preserveAspectRatio={isCompactViewport ? "xMidYMid slice" : "xMidYMid meet"}
       role="group"
       aria-roledescription="interactive graph"
       aria-label="Dota 2 hero counter relationships"
