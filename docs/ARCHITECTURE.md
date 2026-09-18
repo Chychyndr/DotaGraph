@@ -13,8 +13,8 @@ See `docs/adr/0001-graph-renderer.md`.
 ## Boundaries
 
 - `src/domain/`: semantic types and pure relationship logic.
-- `src/data/`: fixture data and current scope metadata.
-- `src/components/`: Search and contextual cards.
+- `src/data/`: fixture data, scope metadata, dataset validation, and the asynchronous frontend loading boundary.
+- `src/components/`: Search, contextual cards, and shared portrait-asset state.
 - `src/graph/`: renderer/layout only.
 - `src/styles/`: design tokens and app styling.
 
@@ -30,6 +30,20 @@ Examples:
 
 ## Data boundary
 
-Frontend consumes validated generated data. Production observations must retain explicit direction, source win rate, sample size, patch, rank scope, provenance, and generation metadata.
+The frontend does not render raw imported data directly. `loadDataset` assembles the local published bundle and passes it through runtime validation before React receives it.
+
+Loading and validation are intentionally explicit:
+- while the bundle is pending, the graph is not presented as ready;
+- malformed bundles block the graph instead of exposing partial relationships;
+- a validated stale bundle remains usable with a visible warning;
+- load failures expose a retry state.
+
+Production observations must retain explicit direction, source win rate, sample size, patch, rank scope, provenance, and generation metadata.
 
 Real source ingestion is outside the current frontend work and requires source and methodology approval.
+
+## Portrait asset boundary
+
+All hero portraits come from one local WebP atlas. `PortraitProvider` performs one deduplicated fetch and decode check, including under React StrictMode.
+
+Once ready, components and the SVG graph use the decoded atlas through a local object URL. If the request or decode fails, the graph and cards keep their dimensions and switch to text fallbacks while the UI shows a non-blocking portrait warning.

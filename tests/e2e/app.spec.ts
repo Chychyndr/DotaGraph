@@ -91,6 +91,23 @@ test("hero artwork loads from one local atlas without Steamstatic requests", asy
   expect(atlasResponses).toBe(1);
 });
 
+test("portrait atlas failure keeps the graph usable with text fallbacks", async ({ page }) => {
+  await page.route("**/assets/heroes-atlas.webp*", (route) => route.abort());
+
+  await page.goto("/");
+
+  await expect(page.getByText("Hero portraits are unavailable.")).toBeVisible();
+  await expect(page.locator(".hero-node")).toHaveCount(127);
+  await expect(page.locator(".hero-node-fallback-text")).toHaveCount(127);
+
+  const search = page.getByRole("combobox", { name: "Search for a hero" });
+  await search.fill("viper");
+  await page.getByRole("option", { name: /Viper/ }).click();
+
+  await expect(page.getByLabel("Viper counter summary")).toBeVisible();
+  await expect(page.locator('.hero-portrait[data-portrait-status="failed"]')).not.toHaveCount(0);
+});
+
 test("graph exposes one keyboard tab stop and supports spatial arrow navigation", async ({ page }) => {
   await page.goto("/");
 
