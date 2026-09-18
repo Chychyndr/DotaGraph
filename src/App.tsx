@@ -6,6 +6,7 @@ import { fixtureRelationships, scope } from "./data/fixtures";
 import { heroById, heroes } from "./data/heroes";
 import { findRelationship, selectRelations } from "./domain/relationships";
 import { GraphView } from "./graph/GraphView";
+import { SigmaSpikeView } from "./graph/sigma/SigmaSpikeView";
 
 function readInitialState() {
   const params = new URLSearchParams(window.location.search);
@@ -19,6 +20,10 @@ function readInitialState() {
 
 export default function App() {
   const initial = useMemo(readInitialState, []);
+  const useSigmaSpike = useMemo(
+    () => new URLSearchParams(window.location.search).get("renderer") === "sigma",
+    []
+  );
   const [selectedHeroId, setSelectedHeroId] = useState<string | null>(initial.hero);
   const [matchupHeroId, setMatchupHeroId] = useState<string | null>(initial.matchup);
   const [hoveredHeroId, setHoveredHeroId] = useState<string | null>(null);
@@ -41,11 +46,12 @@ export default function App() {
 
   useEffect(() => {
     const params = new URLSearchParams();
+    if (useSigmaSpike) params.set("renderer", "sigma");
     if (selectedHeroId) params.set("hero", selectedHeroId);
     if (selectedHeroId && matchupHeroId && matchup) params.set("matchup", matchupHeroId);
     const query = params.toString();
     window.history.replaceState({}, "", query ? `?${query}` : window.location.pathname);
-  }, [selectedHeroId, matchupHeroId, matchup]);
+  }, [selectedHeroId, matchupHeroId, matchup, useSigmaSpike]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -97,18 +103,33 @@ export default function App() {
       </header>
 
       <section className="graph-stage" aria-label="DotaGraph counter map">
-        <GraphView
-          heroes={heroes}
-          relationships={fixtureRelationships.filter((relationship) => relationship.sampleSize >= scope.minimumSample)}
-          selectedHeroId={selectedHeroId}
-          hoveredHeroId={hoveredHeroId}
-          matchupHeroId={matchupHeroId}
-          selectedRelations={selectedRelations}
-          onSelectHero={selectHero}
-          onSelectMatchup={setMatchupHeroId}
-          onHoverHero={setHoveredHeroId}
-          onClearSelection={reset}
-        />
+        {useSigmaSpike ? (
+          <SigmaSpikeView
+            heroes={heroes}
+            relationships={fixtureRelationships.filter((relationship) => relationship.sampleSize >= scope.minimumSample)}
+            selectedHeroId={selectedHeroId}
+            hoveredHeroId={hoveredHeroId}
+            matchupHeroId={matchupHeroId}
+            selectedRelations={selectedRelations}
+            onSelectHero={selectHero}
+            onSelectMatchup={setMatchupHeroId}
+            onHoverHero={setHoveredHeroId}
+            onClearSelection={reset}
+          />
+        ) : (
+          <GraphView
+            heroes={heroes}
+            relationships={fixtureRelationships.filter((relationship) => relationship.sampleSize >= scope.minimumSample)}
+            selectedHeroId={selectedHeroId}
+            hoveredHeroId={hoveredHeroId}
+            matchupHeroId={matchupHeroId}
+            selectedRelations={selectedRelations}
+            onSelectHero={selectHero}
+            onSelectMatchup={setMatchupHeroId}
+            onHoverHero={setHoveredHeroId}
+            onClearSelection={reset}
+          />
+        )}
 
         {!selectedHero && (
           <div className="empty-guidance">
