@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Hero } from "../domain/types";
-import { findHeroInDirection } from "./keyboardNavigation";
+import { findHeroInDirection, findNearestHeroToPoint } from "./keyboardNavigation";
 
 const hero = (id: string, x: number, y: number): Hero => ({
   id,
@@ -35,5 +35,17 @@ describe("findHeroInDirection", () => {
 
   it("returns undefined for an unknown current hero", () => {
     expect(findHeroInDirection("missing", "ArrowRight", heroes)).toBeUndefined();
+  });
+});
+
+
+describe("findNearestHeroToPoint", () => {
+  it("returns the hero closest to the requested point", () => {
+    expect(findNearestHeroToPoint(heroes, 105, 95)?.id).toBe("center");
+    expect(findNearestHeroToPoint(heroes, 175, 105)?.id).toBe("right");
+  });
+
+  it("returns undefined for an empty roster", () => {
+    expect(findNearestHeroToPoint([], 0, 0)).toBeUndefined();
   });
 });
