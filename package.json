@@ -12,7 +12,10 @@
     "test:e2e": "playwright test",
     "typecheck": "tsc -b --pretty false",
     "design:detect": "impeccable detect src/",
-    "verify:pages": "node scripts/verify-pages-build.mjs"
+    "verify:pages": "node scripts/verify-pages-build.mjs",
+    "assets:heroes": "node scripts/generate-hero-atlas.mjs",
+    "predev": "npm run assets:heroes",
+    "prebuild": "npm run assets:heroes"
   },
   "dependencies": {
     "react": "^19.1.1",
@@ -30,6 +33,7 @@
     "typescript": "^5.9.2",
     "vite": "^7.1.5",
     "vitest": "^3.2.4",
-    "impeccable": "3.2.1"
+    "impeccable": "3.2.1",
+    "sharp": "^0.35.4"
   }
 }
