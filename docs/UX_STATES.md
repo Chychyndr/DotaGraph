@@ -78,3 +78,36 @@
 - Focus and matchup changes are announced through a polite live region.
 - Relationship controls describe direction and identify whose win rate is being shown.
 - Reduced-motion preferences bypass the camera animation.
+
+## Runtime data and asset states
+
+### Loading
+
+- The brand remains visible while the published matchup bundle is loading and being validated.
+- The graph and search are withheld until validation succeeds.
+- A polite live status explains that matchup data is being checked.
+
+### Stale data
+
+- A validated bundle marked `stale` remains usable.
+- A compact warning stays above the graph and includes the upstream reason.
+- The frontend does not invent its own age threshold yet; the stale/current decision comes from validated dataset metadata.
+
+### Malformed data
+
+- The graph is blocked when the published bundle fails validation.
+- Partial relationships are never rendered.
+- The error state explains that validation failed, exposes the first validation reason, and provides Retry.
+
+### Dataset unavailable
+
+- A failed local bundle load shows a blocking retry state.
+- The UI does not silently fall back to fabricated or incomplete data.
+
+### Portrait failure
+
+- The shared portrait atlas is requested and decoded once.
+- If the atlas fails, the graph remains interactive and all portrait slots keep their normal dimensions.
+- Graph nodes and cards switch to compact text fallbacks derived from hero names.
+- A non-blocking warning explains that portraits are unavailable.
+
