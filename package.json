@@ -11,7 +11,8 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "typecheck": "tsc -b --pretty false",
-    "design:detect": "impeccable detect src/"
+    "design:detect": "impeccable detect src/",
+    "verify:pages": "node scripts/verify-pages-build.mjs"
   },
   "dependencies": {
     "react": "^19.1.1",
