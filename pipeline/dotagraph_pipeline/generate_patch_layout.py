@@ -96,22 +96,29 @@ def _load_catalog(repo_root: Path) -> set[str]:
     return {str(hero["slug"]) for hero in raw}
 
 
-def _load_opendota_hero_map(catalog_slugs: set[str]) -> dict[int, str]:
-    constants = _request_json(_api_url("/constants/heroes"))
-    result: dict[int, str] = {}
+def _load_opendota_hero_map(
+    repo_root: Path,
+    catalog_slugs: set[str],
+) -> dict[int, str]:
+    mapping_path = repo_root / "pipeline" / "data" / "opendota_hero_ids.json"
+    payload = json.loads(mapping_path.read_text(encoding="utf-8"))
+    raw_heroes = payload.get("heroes")
+    if not isinstance(raw_heroes, dict):
+        raise RuntimeError("Vendored OpenDota hero-id mapping is malformed")
 
-    for raw_id, hero in constants.items():
-        if not isinstance(hero, dict):
-            continue
+    result = {
+        int(raw_id): str(slug)
+        for raw_id, slug in raw_heroes.items()
+        if str(slug) in catalog_slugs
+    }
 
-        internal_name = str(hero.get("name", ""))
-        prefix = "npc_dota_hero_"
-        if not internal_name.startswith(prefix):
-            continue
-
-        slug = internal_name.removeprefix(prefix)
-        if slug in catalog_slugs:
-            result[int(raw_id)] = slug
+    mapped_slugs = set(result.values())
+    missing = sorted(catalog_slugs - mapped_slugs)
+    if missing:
+        raise RuntimeError(
+            "Vendored OpenDota hero-id mapping is missing catalog heroes: "
+            + ", ".join(missing)
+        )
 
     return result
 
@@ -369,7 +376,7 @@ def _weighted_edges(
 
 def generate(repo_root: Path) -> dict[str, Any]:
     catalog_slugs = _load_catalog(repo_root)
-    hero_map = _load_opendota_hero_map(catalog_slugs)
+    hero_map = _load_opendota_hero_map(repo_root, catalog_slugs)
     rows = _fetch_pair_rows()
     pairs = _normalize_pairs(rows, hero_map)
     baselines = _hero_baselines(pairs)
