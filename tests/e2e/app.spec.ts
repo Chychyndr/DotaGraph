@@ -270,6 +270,29 @@ test("site exposes the DotaGraph logo as favicon and header brand", async ({ pag
   await expect(logo).toHaveAttribute("src", /favicon\.svg$/);
 });
 
+test("hero search results stay contained at the minimum supported width", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 568 });
+  await page.goto("/");
+
+  const search = page.getByRole("combobox", { name: "Search for a hero" });
+  await search.fill("a");
+
+  const results = page.getByRole("listbox", { name: "Hero search results" });
+  await expect(results).toBeVisible();
+
+  const box = await results.boundingBox();
+  expect(box).not.toBeNull();
+  expect(box!.x).toBeGreaterThanOrEqual(0);
+  expect(box!.x + box!.width).toBeLessThanOrEqual(320);
+  expect(box!.y + box!.height).toBeLessThanOrEqual(568);
+
+  const metrics = await page.evaluate(() => ({
+    innerWidth: window.innerWidth,
+    scrollWidth: document.documentElement.scrollWidth
+  }));
+  expect(metrics.scrollWidth).toBeLessThanOrEqual(metrics.innerWidth);
+});
+
 for (const viewport of [
   { width: 320, height: 568 },
   { width: 390, height: 844 },
