@@ -1,5 +1,6 @@
 import type { Hero } from "../domain/types";
 import heroCatalog from "./heroCatalog.json";
+import layout741e from "./layout-7.41e.json";
 
 interface HeroSeed {
   slug: string;
@@ -16,6 +17,10 @@ interface HeroOverride {
 }
 
 const HERO_CATALOG: HeroSeed[] = heroCatalog;
+const REAL_LAYOUT_POSITIONS = layout741e.positions as Record<
+  string,
+  { x: number; y: number }
+>;
 
 const ALIASES: Record<string, string[]> = {
   antimage: ["am"],
@@ -147,9 +152,11 @@ let generatedIndex = 0;
 
 export const heroes: Hero[] = HERO_CATALOG.map((seed, spriteIndex) => {
   const fixture = FIXTURE_OVERRIDES[seed.slug];
-  const point = typeof fixture?.x === "number" && typeof fixture?.y === "number"
-    ? { x: fixture.x, y: fixture.y }
-    : generatedPosition(generatedIndex++);
+  const point = REAL_LAYOUT_POSITIONS[seed.slug];
+
+  if (!point) {
+    throw new Error(`Missing patch 7.41e layout position for ${seed.slug}`);
+  }
 
   return {
     id: fixture?.id ?? DISPLAY_ID_OVERRIDES[seed.slug] ?? slugifyName(seed.name),
