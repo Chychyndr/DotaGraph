@@ -181,6 +181,33 @@ test("selecting a distant hero moves the camera progressively", async ({ page })
   await expect(page).toHaveURL(/hero=underlord/);
 });
 
+test("Sigma renderer spike mounts the full graph and preserves product state", async ({ page }) => {
+  await page.goto("/?renderer=sigma&hero=viper");
+
+  const sigma = page.getByRole("img", { name: "Sigma renderer comparison graph" });
+  await expect(sigma).toBeVisible();
+  await expect(sigma).toHaveAttribute("data-node-count", "127");
+  await expect(sigma).toHaveAttribute("data-ready", "true");
+
+  const edgeCount = Number(await sigma.getAttribute("data-edge-count"));
+  expect(edgeCount).toBeGreaterThan(0);
+
+  const firstRenderMs = Number(await sigma.getAttribute("data-first-render-ms"));
+  expect(firstRenderMs).toBeGreaterThanOrEqual(0);
+  expect(firstRenderMs).toBeLessThan(1500);
+
+  await expect(sigma.locator("canvas")).not.toHaveCount(0);
+  await expect(page.getByLabel("Viper counter summary")).toBeVisible();
+  await expect(page).toHaveURL(/renderer=sigma/);
+  await expect(page).toHaveURL(/hero=viper/);
+
+  mkdirSync("artifacts/screenshots", { recursive: true });
+  await page.screenshot({
+    path: "artifacts/screenshots/sigma-spike-viper.png",
+    fullPage: true
+  });
+});
+
 test("site exposes the DotaGraph logo as favicon and header brand", async ({ page }) => {
   await page.goto("/");
   const iconHref = await page.locator('link[rel="icon"]').getAttribute("href");
