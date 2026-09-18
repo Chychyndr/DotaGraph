@@ -55,3 +55,26 @@
 - Escape closes/clears.
 - Slash may focus the field.
 - Aliases come from hero metadata.
+
+
+## Responsive behavior
+
+- The app uses the dynamic viewport height so mobile browser chrome does not create hidden overflow.
+- At compact widths, the graph fills the available stage instead of shrinking the complete 1200×760 canvas into an unreadable thumbnail.
+- Focused heroes are shifted above the context card on compact screens.
+- Search results and context cards scroll internally and stay inside the viewport.
+- Safe-area insets are respected at the top and bottom.
+- The layout is browser-tested at 320×568, 390×844, 768×1024, and the supported desktop sizes.
+
+## Keyboard and assistive technology
+
+- The graph is exposed as an interactive group with all hero nodes available as buttons.
+- Only one hero is in the normal Tab order at a time.
+- Arrow keys move spatially between nearby heroes; compact navigation keeps the focused hero in view.
+- Enter or Space activates the focused hero.
+- Visible focus styling is drawn on the hero ring.
+- Hero search uses combobox/listbox semantics and exposes the `/` keyboard shortcut.
+- Search selection moves keyboard focus to the selected graph hero.
+- Focus and matchup changes are announced through a polite live region.
+- Relationship controls describe direction and identify whose win rate is being shown.
+- Reduced-motion preferences bypass the camera animation.

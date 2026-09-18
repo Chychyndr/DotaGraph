@@ -30,13 +30,16 @@ function RelationRows({
           ? relationship.targetHeroId
           : relationship.sourceHeroId;
         const neighbor = heroById.get(neighborId);
-        if (!neighbor) return null;
+        const source = heroById.get(relationship.sourceHeroId);
+        const target = heroById.get(relationship.targetHeroId);
+        if (!neighbor || !source || !target) return null;
 
         return (
           <button
             key={relationship.id}
             className="relation-row"
             type="button"
+            aria-label={`${source.name} counters ${target.name}; ${source.name} win rate ${formatPercent(relationship.sourceWinRate)}`}
             onClick={() => onMatchup(neighborId)}
           >
             <span className="relation-hero">

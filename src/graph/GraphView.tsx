@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent, WheelEvent as ReactWheelEvent } from "react";
 import type { Hero, MatchupRelationship, SelectedRelations } from "../domain/types";
 import { formatPercent } from "../domain/relationships";
+import { findHeroInDirection, findNearestHeroToPoint, type GraphNavigationDirection } from "./keyboardNavigation";
 import {
   HERO_ATLAS_CELL_SIZE,
   HERO_ATLAS_HEIGHT,
@@ -52,6 +53,8 @@ const MIN_ZOOM = 0.55;
 const MAX_ZOOM = 2.4;
 const DRAG_THRESHOLD = 5;
 const CAMERA_DURATION = 460;
+const COMPACT_VIEWPORT_QUERY = "(max-width: 640px)";
+const COMPACT_FOCUS_OFFSET_Y = -120;
 
 const clamp = (value: number, min: number, max: number) =>
   Math.min(max, Math.max(min, value));
@@ -75,21 +78,28 @@ export function GraphView({
   onClearSelection
 }: GraphViewProps) {
   const byId = useMemo(() => new Map(heroes.map((hero) => [hero.id, hero])), [heroes]);
+  const initialCompactViewport = window.matchMedia(COMPACT_VIEWPORT_QUERY).matches;
+  const [isCompactViewport, setIsCompactViewport] = useState(initialCompactViewport);
   const initialHero = selectedHeroId ? byId.get(selectedHeroId) : undefined;
   const initialCamera: CameraState = {
     anchorX: initialHero?.x ?? WIDTH / 2,
     anchorY: initialHero?.y ?? HEIGHT / 2,
     panX: 0,
-    panY: 0,
+    panY: initialHero && initialCompactViewport ? COMPACT_FOCUS_OFFSET_Y : 0,
     zoom: 1,
     focusScale: initialHero ? 1.04 : 1
   };
 
   const [camera, setCameraState] = useState<CameraState>(initialCamera);
   const [isPanning, setIsPanning] = useState(false);
+  const initialKeyboardHero = selectedHeroId
+    ? byId.get(selectedHeroId)
+    : findNearestHeroToPoint(heroes, WIDTH / 2, HEIGHT / 2);
+  const [keyboardHeroId, setKeyboardHeroId] = useState<string | null>(initialKeyboardHero?.id ?? null);
   const cameraRef = useRef(camera);
   const animationFrameRef = useRef<number | null>(null);
-  const previousSelectionRef = useRef(selectedHeroId);
+  const previousCameraTargetRef = useRef(`${selectedHeroId ?? ""}:${initialCompactViewport}`);
+  const previousKeyboardSelectionRef = useRef(selectedHeroId);
   const dragRef = useRef<DragState | null>(null);
 
   const setCamera = (next: CameraState | ((current: CameraState) => CameraState)) => {
@@ -108,8 +118,9 @@ export function GraphView({
   };
 
   useEffect(() => {
-    if (previousSelectionRef.current === selectedHeroId) return;
-    previousSelectionRef.current = selectedHeroId;
+    const cameraTargetKey = `${selectedHeroId ?? ""}:${isCompactViewport}`;
+    if (previousCameraTargetRef.current === cameraTargetKey) return;
+    previousCameraTargetRef.current = cameraTargetKey;
 
     cancelCameraAnimation();
 
@@ -118,7 +129,7 @@ export function GraphView({
       anchorX: selected?.x ?? WIDTH / 2,
       anchorY: selected?.y ?? HEIGHT / 2,
       panX: 0,
-      panY: 0,
+      panY: selected && isCompactViewport ? COMPACT_FOCUS_OFFSET_Y : 0,
       zoom: 1,
       focusScale: selected ? 1.04 : 1
     };
@@ -154,9 +165,32 @@ export function GraphView({
     animationFrameRef.current = window.requestAnimationFrame(tick);
 
     return cancelCameraAnimation;
-  }, [selectedHeroId, byId]);
+  }, [selectedHeroId, byId, isCompactViewport]);
 
   useEffect(() => cancelCameraAnimation, []);
+
+  useEffect(() => {
+    const media = window.matchMedia(COMPACT_VIEWPORT_QUERY);
+    const onChange = (event: MediaQueryListEvent) => setIsCompactViewport(event.matches);
+
+    setIsCompactViewport(media.matches);
+    media.addEventListener("change", onChange);
+    return () => media.removeEventListener("change", onChange);
+  }, []);
+
+
+  useEffect(() => {
+    if (previousKeyboardSelectionRef.current === selectedHeroId) return;
+    previousKeyboardSelectionRef.current = selectedHeroId;
+
+    if (!selectedHeroId) return;
+
+    setKeyboardHeroId(selectedHeroId);
+    window.requestAnimationFrame(() => {
+      document.getElementById(`graph-hero-${selectedHeroId}`)?.focus({ preventScroll: true });
+    });
+  }, [selectedHeroId]);
+
 
   const activeRelationships = [...selectedRelations.incoming, ...selectedRelations.outgoing];
   const activeIds = new Set(activeRelationships.flatMap((relationship) => [
@@ -321,11 +355,18 @@ export function GraphView({
   };
 
   return (
-    <svg
+    <>
+      <p id="graph-keyboard-instructions" className="sr-only">
+        Use Tab to enter the graph. Use the arrow keys to move between nearby heroes, Enter or Space to select a hero, and Escape to leave the current focus or matchup.
+      </p>
+      <svg
       className={isPanning ? "graph graph-panning" : "graph"}
       viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
-      role="img"
-      aria-label="Interactive graph of Dota 2 hero counter relationships"
+      preserveAspectRatio={isCompactViewport ? "xMidYMid slice" : "xMidYMid meet"}
+      role="group"
+      aria-roledescription="interactive graph"
+      aria-label="Dota 2 hero counter relationships"
+      aria-describedby="graph-keyboard-instructions"
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={(event) => finishPointer(event)}
@@ -450,27 +491,80 @@ export function GraphView({
               shouldDim ? "hero-dimmed" : ""
             ].filter(Boolean).join(" ");
 
+            const activeRelationship = activeRelationships.find(
+              (relationship) =>
+                relationship.sourceHeroId === hero.id || relationship.targetHeroId === hero.id
+            );
+            const source = activeRelationship ? byId.get(activeRelationship.sourceHeroId) : undefined;
+            const target = activeRelationship ? byId.get(activeRelationship.targetHeroId) : undefined;
+            const accessibleLabel = isSelected
+              ? `${hero.name}, selected hero`
+              : activeRelationship && source && target
+                ? `${hero.name}. ${source.name} counters ${target.name}; ${source.name} win rate ${formatPercent(activeRelationship.sourceWinRate)}`
+                : `Select ${hero.name}`;
+
             const activate = () => {
               if (selectedHeroId && isActive && !isSelected) onSelectMatchup(hero.id);
               else onSelectHero(hero.id);
             };
 
+            const moveKeyboardFocus = (direction: GraphNavigationDirection) => {
+              const next = findHeroInDirection(hero.id, direction, heroes);
+              if (!next) return;
+
+              setKeyboardHeroId(next.id);
+              onHoverHero(next.id);
+
+              if (isCompactViewport && !selectedHeroId) {
+                cancelCameraAnimation();
+                setCamera((current) => ({
+                  ...current,
+                  anchorX: next.x,
+                  anchorY: next.y,
+                  panX: 0,
+                  panY: 0
+                }));
+              }
+
+              window.requestAnimationFrame(() => {
+                document.getElementById(`graph-hero-${next.id}`)?.focus({ preventScroll: true });
+              });
+            };
+
             return (
               <g
                 key={hero.id}
+                id={`graph-hero-${hero.id}`}
                 className={nodeClass}
                 transform={`translate(${hero.x} ${hero.y})`}
                 role="button"
-                tabIndex={0}
-                aria-label={isSelected ? `${hero.name}, selected hero` : `Select ${hero.name}`}
+                tabIndex={hero.id === keyboardHeroId ? 0 : -1}
+                aria-label={accessibleLabel}
+                aria-pressed={isSelected}
                 onMouseEnter={() => onHoverHero(hero.id)}
                 onMouseLeave={() => onHoverHero(null)}
+                onFocus={() => {
+                  setKeyboardHeroId(hero.id);
+                  onHoverHero(hero.id);
+                }}
+                onBlur={() => onHoverHero(null)}
                 onClick={activate}
                 onPointerDown={(event) => event.stopPropagation()}
                 onKeyDown={(event) => {
                   if (event.key === "Enter" || event.key === " ") {
                     event.preventDefault();
                     activate();
+                    return;
+                  }
+
+                  if (
+                    event.key === "ArrowUp" ||
+                    event.key === "ArrowDown" ||
+                    event.key === "ArrowLeft" ||
+                    event.key === "ArrowRight"
+                  ) {
+                    event.preventDefault();
+                    moveKeyboardFocus(event.key);
                   }
                 }}
               >
@@ -489,6 +583,7 @@ export function GraphView({
           })}
         </g>
       </g>
-    </svg>
+      </svg>
+    </>
   );
 }

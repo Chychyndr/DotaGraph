@@ -25,10 +25,14 @@
 
 html, body, #root {
   margin: 0;
+  width: 100%;
+  height: 100%;
   min-width: 320px;
   min-height: 100%;
   background: var(--canvas);
 }
+
+body { overflow: hidden; }
 
 button, input { font: inherit; }
 button { color: inherit; }
@@ -39,7 +43,9 @@ button:focus-visible, input:focus-visible, [role="button"]:focus-visible {
 }
 
 .app-shell {
-  min-height: 100vh;
+  height: 100vh;
+  height: 100dvh;
+  min-height: 100%;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -144,7 +150,10 @@ button:focus-visible, input:focus-visible, [role="button"]:focus-visible {
   left: 0;
   right: 0;
   z-index: 50;
-  overflow: hidden;
+  max-height: min(360px, calc(100dvh - 96px));
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 4px;
   background: var(--panel);
   border: 1px solid var(--border);
@@ -222,7 +231,8 @@ button:focus-visible, input:focus-visible, [role="button"]:focus-visible {
 
 .graph {
   width: 100%;
-  height: calc(100vh - 68px);
+  height: 100%;
+  min-height: 0;
   display: block;
   cursor: grab;
   touch-action: none;
@@ -289,6 +299,12 @@ button:focus-visible, input:focus-visible, [role="button"]:focus-visible {
 .hero-selected .node-ring { stroke: var(--selected); stroke-width: 2.4; }
 .hero-matchup .node-ring { stroke-width: 2.4; }
 .hero-hovered:not(.hero-selected) .node-ring { stroke: var(--secondary); }
+
+.hero-node:focus { outline: none; }
+.hero-node:focus-visible .node-ring {
+  stroke: var(--outgoing-strong);
+  stroke-width: 2.6;
+}
 
 .hero-label {
   fill: var(--text);
@@ -555,6 +571,84 @@ button:focus-visible, input:focus-visible, [role="button"]:focus-visible {
   .brand-block p { display: none; }
   .search-shell { width: 44vw; min-width: 180px; }
   .context-card { width: 278px; }
+}
+
+@media (max-width: 640px) {
+  .topbar {
+    height: auto;
+    min-height: 94px;
+    flex: 0 0 auto;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px 10px;
+    padding: max(8px, env(safe-area-inset-top)) 10px 8px;
+  }
+
+  .brand-logo {
+    width: 30px;
+    height: 30px;
+    flex-basis: 30px;
+  }
+
+  .brand-block h1 { font-size: 18px; }
+
+  .topbar-actions {
+    grid-column: 1 / -1;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .search-shell {
+    width: auto;
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+
+  .search-results {
+    top: 40px;
+    max-height: min(320px, calc(100dvh - 112px));
+  }
+
+  .reset-button {
+    flex: 0 0 auto;
+    padding-inline: 10px;
+  }
+
+  .empty-guidance {
+    left: 12px;
+    right: 12px;
+    bottom: max(12px, env(safe-area-inset-bottom));
+  }
+
+  .empty-guidance span {
+    max-width: 260px;
+    line-height: 1.35;
+  }
+
+  .context-card {
+    left: 8px;
+    right: 8px;
+    bottom: max(8px, env(safe-area-inset-bottom));
+    width: auto;
+    max-height: min(48%, 360px);
+    padding: 12px;
+    overscroll-behavior: contain;
+  }
+}
+
+@media (max-width: 380px) {
+  .matchup-meta {
+    grid-template-columns: 1fr;
+  }
+
+  .matchup-meta div {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .matchup-meta dd { margin: 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -5,7 +5,7 @@ test("search, focus, matchup and reset flow", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByRole("heading", { name: "DotaGraph" })).toBeVisible();
 
-  const search = page.getByRole("textbox", { name: "Search for a hero" });
+  const search = page.getByRole("combobox", { name: "Search for a hero" });
   await search.fill("viper");
   await page.getByRole("option", { name: /Viper/ }).click();
 
@@ -13,7 +13,7 @@ test("search, focus, matchup and reset flow", async ({ page }) => {
   await expect(page).toHaveURL(/hero=viper/);
 
   await page.getByRole("button", { name: /Shadow Demon/ }).last().click();
-  await expect(page.getByLabel("Shadow Demon counters Viper")).toBeVisible();
+  await expect(page.getByRole("complementary", { name: "Shadow Demon counters Viper" })).toBeVisible();
   await expect(page).toHaveURL(/matchup=shadow-demon/);
 
   await page.getByRole("button", { name: "Reset" }).click();
@@ -27,7 +27,7 @@ test("overview renders the complete hero roster and search reaches the newest he
   mkdirSync("artifacts/screenshots", { recursive: true });
   await page.screenshot({ path: "artifacts/screenshots/full-roster-overview.png", fullPage: true });
 
-  const search = page.getByRole("textbox", { name: "Search for a hero" });
+  const search = page.getByRole("combobox", { name: "Search for a hero" });
   await search.fill("largo");
   await page.getByRole("option", { name: /Largo/ }).click();
 
@@ -91,9 +91,68 @@ test("hero artwork loads from one local atlas without Steamstatic requests", asy
   expect(atlasResponses).toBe(1);
 });
 
+test("graph exposes one keyboard tab stop and supports spatial arrow navigation", async ({ page }) => {
+  await page.goto("/");
+
+  await expect(page.getByRole("group", { name: "Dota 2 hero counter relationships" })).toBeVisible();
+  await expect(page.getByRole("button", { name: /^Select / })).toHaveCount(127);
+
+  const tabbableHeroes = page.locator('.hero-node[tabindex="0"]');
+  await expect(tabbableHeroes).toHaveCount(1);
+
+  await tabbableHeroes.first().focus();
+  const beforeId = await page.evaluate(() => document.activeElement?.id);
+  await page.keyboard.press("ArrowRight");
+  const afterId = await page.evaluate(() => document.activeElement?.id);
+
+  expect(beforeId).toMatch(/^graph-hero-/);
+  expect(afterId).toMatch(/^graph-hero-/);
+  expect(afterId).not.toBe(beforeId);
+  await expect(tabbableHeroes).toHaveCount(1);
+});
+
+test("compact keyboard navigation keeps the focused hero in view", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+
+  const graph = page.getByRole("group", { name: "Dota 2 hero counter relationships" });
+  const camera = page.locator(".graph-camera");
+  const tabbableHero = page.locator('.hero-node[tabindex="0"]');
+
+  await tabbableHero.focus();
+  const before = await camera.getAttribute("transform");
+  await page.keyboard.press("ArrowRight");
+  const after = await camera.getAttribute("transform");
+
+  expect(after).not.toBe(before);
+
+  const focusedBox = await page.locator(":focus").boundingBox();
+  const graphBox = await graph.boundingBox();
+  expect(focusedBox).not.toBeNull();
+  expect(graphBox).not.toBeNull();
+  expect(focusedBox!.x).toBeGreaterThanOrEqual(graphBox!.x);
+  expect(focusedBox!.x + focusedBox!.width).toBeLessThanOrEqual(graphBox!.x + graphBox!.width);
+  expect(focusedBox!.y).toBeGreaterThanOrEqual(graphBox!.y);
+  expect(focusedBox!.y + focusedBox!.height).toBeLessThanOrEqual(graphBox!.y + graphBox!.height);
+});
+
+test("keyboard search selection moves focus to the selected graph hero", async ({ page }) => {
+  await page.goto("/");
+
+  const search = page.getByRole("combobox", { name: "Search for a hero" });
+  await search.fill("viper");
+  await page.keyboard.press("Enter");
+
+  const selected = page.locator("#graph-hero-viper");
+  await expect(selected).toBeFocused();
+  await expect(selected).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("status")).toHaveText("Viper selected");
+  await expect(page).toHaveURL(/hero=viper/);
+});
+
 test("hero alias search resolves from metadata", async ({ page }) => {
   await page.goto("/");
-  const search = page.getByRole("textbox", { name: "Search for a hero" });
+  const search = page.getByRole("combobox", { name: "Search for a hero" });
   await search.fill("pa");
   await page.getByRole("option", { name: /Phantom Assassin/ }).click();
   await expect(page).toHaveURL(/hero=phantom-assassin/);
@@ -111,7 +170,7 @@ test("direct URL state loads focus without status copy inside the hero card", as
 
 test("a direction with no reliable relationships shows an explicit empty state", async ({ page }) => {
   await page.goto("/");
-  const search = page.getByRole("textbox", { name: "Search for a hero" });
+  const search = page.getByRole("combobox", { name: "Search for a hero" });
   await search.fill("night stalker");
   await page.getByRole("option", { name: /Night Stalker/ }).click();
   await expect(page.getByText("No reliable relationships.")).toBeVisible();
@@ -121,7 +180,7 @@ test("clicking empty graph space exits the selected hero", async ({ page }) => {
   await page.goto("/?hero=viper");
   await expect(page.getByLabel("Viper counter summary")).toBeVisible();
 
-  const graph = page.getByRole("img", { name: "Interactive graph of Dota 2 hero counter relationships" });
+  const graph = page.getByRole("group", { name: "Dota 2 hero counter relationships" });
   await graph.click({ position: { x: 24, y: 24 } });
 
   await expect(page).not.toHaveURL(/hero=/);
@@ -130,7 +189,7 @@ test("clicking empty graph space exits the selected hero", async ({ page }) => {
 
 test("dragging pans the graph without clearing the selected hero", async ({ page }) => {
   await page.goto("/?hero=viper");
-  const graph = page.getByRole("img", { name: "Interactive graph of Dota 2 hero counter relationships" });
+  const graph = page.getByRole("group", { name: "Dota 2 hero counter relationships" });
   const camera = page.locator(".graph-camera");
   const box = await graph.boundingBox();
   expect(box).not.toBeNull();
@@ -148,7 +207,7 @@ test("dragging pans the graph without clearing the selected hero", async ({ page
 
 test("mouse wheel zooms the graph", async ({ page }) => {
   await page.goto("/");
-  const graph = page.getByRole("img", { name: "Interactive graph of Dota 2 hero counter relationships" });
+  const graph = page.getByRole("group", { name: "Dota 2 hero counter relationships" });
   const camera = page.locator(".graph-camera");
   const box = await graph.boundingBox();
   expect(box).not.toBeNull();
@@ -165,7 +224,7 @@ test("mouse wheel zooms the graph", async ({ page }) => {
 test("selecting a distant hero moves the camera progressively", async ({ page }) => {
   await page.goto("/");
   const camera = page.locator(".graph-camera");
-  const search = page.getByRole("textbox", { name: "Search for a hero" });
+  const search = page.getByRole("combobox", { name: "Search for a hero" });
   const before = await camera.getAttribute("transform");
 
   await search.fill("underlord");
@@ -181,6 +240,26 @@ test("selecting a distant hero moves the camera progressively", async ({ page })
   await expect(page).toHaveURL(/hero=underlord/);
 });
 
+test("reduced-motion preference skips the focus camera animation", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/");
+
+  const camera = page.locator(".graph-camera");
+  const before = await camera.getAttribute("transform");
+
+  const search = page.getByRole("combobox", { name: "Search for a hero" });
+  await search.fill("underlord");
+  await page.keyboard.press("Enter");
+  await page.waitForTimeout(30);
+
+  const afterSelection = await camera.getAttribute("transform");
+  await page.waitForTimeout(520);
+  const afterWait = await camera.getAttribute("transform");
+
+  expect(afterSelection).not.toBe(before);
+  expect(afterWait).toBe(afterSelection);
+});
+
 test("site exposes the DotaGraph logo as favicon and header brand", async ({ page }) => {
   await page.goto("/");
   const iconHref = await page.locator('link[rel="icon"]').getAttribute("href");
@@ -191,6 +270,77 @@ test("site exposes the DotaGraph logo as favicon and header brand", async ({ pag
   await expect(logo).toHaveAttribute("src", /favicon\.svg$/);
 });
 
+test("hero search results stay contained at the minimum supported width", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 568 });
+  await page.goto("/");
+
+  const search = page.getByRole("combobox", { name: "Search for a hero" });
+  await search.fill("a");
+
+  const results = page.getByRole("listbox", { name: "Hero search results" });
+  await expect(results).toBeVisible();
+
+  const box = await results.boundingBox();
+  expect(box).not.toBeNull();
+  expect(box!.x).toBeGreaterThanOrEqual(0);
+  expect(box!.x + box!.width).toBeLessThanOrEqual(320);
+  expect(box!.y + box!.height).toBeLessThanOrEqual(568);
+
+  const metrics = await page.evaluate(() => ({
+    innerWidth: window.innerWidth,
+    scrollWidth: document.documentElement.scrollWidth
+  }));
+  expect(metrics.scrollWidth).toBeLessThanOrEqual(metrics.innerWidth);
+});
+
+for (const viewport of [
+  { width: 320, height: 568 },
+  { width: 390, height: 844 },
+  { width: 768, height: 1024 }
+]) {
+  test(`mobile/tablet focus stays inside the viewport at ${viewport.width}x${viewport.height}`, async ({ page }) => {
+    await page.setViewportSize(viewport);
+    await page.goto("/?hero=viper");
+
+    const graph = page.getByRole("group", { name: "Dota 2 hero counter relationships" });
+    const card = page.getByLabel("Viper counter summary");
+
+    await expect(page.getByRole("combobox", { name: "Search for a hero" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Reset" })).toBeVisible();
+    await expect(graph).toBeVisible();
+    await expect(card).toBeVisible();
+
+    const viewportMetrics = await page.evaluate(() => ({
+      innerWidth: window.innerWidth,
+      innerHeight: window.innerHeight,
+      scrollWidth: document.documentElement.scrollWidth,
+      scrollHeight: document.documentElement.scrollHeight
+    }));
+
+    expect(viewportMetrics.scrollWidth).toBeLessThanOrEqual(viewportMetrics.innerWidth);
+    expect(viewportMetrics.scrollHeight).toBeLessThanOrEqual(viewportMetrics.innerHeight);
+
+    const graphBox = await graph.boundingBox();
+    const cardBox = await card.boundingBox();
+    expect(graphBox).not.toBeNull();
+    expect(cardBox).not.toBeNull();
+    expect(graphBox!.width).toBeGreaterThan(0);
+    expect(graphBox!.height).toBeGreaterThan(0);
+    expect(cardBox!.x).toBeGreaterThanOrEqual(0);
+    expect(cardBox!.x + cardBox!.width).toBeLessThanOrEqual(viewport.width);
+    expect(cardBox!.y + cardBox!.height).toBeLessThanOrEqual(viewport.height + 1);
+
+    if (viewport.width <= 640) {
+      await expect(graph).toHaveAttribute("preserveAspectRatio", "xMidYMid slice");
+
+      const selectedNode = page.locator("#graph-hero-viper");
+      const selectedBox = await selectedNode.boundingBox();
+      expect(selectedBox).not.toBeNull();
+      expect(selectedBox!.y + selectedBox!.height).toBeLessThan(cardBox!.y + 4);
+    }
+  });
+}
+
 for (const viewport of [
   { width: 1280, height: 720 },
   { width: 1366, height: 768 },
@@ -199,7 +349,7 @@ for (const viewport of [
   test(`focus state stays usable at ${viewport.width}x${viewport.height}`, async ({ page }) => {
     await page.setViewportSize(viewport);
     await page.goto("/?hero=viper");
-    await expect(page.getByRole("textbox", { name: "Search for a hero" })).toBeVisible();
+    await expect(page.getByRole("combobox", { name: "Search for a hero" })).toBeVisible();
     await expect(page.getByLabel("Viper counter summary")).toBeVisible();
     await expect(page.getByRole("button", { name: "Reset" })).toBeVisible();
   });

@@ -67,15 +67,24 @@ export function Search({ heroes, onSelect }: SearchProps) {
               inputRef.current?.blur();
             }
           }}
-          aria-expanded={Boolean(query && results.length)}
-          aria-controls="hero-search-results"
-          aria-activedescendant={results[activeIndex] ? `hero-result-${results[activeIndex].id}` : undefined}
+          role="combobox"
+          aria-autocomplete="list"
+          aria-haspopup="listbox"
+          aria-keyshortcuts="/"
+          aria-expanded={Boolean(query)}
+          aria-controls={query ? "hero-search-results" : undefined}
+          aria-activedescendant={query && results[activeIndex] ? `hero-result-${results[activeIndex].id}` : undefined}
         />
-        <kbd>/</kbd>
+        <kbd aria-hidden="true">/</kbd>
       </div>
 
       {query && (
-        <div className="search-results" id="hero-search-results" role="listbox">
+        <div
+          className="search-results"
+          id="hero-search-results"
+          role="listbox"
+          aria-label="Hero search results"
+        >
           {results.length ? results.map((hero, index) => (
             <button
               id={`hero-result-${hero.id}`}
