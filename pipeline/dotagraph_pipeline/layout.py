@@ -141,17 +141,17 @@ def compute_layout(
     fill_ratio = _clamp(fill_ratio, 0.5, 1.0)
     usable_width = (width - margin * 2) * fill_ratio
     usable_height = (height - margin * 2) * fill_ratio
-    left = (width - usable_width) / 2
-    top = (height - usable_height) / 2
-    right = left + usable_width
-    bottom = top + usable_height
+    layout_left = (width - usable_width) / 2
+    layout_top = (height - usable_height) / 2
+    layout_right = layout_left + usable_width
+    layout_bottom = layout_top + usable_height
     x_span = max(max_x - min_x, 1e-8)
     y_span = max(max_y - min_y, 1e-8)
 
     pixel_positions = [
         [
-            left + (point[0] - min_x) / x_span * usable_width,
-            top + (point[1] - min_y) / y_span * usable_height,
+            layout_left + (point[0] - min_x) / x_span * usable_width,
+            layout_top + (point[1] - min_y) / y_span * usable_height,
         ]
         for point in positions
     ]
@@ -188,8 +188,8 @@ def compute_layout(
                 moved = True
 
         for point in pixel_positions:
-            point[0] = _clamp(point[0], left, right)
-            point[1] = _clamp(point[1], top, bottom)
+            point[0] = _clamp(point[0], layout_left, layout_right)
+            point[1] = _clamp(point[1], layout_top, layout_bottom)
 
         if not moved:
             break
