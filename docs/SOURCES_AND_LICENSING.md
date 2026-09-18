@@ -68,11 +68,41 @@ Hero artwork:
 
 Review date: 2026-09-18.
 
-## OpenDota
+## OpenDota hosted API
 
-Strong candidate for statistical infrastructure.
+**Decision: Conditional. Approved for technical evaluation/API access; production redistribution of derived matchup statistics remains blocked until hosted-data rights are explicit or confirmed.**
 
-Open-source code licensing does not automatically settle hosted API/data redistribution rights. Review API/data terms separately before use.
+Official references:
+- API/OpenAPI document: https://api.opendota.com/api
+- project/API implementation: https://github.com/odota/core
+- project FAQ/background: https://blog.opendota.com/2014/08/01/faq/
+- API usage-change background: https://blog.opendota.com/2018/04/17/changes-to-the-api/
+
+Access:
+- public HTTPS API;
+- API key is optional for basic access and increases available limits;
+- production keys, if used, belong in secrets and never in the frontend bundle.
+
+Automation:
+- OpenDota explicitly provides an API for developers and documents programmatic use;
+- use the API only; do not scrape OpenDota HTML pages.
+
+License boundary:
+- `odota/core` is MIT-licensed software;
+- that MIT license covers the API implementation code, not automatically the contents returned by the hosted OpenDota service;
+- the reviewed public API/FAQ material clearly encourages developers to build applications with the API, but a separate explicit license for caching and redistributing the hosted statistical dataset/derived aggregates was not found.
+
+DotaGraph decision:
+- API experiments and schema evaluation are allowed;
+- do not publish OpenDota-derived production headline statistics until redistribution/derived-data permission is confirmed by an explicit current policy/license or written provider permission;
+- do not store or republish player-identifying data; DotaGraph only needs aggregate hero-vs-hero observations.
+
+Scope limitation:
+- the documented `GET /heroes/{hero_id}/matchups` endpoint returns games played and wins against other heroes, but its current OpenAPI definition exposes no rank-scope parameter;
+- therefore that endpoint alone does not satisfy DotaGraph's Ancient+ headline scope;
+- any future OpenDota adapter must prove how it obtains the approved rank population before it can be used for headline data.
+
+Review date: 2026-09-18.
 
 ## STRATZ
 
