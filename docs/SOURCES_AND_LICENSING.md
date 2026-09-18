@@ -31,11 +31,42 @@ A public API, an open-source client/server implementation, and publicly visible 
 
 ## Valve / Steam
 
-Preferred for game identity/static data where permitted.
+**Decision: Conditional for API data; Valve-owned artwork remains blocked pending clearer asset permission.**
 
-API keys are secrets and must never ship to the browser.
+Official references:
+- Steam Web API documentation: https://steamcommunity.com/dev
+- Steam Web API Terms of Use: https://steamcommunity.com/dev/apiterms
+- Valve legal/trademark notice: https://store.steampowered.com/legal
 
-The build pipeline currently downloads Valve/Steamstatic hero portraits, crops them to small square thumbnails, and packages them into one optimized WebP atlas served from the DotaGraph origin. The generated atlas is not committed to source control. Asset rights still require explicit production review.
+Access:
+- official Steam Web API;
+- API key required for keyed endpoints;
+- API keys are secrets and must never ship to the browser.
+
+Documented limit:
+- 100,000 Steam Web API calls per day under the current published API Terms of Use.
+
+Automation:
+- permitted through the documented Steam Web API subject to its Terms of Use;
+- do not scrape Steam Community/Store pages as a substitute for an API endpoint.
+
+Storage and redistribution:
+- the API Terms permit implementing the API in an application and presenting Steam Data to end users, subject to the Terms;
+- nonpublic end-user Steam Data has privacy/storage obligations and is outside DotaGraph's planned statistical pipeline;
+- DotaGraph must not bulk republish raw Steam Data or imply Valve/Steam endorsement;
+- any production adapter should retain only the minimum public facts needed to generate aggregate statistics.
+
+Important product-specific restriction:
+- the API Terms prohibit using the API/Steam Data to create technology or functionality that may give a user an unfair competitive advantage in multiplayer games;
+- because DotaGraph is intended to be useful during a draft, direct Steam Web API use for draft-time recommendations is **not approved** until this clause is reviewed against the exact production behavior or Valve provides clarification.
+
+Hero artwork:
+- the current build downloads Valve/Steamstatic hero portraits and packages them into one local WebP atlas;
+- Valve's legal page identifies Dota/Dota 2 marks and Valve-owned material as protected; no public page reviewed here grants a general right to repackage and redistribute hero portrait artwork;
+- keep the existing asset provenance explicit, but do not treat Steam Web API permission as an artwork license;
+- before a production/legal hardening pass, either obtain/identify an applicable Valve asset-use policy/permission or replace the portraits with assets whose redistribution terms are explicit.
+
+Review date: 2026-09-18.
 
 ## OpenDota
 
