@@ -2,12 +2,23 @@ import { useEffect, useMemo, useState } from "react";
 import { HeroCard } from "./components/HeroCard";
 import { MatchupCard } from "./components/MatchupCard";
 import { Search } from "./components/Search";
-import { fixtureRelationships, scope } from "./data/fixtures";
-import { heroById, heroes } from "./data/heroes";
+import type { DatasetBundle } from "./data/dataset";
+import { loadDataset, type DatasetLoadResult } from "./data/loadDataset";
 import { findRelationship, selectRelations } from "./domain/relationships";
+import type { Hero } from "./domain/types";
 import { GraphView } from "./graph/GraphView";
 
-function readInitialState() {
+type AppDataState =
+  | { status: "loading" }
+  | { status: "ready"; data: DatasetBundle }
+  | { status: "malformed"; issues: string[] }
+  | { status: "unavailable" };
+
+interface AppProps {
+  datasetLoader?: () => Promise<DatasetLoadResult>;
+}
+
+function readInitialState(heroById: ReadonlyMap<string, Hero>) {
   const params = new URLSearchParams(window.location.search);
   const hero = params.get("hero");
   const matchup = params.get("matchup");
@@ -17,8 +28,68 @@ function readInitialState() {
   };
 }
 
-export default function App() {
-  const initial = useMemo(readInitialState, []);
+function Brand({ data }: { data?: DatasetBundle }) {
+  return (
+    <div className="brand">
+      <img
+        className="brand-logo"
+        src={`${import.meta.env.BASE_URL}favicon.svg`}
+        alt=""
+        aria-hidden="true"
+      />
+      <div className="brand-block">
+        <h1>DotaGraph</h1>
+        {data && <p>{data.scope.rankLabel} · Patch {data.scope.patch}</p>}
+      </div>
+    </div>
+  );
+}
+
+function BlockingDataState({
+  status,
+  issues,
+  onRetry
+}: {
+  status: "loading" | "malformed" | "unavailable";
+  issues?: string[];
+  onRetry: () => void;
+}) {
+  if (status === "loading") {
+    return (
+      <section className="graph-stage data-state-stage" aria-label="DotaGraph counter map">
+        <div className="data-state-panel" role="status" aria-live="polite">
+          <span className="data-state-spinner" aria-hidden="true" />
+          <strong>Loading matchup data…</strong>
+          <span>Checking the published graph before it is shown.</span>
+        </div>
+      </section>
+    );
+  }
+
+  const malformed = status === "malformed";
+
+  return (
+    <section className="graph-stage data-state-stage" aria-label="DotaGraph counter map">
+      <div className="data-state-panel data-state-error" role="alert">
+        <strong>{malformed ? "Matchup data failed validation" : "Matchup data could not be loaded"}</strong>
+        <span>
+          {malformed
+            ? "DotaGraph will not show partial or potentially misleading relationships."
+            : "The local published data bundle is unavailable."}
+        </span>
+        {malformed && issues?.[0] && (
+          <small className="data-state-detail">Validation: {issues[0]}</small>
+        )}
+        <button type="button" className="retry-button" onClick={onRetry}>Retry</button>
+      </div>
+    </section>
+  );
+}
+
+function ReadyApp({ data }: { data: DatasetBundle }) {
+  const { heroes, relationships, scope, metadata } = data;
+  const heroById = useMemo(() => new Map(heroes.map((hero) => [hero.id, hero])), [heroes]);
+  const initial = useMemo(() => readInitialState(heroById), [heroById]);
   const [selectedHeroId, setSelectedHeroId] = useState<string | null>(initial.hero);
   const [matchupHeroId, setMatchupHeroId] = useState<string | null>(initial.matchup);
   const [hoveredHeroId, setHoveredHeroId] = useState<string | null>(null);
@@ -26,14 +97,24 @@ export default function App() {
   const selectedHero = selectedHeroId ? heroById.get(selectedHeroId) : undefined;
   const selectedRelations = useMemo(
     () => selectedHeroId
-      ? selectRelations(selectedHeroId, fixtureRelationships, scope)
+      ? selectRelations(selectedHeroId, relationships, scope)
       : { incoming: [], outgoing: [] },
-    [selectedHeroId]
+    [relationships, scope, selectedHeroId]
   );
 
   const matchup = selectedHeroId && matchupHeroId
-    ? findRelationship(selectedHeroId, matchupHeroId, fixtureRelationships, scope)
+    ? findRelationship(selectedHeroId, matchupHeroId, relationships, scope)
     : undefined;
+
+  const visibleRelationships = useMemo(
+    () => relationships.filter(
+      (relationship) =>
+        relationship.sampleSize >= scope.minimumSample &&
+        relationship.patch === scope.patch &&
+        relationship.rankScope === scope.rankScope
+    ),
+    [relationships, scope]
+  );
 
   useEffect(() => {
     if (matchupHeroId && !matchup) setMatchupHeroId(null);
@@ -75,18 +156,7 @@ export default function App() {
   return (
     <main className="app-shell">
       <header className="topbar">
-        <div className="brand">
-          <img
-            className="brand-logo"
-            src={`${import.meta.env.BASE_URL}favicon.svg`}
-            alt=""
-            aria-hidden="true"
-          />
-          <div className="brand-block">
-            <h1>DotaGraph</h1>
-            <p>{scope.rankLabel} · Patch {scope.patch}</p>
-          </div>
-        </div>
+        <Brand data={data} />
 
         <div className="topbar-actions">
           <Search heroes={heroes} onSelect={(hero) => selectHero(hero.id)} />
@@ -97,6 +167,13 @@ export default function App() {
       </header>
 
       <section className="graph-stage" aria-label="DotaGraph counter map">
+        {metadata.freshness.status === "stale" && (
+          <div className="data-warning" role="status">
+            <strong>Matchup data may be outdated.</strong>
+            <span>{metadata.freshness.reason}</span>
+          </div>
+        )}
+
         <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">
           {matchup && matchupSource && matchupTarget
             ? `${matchupSource.name} counters ${matchupTarget.name}`
@@ -107,7 +184,7 @@ export default function App() {
 
         <GraphView
           heroes={heroes}
-          relationships={fixtureRelationships.filter((relationship) => relationship.sampleSize >= scope.minimumSample)}
+          relationships={visibleRelationships}
           selectedHeroId={selectedHeroId}
           hoveredHeroId={hoveredHeroId}
           matchupHeroId={matchupHeroId}
@@ -131,6 +208,7 @@ export default function App() {
             incoming={selectedRelations.incoming}
             outgoing={selectedRelations.outgoing}
             onMatchup={setMatchupHeroId}
+            heroesById={heroById}
           />
         )}
 
@@ -144,6 +222,52 @@ export default function App() {
           />
         )}
       </section>
+    </main>
+  );
+}
+
+export default function App({ datasetLoader = loadDataset }: AppProps) {
+  const [state, setState] = useState<AppDataState>({ status: "loading" });
+  const [loadAttempt, setLoadAttempt] = useState(0);
+
+  useEffect(() => {
+    let active = true;
+    setState({ status: "loading" });
+
+    datasetLoader()
+      .then((result) => {
+        if (!active) return;
+        if (result.status === "ready") {
+          setState({ status: "ready", data: result.data });
+        } else {
+          setState({ status: "malformed", issues: result.issues });
+        }
+      })
+      .catch(() => {
+        if (active) setState({ status: "unavailable" });
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [datasetLoader, loadAttempt]);
+
+  const retry = () => setLoadAttempt((attempt) => attempt + 1);
+
+  if (state.status === "ready") {
+    return <ReadyApp data={state.data} />;
+  }
+
+  return (
+    <main className="app-shell">
+      <header className="topbar">
+        <Brand />
+      </header>
+      <BlockingDataState
+        status={state.status}
+        issues={state.status === "malformed" ? state.issues : undefined}
+        onRetry={retry}
+      />
     </main>
   );
 }
