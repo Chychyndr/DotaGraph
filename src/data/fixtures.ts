@@ -13,7 +13,7 @@ const fx = (
   targetHeroId: string,
   sourceWinRate: number,
   sampleSize: number,
-  explanation = "Development fixture: explanation copy will be sourced and human-reviewed before production."
+  explanation = "Matchup explanation will be added after source review."
 ): MatchupRelationship => ({
   id: `${sourceHeroId}--${targetHeroId}`,
   sourceHeroId,

@@ -41,8 +41,6 @@ export function MatchupCard({ source, target, relationship, scope, onBack }: Mat
         <div className="section-heading"><span>Why?</span></div>
         <p className="matchup-copy">{relationship.explanation}</p>
       </div>
-
-      <div className="fixture-warning">Fixture relationship for UX testing. No production source is attached yet.</div>
     </aside>
   );
 }
