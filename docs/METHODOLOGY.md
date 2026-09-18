@@ -10,11 +10,15 @@ They exist only to test direction, density, labels, cards, and selection behavio
 
 Do not cite or publish fixture values as real Dota statistics.
 
-## Candidate threshold
+## Sample-size semantics
+
+This is the next methodology decision to approve.
 
 Planning default: at least 500 matches in the relevant scope before a relationship can appear in the normal counter candidate set.
 
-The threshold must be configuration/methodology.
+Before that threshold becomes production policy, define exactly what one sample means, whether thresholds apply per provider or after an approved aggregation step, how overlapping provider observations are handled, and which patch/rank/time window the count represents.
+
+The threshold must remain configuration/methodology rather than a scattered frontend constant.
 
 ## Displayed statistic
 

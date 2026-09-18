@@ -34,7 +34,7 @@ Overview keeps the whole graph as a weak spiderweb.
 
 Hover reveals only local context and never relayouts the graph.
 
-Focus centers the selected hero, strongly dims unrelated graph context, reveals 0–5 relationships per direction, adds tiny arrowheads, and shows win-rate labels.
+Focus keeps the selected hero as the camera anchor, strongly dims unrelated graph context, reveals 0–5 relationships per direction, adds tiny arrowheads, and shows win-rate labels. The camera may zoom out just enough to keep distant active relationships visible while preserving the selected hero's focus.
 
 Selecting or leaving a hero moves the camera with a short eased transition. Manual drag or wheel input immediately takes control and cancels that camera animation.
 
@@ -46,7 +46,13 @@ Matchup keeps the graph visible, emphasizes one pair, and changes the compact ca
 
 The percentage belongs to the source hero of the arrow.
 
-Preferred experiment: put the pill roughly 20–35% along the edge from the source hero. Compare visually against at least one alternative before treating placement as final.
+The accepted current behavior is source-anchored, collision-aware placement nearer the source end of the active edge. Labels must avoid hero portraits and other active percentage labels while keeping relationship direction obvious.
+
+## Product chrome decisions
+
+- Use the transparent network/shield DotaGraph mark as both favicon and header logo.
+- Keep internal/debug labels such as “Fixture data”, “Hero counters”, and direction-debug copy out of the normal product UI.
+- Keep HeroCard compact; do not repeat the global rank/patch line inside the selected-hero card.
 
 ## Avoid
 

@@ -19,9 +19,13 @@ The current product scope includes heroes, directed counter relationships, searc
 
 The current product scope excludes items, synergies, facets/aspects, rank filters, patch history, live draft automation, accounts, voting, analytics dashboards, and settings-heavy UI.
 
+The public product is English-only for the current scope. Localization may be added later when its maintenance cost is justified.
+
 ## Statistical scope
 
 Initial headline scope: Ancient+.
+
+A rank selector is intentionally excluded from the current product. The owner may later change the headline scope, including a possible move to Immortal-only, but such a change requires an explicit product/methodology decision.
 
 Planning patch at kickoff: 7.41e. Patch must remain configuration/data, never a structural hardcode.
 
@@ -32,3 +36,7 @@ The focused graph shows up to five reliable incoming and up to five reliable out
 `A -> B` always means A counters B.
 
 The graph is the primary surface. Search is always obvious. Details are progressive.
+
+## Content approval
+
+AI may draft explanatory product/matchup text, but the owner remains the approval gate. AI-generated prose is never evidence and must not self-approve as verified content.

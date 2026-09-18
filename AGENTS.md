@@ -210,7 +210,7 @@ Never use generative-image output as final hero art, item art, UI icons, screens
 Target:
 - dark tinted canvas;
 - quiet surfaces;
-- Manrope direction unless Figma changes it;
+- GitHub-like system font stack unless the owner-approved Figma changes it;
 - coral incoming;
 - cyan outgoing;
 - restrained gold selected state;
@@ -264,15 +264,16 @@ Measure before micro-optimizing.
 
 ## Frontend architecture
 
-Preferred direction:
+Current direction:
 - TypeScript strict;
 - React;
 - static-friendly build;
 - GitHub Pages;
-- Sigma.js + Graphology as the leading graph candidate, subject to a documented spike/ADR;
+- deterministic SVG renderer for the current graph;
 - CSS variables/tokens;
-- CSS Modules or similarly explicit styling;
 - intentionally small dependency set.
+
+Sigma.js + Graphology was evaluated in a dedicated spike and is not the current renderer choice. Keep the renderer boundary clean so a future scale-driven change remains possible without rewriting domain logic. See `docs/adr/0001-graph-renderer.md`.
 
 Do not install a global state library until ordinary React state/context is genuinely insufficient.
 
@@ -371,7 +372,7 @@ Do not write one monolithic scraper. Keep source adapters isolated and tested.
 
 ## Source/licensing gate
 
-Before automating a source, update docs/SOURCES_AND_LICENSING.md.
+The current provider review is recorded in `docs/SOURCES_AND_LICENSING.md` and was completed on 2026-09-18. Re-check the exact provider entry before any adapter or data-use change.
 
 Each source entry must record:
 - source URL;
@@ -387,23 +388,16 @@ Each source entry must record:
 
 Never use "publicly visible on the web" as proof that scraping is permitted.
 
-### Dota2ProTracker
-Do not scrape or ingest the website. Treat it as UX/research reference unless explicit permission changes.
+Current decisions:
+- **OpenDota dotaconstants:** approved for static identity/constants metadata under MIT.
+- **Dota2ProTracker:** blocked for ingestion under the reviewed Terms of Service; UX observation only.
+- **DOTABUFF:** research only; no automated ingestion.
+- **OpenDota hosted API:** conditional; API evaluation is allowed, but production derived-data publication and Ancient+ scope remain unresolved.
+- **STRATZ GraphQL API:** conditional; API evaluation is allowed, but caching/derived-data redistribution rights remain unresolved.
+- **Valve / Steam:** conditional; API use and Valve artwork rights are separate, and the multiplayer unfair-advantage clause needs product-specific review.
+- **Reddit/community:** qualitative only; community opinions never contribute directly to headline numerical statistics.
 
-### DOTABUFF
-Do not automate scraping until current permission/terms clearly allow the intended use.
-
-### OpenDota
-Preferred open-ecosystem candidate. Check hosted API/data terms separately from the source-code license.
-
-### STRATZ
-Preferred API candidate. Verify current API/GraphQL terms, quotas, redistribution rules, and token handling before integration.
-
-### Valve / Steam
-Follow Steam Web API terms. Secrets must never enter frontend bundles.
-
-### Reddit/community
-Qualitative evidence only. Community opinions never contribute directly to the headline numerical win rate.
+Do not implement a production statistical adapter for a conditional source until the exact caching/derived-publication rights and approved rank/patch scope are explicit.
 
 ## Aggregation
 
