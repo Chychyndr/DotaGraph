@@ -22,6 +22,8 @@ npm run build
 npm run test:e2e
 ```
 
+GitHub Pages deployment uses a compiled Vite artifact. See [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md) for the required repository setting and deployment checks.
+
 ## Product rules
 
 - `A -> B` always means A counters B.
