@@ -5,7 +5,7 @@ test("search, focus, matchup and reset flow", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByRole("heading", { name: "DotaGraph" })).toBeVisible();
 
-  const search = page.getByRole("textbox", { name: "Search for a hero" });
+  const search = page.getByRole("combobox", { name: "Search for a hero" });
   await search.fill("viper");
   await page.getByRole("option", { name: /Viper/ }).click();
 
@@ -27,7 +27,7 @@ test("overview renders the complete hero roster and search reaches the newest he
   mkdirSync("artifacts/screenshots", { recursive: true });
   await page.screenshot({ path: "artifacts/screenshots/full-roster-overview.png", fullPage: true });
 
-  const search = page.getByRole("textbox", { name: "Search for a hero" });
+  const search = page.getByRole("combobox", { name: "Search for a hero" });
   await search.fill("largo");
   await page.getByRole("option", { name: /Largo/ }).click();
 
@@ -124,7 +124,7 @@ test("keyboard search selection moves focus to the selected graph hero", async (
 
 test("hero alias search resolves from metadata", async ({ page }) => {
   await page.goto("/");
-  const search = page.getByRole("textbox", { name: "Search for a hero" });
+  const search = page.getByRole("combobox", { name: "Search for a hero" });
   await search.fill("pa");
   await page.getByRole("option", { name: /Phantom Assassin/ }).click();
   await expect(page).toHaveURL(/hero=phantom-assassin/);
@@ -142,7 +142,7 @@ test("direct URL state loads focus without status copy inside the hero card", as
 
 test("a direction with no reliable relationships shows an explicit empty state", async ({ page }) => {
   await page.goto("/");
-  const search = page.getByRole("textbox", { name: "Search for a hero" });
+  const search = page.getByRole("combobox", { name: "Search for a hero" });
   await search.fill("night stalker");
   await page.getByRole("option", { name: /Night Stalker/ }).click();
   await expect(page.getByText("No reliable relationships.")).toBeVisible();
@@ -196,7 +196,7 @@ test("mouse wheel zooms the graph", async ({ page }) => {
 test("selecting a distant hero moves the camera progressively", async ({ page }) => {
   await page.goto("/");
   const camera = page.locator(".graph-camera");
-  const search = page.getByRole("textbox", { name: "Search for a hero" });
+  const search = page.getByRole("combobox", { name: "Search for a hero" });
   const before = await camera.getAttribute("transform");
 
   await search.fill("underlord");
@@ -230,7 +230,7 @@ for (const viewport of [
   test(`focus state stays usable at ${viewport.width}x${viewport.height}`, async ({ page }) => {
     await page.setViewportSize(viewport);
     await page.goto("/?hero=viper");
-    await expect(page.getByRole("textbox", { name: "Search for a hero" })).toBeVisible();
+    await expect(page.getByRole("combobox", { name: "Search for a hero" })).toBeVisible();
     await expect(page.getByLabel("Viper counter summary")).toBeVisible();
     await expect(page.getByRole("button", { name: "Reset" })).toBeVisible();
   });
