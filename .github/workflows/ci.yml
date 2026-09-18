@@ -29,6 +29,11 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
 
+      - name: Audit currently deployed GitHub Pages in a real browser
+        env:
+          SITE_URL: https://chychyndr.github.io/DotaGraph/
+        run: node scripts/audit-live-site.mjs
+
       - name: Verify GitHub Pages production artifact
         shell: bash
         run: |
