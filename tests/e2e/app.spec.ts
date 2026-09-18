@@ -223,6 +223,45 @@ test("site exposes the DotaGraph logo as favicon and header brand", async ({ pag
 });
 
 for (const viewport of [
+  { width: 320, height: 568 },
+  { width: 390, height: 844 },
+  { width: 768, height: 1024 }
+]) {
+  test(`mobile/tablet focus stays inside the viewport at ${viewport.width}x${viewport.height}`, async ({ page }) => {
+    await page.setViewportSize(viewport);
+    await page.goto("/?hero=viper");
+
+    const graph = page.getByRole("group", { name: "Dota 2 hero counter relationships" });
+    const card = page.getByLabel("Viper counter summary");
+
+    await expect(page.getByRole("combobox", { name: "Search for a hero" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Reset" })).toBeVisible();
+    await expect(graph).toBeVisible();
+    await expect(card).toBeVisible();
+
+    const viewportMetrics = await page.evaluate(() => ({
+      innerWidth: window.innerWidth,
+      innerHeight: window.innerHeight,
+      scrollWidth: document.documentElement.scrollWidth,
+      scrollHeight: document.documentElement.scrollHeight
+    }));
+
+    expect(viewportMetrics.scrollWidth).toBeLessThanOrEqual(viewportMetrics.innerWidth);
+    expect(viewportMetrics.scrollHeight).toBeLessThanOrEqual(viewportMetrics.innerHeight);
+
+    const graphBox = await graph.boundingBox();
+    const cardBox = await card.boundingBox();
+    expect(graphBox).not.toBeNull();
+    expect(cardBox).not.toBeNull();
+    expect(graphBox!.width).toBeGreaterThan(0);
+    expect(graphBox!.height).toBeGreaterThan(0);
+    expect(cardBox!.x).toBeGreaterThanOrEqual(0);
+    expect(cardBox!.x + cardBox!.width).toBeLessThanOrEqual(viewport.width);
+    expect(cardBox!.y + cardBox!.height).toBeLessThanOrEqual(viewport.height + 1);
+  });
+}
+
+for (const viewport of [
   { width: 1280, height: 720 },
   { width: 1366, height: 768 },
   { width: 1920, height: 1080 }
