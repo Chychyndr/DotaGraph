@@ -229,6 +229,102 @@ button:focus-visible, input:focus-visible, [role="button"]:focus-visible {
   background: var(--canvas);
 }
 
+.data-state-stage {
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.data-state-panel {
+  width: min(430px, 100%);
+  display: grid;
+  justify-items: center;
+  gap: 9px;
+  padding: 22px;
+  color: var(--secondary);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  text-align: center;
+}
+
+.data-state-panel strong {
+  color: var(--text);
+  font-size: 14px;
+}
+
+.data-state-panel span {
+  max-width: 360px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.data-state-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--border);
+  border-top-color: var(--outgoing-strong);
+  border-radius: 50%;
+  animation: data-state-spin .8s linear infinite;
+}
+
+.data-state-error {
+  border-color: rgba(248, 81, 73, .45);
+}
+
+.data-state-detail {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  color: var(--muted);
+  font-size: 9px;
+  line-height: 1.45;
+}
+
+.retry-button {
+  min-height: 32px;
+  margin-top: 4px;
+  padding: 0 12px;
+  color: var(--secondary);
+  background: var(--canvas);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.retry-button:hover {
+  border-color: var(--muted);
+  background: #21262d;
+}
+
+.data-warning {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  z-index: 20;
+  width: min(560px, calc(100% - 24px));
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 7px;
+  padding: 7px 10px;
+  transform: translateX(-50%);
+  color: #d29922;
+  background: rgba(22, 27, 34, .96);
+  border: 1px solid rgba(210, 153, 34, .48);
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(1, 4, 9, .28);
+  font-size: 10px;
+}
+
+.data-warning span {
+  color: var(--secondary);
+}
+
+@keyframes data-state-spin {
+  to { transform: rotate(360deg); }
+}
+
 .graph {
   width: 100%;
   height: 100%;
