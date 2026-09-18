@@ -56,7 +56,9 @@ export function HeroCard({ hero, incoming, outgoing, onMatchup }: HeroCardProps)
       <div className="card-hero">
         <img src={hero.portrait} alt="" />
         <h2>{hero.name}</h2>
-        {typeof hero.overallWinRate === "number" && (\n          <strong className="overall-rate">{formatPercent(hero.overallWinRate)}</strong>\n        )}
+        {typeof hero.overallWinRate === "number" && (
+          <strong className="overall-rate">{formatPercent(hero.overallWinRate)}</strong>
+        )}
       </div>
 
       <div className="card-section">
