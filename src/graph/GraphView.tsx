@@ -668,10 +668,35 @@ export function GraphView({
                     )}
                   </>
                 )}
-                {showLabel && (
-                  <text className="hero-label" x={radius + 9} y="4">{hero.name}</text>
-                )}
               </g>
+            );
+          })}
+        </g>
+
+        <g className="hero-label-layer" aria-hidden="true">
+          {heroes.map((hero) => {
+            const showLabel =
+              hero.id === selectedHeroId ||
+              activeIds.has(hero.id) ||
+              hero.id === hoveredHeroId;
+
+            if (!showLabel) return null;
+
+            const radius = radiusFor(hero.id);
+            const placeLeft = hero.x > WIDTH - 170;
+
+            return (
+              <text
+                key={`hero-label-${hero.id}`}
+                className="hero-label"
+                data-hero-label={hero.id}
+                transform={`translate(${hero.x} ${hero.y})`}
+                x={placeLeft ? -(radius + 9) : radius + 9}
+                y="4"
+                textAnchor={placeLeft ? "end" : "start"}
+              >
+                {hero.name}
+              </text>
             );
           })}
         </g>
