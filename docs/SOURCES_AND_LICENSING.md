@@ -104,11 +104,41 @@ Scope limitation:
 
 Review date: 2026-09-18.
 
-## STRATZ
+## STRATZ GraphQL API
 
-Strong API candidate.
+**Decision: Conditional. API evaluation is allowed; production caching/redistribution remains blocked until STRATZ's rights for the intended derived-data publication are explicit or confirmed.**
 
-Review current GraphQL/API terms, quotas, redistribution rules, and secret-token handling before integration.
+Official references:
+- STRATZ API overview: https://stratz.com/
+- GraphQL endpoint/explorer: https://api.stratz.com/graphql
+- API token guidance: https://github.com/STRATZ-Esports/knowledge-base/issues/37
+- published rate-limit guidance: https://github.com/STRATZ-Esports/knowledge-base/issues/15
+
+Access:
+- official GraphQL API;
+- bearer token required;
+- tokens are secrets and must remain in pipeline/server-side configuration, never in the static frontend.
+
+Automation:
+- STRATZ publicly offers the API for third-party/community applications;
+- use GraphQL rather than scraping the STRATZ website.
+
+Published limits:
+- the STRATZ Knowledge Base documents separate limits for Default, Individual, and Multi-Tokens;
+- the published Default/Individual guidance includes per-second, per-minute, per-hour, and per-day quotas;
+- those Knowledge Base entries predate this review by several years, so an adapter must treat the live token dashboard/API responses as authoritative and must implement bounded retries/backoff.
+
+Caching and redistribution:
+- reviewed official pages establish that third-party API access is supported;
+- no current public license/terms page was found that clearly grants DotaGraph the right to persist, aggregate, and redistribute STRATZ-hosted data as a separately published matchup dataset;
+- STRATZ also exposes proprietary/custom metrics, which must never be assumed reusable merely because the API exposes them.
+
+DotaGraph decision:
+- schema/query prototyping is allowed;
+- production ingestion and publication remain blocked until the intended caching/derived-statistics use is confirmed by explicit terms or written STRATZ permission;
+- if approved later, store only the observations needed for DotaGraph methodology and retain STRATZ provenance; do not copy proprietary presentation text or metrics unless separately allowed.
+
+Review date: 2026-09-18.
 
 ## DOTABUFF
 
