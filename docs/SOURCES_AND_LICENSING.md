@@ -1,8 +1,19 @@
 # Sources and licensing
 
-Status: planning registry. No production ingestion is approved.
+Status: reviewed source/legal registry. No production statistical ingestion has started.
 
-Before automating any source, record:
+Last full review: 2026-09-18.
+
+This document records a conservative engineering decision from publicly available source terms and documentation. It is not legal advice. When terms are ambiguous, DotaGraph treats the capability as blocked until the provider publishes clearer terms or gives written permission.
+
+## Decision vocabulary
+
+- **Approved** — current public terms/documentation are sufficiently clear for the exact listed use.
+- **Conditional** — API/access is permitted, but a specific unresolved right or technical scope prevents production use.
+- **Research only** — manual comparison/reference is allowed; no automated ingestion into DotaGraph.
+- **Blocked** — current terms prohibit the intended automation/use, or required permission is absent.
+
+Before automating any source, record and re-check:
 - official URL;
 - access method;
 - API vs HTML;
@@ -10,11 +21,13 @@ Before automating any source, record:
 - rate limits;
 - automation permission;
 - caching permission;
-- redistribution permission;
+- redistribution/derived-data permission;
 - attribution;
 - terms/license;
 - review date;
 - project decision.
+
+A public API, an open-source client/server implementation, and publicly visible website data are three different things. Permission for one does not automatically grant permission for the others.
 
 ## Valve / Steam
 
