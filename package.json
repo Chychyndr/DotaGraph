@@ -19,7 +19,10 @@
   },
   "dependencies": {
     "react": "^19.1.1",
-    "react-dom": "^19.1.1"
+    "react-dom": "^19.1.1",
+    "@sigma/node-image": "^3.0.0",
+    "graphology": "^0.26.0",
+    "sigma": "^3.0.3"
   },
   "devDependencies": {
     "@playwright/test": "^1.55.0",
