@@ -31,8 +31,9 @@ Current completed results:
 - current API/data terms reviewed for Valve/Steam, OpenDota, STRATZ, DOTABUFF, Dota2ProTracker, and community sources;
 - obtain explicit permission/terms for any conditional hosted provider before production ingestion;
 - approve source adapters only after the exact caching/derived-publication rights and scope are clear;
-- define canonical sample-size semantics;
+- canonical sample-size semantics approved: one distinct completed match per source observation; 500 qualifying matches minimum; provider counts remain separate;
 - define counter-ranking methodology;
+- define aggregation and cross-source disagreement rules;
 - define stale/current-patch handling.
 
 No production statistical ingestion starts before both the source-rights decision and methodology gates are approved.

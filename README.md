@@ -49,4 +49,6 @@ The Claude artifact is an interaction reference only. DotaGraph has its own visu
 
 The graph/frontend foundation and the first full source/licensing review are complete. The current UI still uses development fixtures.
 
-The next data-methodology task is to approve canonical sample-size semantics, followed by counter ranking, aggregation/disagreement rules, and freshness handling. Production statistical ingestion remains blocked until both methodology and the exact provider rights/scope are approved.
+Canonical sample-size semantics are now documented: one distinct completed match per source observation, with a 500-match normal-candidate minimum and no cross-provider count summing.
+
+The next data-methodology task is counter-ranking methodology, followed by aggregation/disagreement rules and freshness handling. Production statistical ingestion remains blocked until both methodology and the exact provider rights/scope are approved.
