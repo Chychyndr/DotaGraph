@@ -35,6 +35,32 @@ test("overview renders the complete hero roster and search reaches the newest he
   await expect(page.getByLabel("Largo counter summary")).toBeVisible();
 });
 
+test("hovered hero label renders above every portrait node", async ({ page }) => {
+  await page.goto("/");
+
+  const hero = page.locator("#graph-hero-phantom-lancer");
+  await hero.hover();
+
+  const label = page.locator('[data-hero-label="phantom-lancer"]');
+  await expect(label).toBeVisible();
+  await expect(label).toHaveText("Phantom Lancer");
+
+  const layerOrder = await page.evaluate(() => {
+    const camera = document.querySelector(".graph-camera");
+    const nodes = camera?.querySelector(".nodes");
+    const labels = camera?.querySelector(".hero-label-layer");
+    if (!camera || !nodes || !labels) return null;
+
+    return {
+      nodes: Array.from(camera.children).indexOf(nodes),
+      labels: Array.from(camera.children).indexOf(labels)
+    };
+  });
+
+  expect(layerOrder).not.toBeNull();
+  expect(layerOrder!.labels).toBeGreaterThan(layerOrder!.nodes);
+});
+
 test("focused win-rate labels stay source-anchored and do not overlap", async ({ page }) => {
   await page.goto("/?hero=viper");
 
