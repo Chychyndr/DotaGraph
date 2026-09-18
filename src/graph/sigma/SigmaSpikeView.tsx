@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useRef } from "react";
+import { NodeImageProgram } from "@sigma/node-image";
 import Sigma from "sigma";
 import type { Hero, MatchupRelationship, SelectedRelations } from "../../domain/types";
 import { buildSigmaSpikeGraph } from "./buildSigmaGraph";
+import { getSigmaHeroPortraits } from "./heroPortraitDataUrls";
 
 interface SigmaSpikeViewProps {
   heroes: Hero[];
@@ -98,6 +100,9 @@ export function SigmaSpikeView({
 
     const renderer = new Sigma(graph, container, {
       defaultEdgeType: "arrow",
+      nodeProgramClasses: {
+        image: NodeImageProgram
+      },
       labelColor: { color: "#f0f6fc" },
       labelFont: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
       labelSize: 11,
@@ -138,6 +143,34 @@ export function SigmaSpikeView({
       rendererRef.current = null;
     };
   }, [graph]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    getSigmaHeroPortraits(heroes)
+      .then((portraits) => {
+        if (cancelled) return;
+
+        for (const hero of heroes) {
+          const image = portraits.get(hero.spriteIndex);
+          if (!image || !graph.hasNode(hero.id)) continue;
+
+          graph.mergeNodeAttributes(hero.id, {
+            image,
+            type: "image"
+          });
+        }
+
+        rendererRef.current?.refresh();
+      })
+      .catch((error: unknown) => {
+        console.warn("Sigma portrait texture spike failed.", error);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [graph, heroes]);
 
   useEffect(() => {
     const activeRelationshipIds = new Set(
