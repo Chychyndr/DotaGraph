@@ -11,6 +11,14 @@ const buildRevision = import.meta.env.VITE_BUILD_SHA || "dev";
 export const HERO_ATLAS_URL =
   `${import.meta.env.BASE_URL}assets/heroes-atlas.webp?v=${encodeURIComponent(buildRevision)}`;
 
+export const getHeroFallbackLabel = (name: string) =>
+  name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? "")
+    .join("");
+
 export const getHeroSpriteCell = (spriteIndex: number) => {
   const column = spriteIndex % HERO_ATLAS_COLUMNS;
   const row = Math.floor(spriteIndex / HERO_ATLAS_COLUMNS);
