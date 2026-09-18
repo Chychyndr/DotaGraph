@@ -4,49 +4,63 @@ DotaGraph is a Vite application deployed at:
 
 https://chychyndr.github.io/DotaGraph/
 
-## Required GitHub Pages setting
+## Deployment model
 
-The repository must use a custom GitHub Actions publishing source.
+The repository contains a custom workflow at `.github/workflows/pages.yml`.
 
-In GitHub:
+The workflow intentionally starts after the main `CI` workflow completes successfully. It checks out the exact SHA that passed CI, builds the Vite application with the `/DotaGraph/` base path, validates the generated `dist/` directory, deploys it with GitHub Pages, then checks the public site and its compiled JavaScript bundle.
+
+This sequencing also prevents the old branch/Jekyll Pages build from becoming the final deployment while the repository is still configured with the legacy Pages source.
+
+## Recommended GitHub Pages setting
+
+The clean repository configuration is:
 
 1. Open **Settings**.
 2. Open **Pages**.
 3. Under **Build and deployment**, set **Source** to **GitHub Actions**.
 
-Do not use **Deploy from a branch** for this repository.
+After that change, GitHub stops starting the generated Jekyll **pages build and deployment** workflow. DotaGraph's own **Deploy GitHub Pages** workflow remains the only publisher.
 
-## Why
+## Why branch deployment is unsuitable
 
-The repository root contains Vite source files. A branch-based GitHub Pages deployment runs the legacy Jekyll Pages workflow and publishes the repository source directly.
+The repository root contains Vite source files. A branch-based GitHub Pages deployment publishes/Jekyll-builds the repository source rather than the compiled Vite application.
 
-That produces an `index.html` containing:
+The source `index.html` legitimately contains:
 
 ```html
 <script type="module" src="/src/main.tsx"></script>
 ```
 
-Browsers cannot execute the TypeScript/TSX source entry directly, so the public page appears blank.
+Vite replaces that entry during a production build. A raw branch deployment does not, so a browser receives a TypeScript/TSX source entry and the page becomes blank.
 
-The custom `.github/workflows/pages.yml` workflow builds the project first and uploads only `dist/`, where Vite has generated hashed JavaScript and CSS assets using the `/DotaGraph/` base path.
+## Automated safeguards
 
-## Deployment safeguards
+Normal CI verifies:
 
-The Pages workflow now:
+- TypeScript type checking;
+- unit tests;
+- production build;
+- Impeccable design checks;
+- Playwright browser tests;
+- a dedicated GitHub Pages production build.
 
-- checks that Pages is configured for the `workflow` build type;
-- runs type checking and unit tests;
-- builds with the GitHub Pages base path;
-- verifies the generated artifact does not contain source-only paths or unresolved Vite placeholders;
-- deploys only `dist/`;
-- waits briefly and smoke-tests the public site after deployment.
+The deployment workflow additionally verifies:
 
-CI also builds and verifies the Pages-specific production artifact on pull requests.
+- the exact tested commit is checked out;
+- `dist/index.html` contains compiled hashed assets;
+- no `/src/main.tsx` reference remains in the deployment artifact;
+- no unresolved `%BASE_URL%` placeholder remains;
+- all referenced JS/CSS files exist;
+- the favicon is present;
+- the public page eventually serves the compiled `/DotaGraph/assets/*.js` bundle.
 
-## Diagnosing a blank page
+The live verification retries for up to one minute to tolerate GitHub Pages propagation.
 
-A blank white page combined with a successful legacy **pages build and deployment** run usually means GitHub Pages is still set to **Deploy from a branch**.
+## Diagnosing Pages
 
-The intended deployment run is named **Deploy GitHub Pages**.
+A run named **CI** checks the project itself.
 
-If both workflows appear for the same commit, the Pages publishing source is configured incorrectly.
+A run named **Deploy GitHub Pages** builds and publishes the tested application.
+
+A generated run named **pages build and deployment** means the repository is still using the legacy branch Pages source. The custom workflow is sequenced after CI so that its compiled deployment wins, but **Source → GitHub Actions** is still the preferred permanent configuration.
