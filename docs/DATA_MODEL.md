@@ -33,6 +33,22 @@ Direction is explicit.
 
 `A -> B` means A counters B. The displayed win rate belongs to A.
 
+## Patch-scoped layout snapshot
+
+Hero geometry is generated separately from public relationship statistics.
+
+A layout snapshot contains:
+- schema version and patch;
+- generation timestamp;
+- exact source/query scope used to derive affinity;
+- hero coverage and missing-source coverage;
+- layout-quality metrics;
+- one deterministic `x/y` position for every catalog hero.
+
+Coordinates are keyed by stable internal hero slug so display-id aliases do not change topology.
+
+The layout snapshot must not contain player-identifying data. For the 7.41e evaluation it also does not publish the raw OpenDota matchup matrix; only geometry and aggregate quality/provenance metadata are committed.
+
 ## Published dataset bundle
 
 The frontend loads one bundle containing:
