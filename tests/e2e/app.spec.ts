@@ -121,7 +121,7 @@ test("clicking empty graph space exits the selected hero", async ({ page }) => {
   await page.goto("/?hero=viper");
   await expect(page.getByLabel("Viper counter summary")).toBeVisible();
 
-  const graph = page.getByRole("img", { name: "Interactive graph of Dota 2 hero counter relationships" });
+  const graph = page.getByRole("group", { name: "Dota 2 hero counter relationships" });
   await graph.click({ position: { x: 24, y: 24 } });
 
   await expect(page).not.toHaveURL(/hero=/);
@@ -130,7 +130,7 @@ test("clicking empty graph space exits the selected hero", async ({ page }) => {
 
 test("dragging pans the graph without clearing the selected hero", async ({ page }) => {
   await page.goto("/?hero=viper");
-  const graph = page.getByRole("img", { name: "Interactive graph of Dota 2 hero counter relationships" });
+  const graph = page.getByRole("group", { name: "Dota 2 hero counter relationships" });
   const camera = page.locator(".graph-camera");
   const box = await graph.boundingBox();
   expect(box).not.toBeNull();
@@ -148,7 +148,7 @@ test("dragging pans the graph without clearing the selected hero", async ({ page
 
 test("mouse wheel zooms the graph", async ({ page }) => {
   await page.goto("/");
-  const graph = page.getByRole("img", { name: "Interactive graph of Dota 2 hero counter relationships" });
+  const graph = page.getByRole("group", { name: "Dota 2 hero counter relationships" });
   const camera = page.locator(".graph-camera");
   const box = await graph.boundingBox();
   expect(box).not.toBeNull();
