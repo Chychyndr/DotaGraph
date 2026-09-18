@@ -16,6 +16,7 @@ import {
   EDGE_LABEL_WIDTH,
   layoutSourceAnchoredEdgeLabels
 } from "./edgeLabelLayout";
+import { calculateFocusScale, visibleViewBoxForViewport } from "./focusCamera";
 
 interface GraphViewProps {
   heroes: Hero[];
@@ -82,14 +83,50 @@ export function GraphView({
   const byId = useMemo(() => new Map(heroes.map((hero) => [hero.id, hero])), [heroes]);
   const initialCompactViewport = window.matchMedia(COMPACT_VIEWPORT_QUERY).matches;
   const [isCompactViewport, setIsCompactViewport] = useState(initialCompactViewport);
-  const initialHero = selectedHeroId ? byId.get(selectedHeroId) : undefined;
+  const [svgViewport, setSvgViewport] = useState({ width: WIDTH, height: HEIGHT });
+  const selectedHero = selectedHeroId ? byId.get(selectedHeroId) : undefined;
+  const relatedHeroes = useMemo(() => {
+    if (!selectedHeroId) return [];
+
+    const ids = new Set(
+      [...selectedRelations.incoming, ...selectedRelations.outgoing]
+        .flatMap((relationship) => [relationship.sourceHeroId, relationship.targetHeroId])
+        .filter((heroId) => heroId !== selectedHeroId)
+    );
+
+    return [...ids].flatMap((heroId) => {
+      const hero = byId.get(heroId);
+      return hero ? [hero] : [];
+    });
+  }, [byId, selectedHeroId, selectedRelations]);
+
+  const visibleGraphSpan = useMemo(
+    () => visibleViewBoxForViewport(
+      svgViewport.width,
+      svgViewport.height,
+      WIDTH,
+      HEIGHT,
+      isCompactViewport ? "slice" : "meet"
+    ),
+    [isCompactViewport, svgViewport]
+  );
+
+  const targetFocusScale = selectedHero
+    ? calculateFocusScale(selectedHero, relatedHeroes, {
+        ...visibleGraphSpan,
+        offsetY: isCompactViewport ? COMPACT_FOCUS_OFFSET_Y : 0,
+        paddingX: isCompactViewport ? 60 : 84,
+        paddingY: isCompactViewport ? 54 : 68
+      })
+    : 1;
+
   const initialCamera: CameraState = {
-    anchorX: initialHero?.x ?? WIDTH / 2,
-    anchorY: initialHero?.y ?? HEIGHT / 2,
+    anchorX: selectedHero?.x ?? WIDTH / 2,
+    anchorY: selectedHero?.y ?? HEIGHT / 2,
     panX: 0,
-    panY: initialHero && initialCompactViewport ? COMPACT_FOCUS_OFFSET_Y : 0,
+    panY: selectedHero && initialCompactViewport ? COMPACT_FOCUS_OFFSET_Y : 0,
     zoom: 1,
-    focusScale: initialHero ? 1.04 : 1
+    focusScale: selectedHero ? targetFocusScale : 1
   };
 
   const [camera, setCameraState] = useState<CameraState>(initialCamera);
@@ -99,6 +136,7 @@ export function GraphView({
     : findNearestHeroToPoint(heroes, WIDTH / 2, HEIGHT / 2);
   const [keyboardHeroId, setKeyboardHeroId] = useState<string | null>(initialKeyboardHero?.id ?? null);
   const cameraRef = useRef(camera);
+  const svgRef = useRef<SVGSVGElement>(null);
   const animationFrameRef = useRef<number | null>(null);
   const previousCameraTargetRef = useRef(`${selectedHeroId ?? ""}:${initialCompactViewport}`);
   const previousKeyboardSelectionRef = useRef(selectedHeroId);
@@ -120,7 +158,7 @@ export function GraphView({
   };
 
   useEffect(() => {
-    const cameraTargetKey = `${selectedHeroId ?? ""}:${isCompactViewport}`;
+    const cameraTargetKey = `${selectedHeroId ?? ""}:${isCompactViewport}:${targetFocusScale.toFixed(4)}`;
     if (previousCameraTargetRef.current === cameraTargetKey) return;
     previousCameraTargetRef.current = cameraTargetKey;
 
@@ -133,7 +171,7 @@ export function GraphView({
       panX: 0,
       panY: selected && isCompactViewport ? COMPACT_FOCUS_OFFSET_Y : 0,
       zoom: 1,
-      focusScale: selected ? 1.04 : 1
+      focusScale: selected ? targetFocusScale : 1
     };
 
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
@@ -167,9 +205,38 @@ export function GraphView({
     animationFrameRef.current = window.requestAnimationFrame(tick);
 
     return cancelCameraAnimation;
-  }, [selectedHeroId, byId, isCompactViewport]);
+  }, [selectedHeroId, byId, isCompactViewport, targetFocusScale]);
 
   useEffect(() => cancelCameraAnimation, []);
+
+  useEffect(() => {
+    const svg = svgRef.current;
+    if (!svg) return;
+
+    const updateViewport = () => {
+      const rect = svg.getBoundingClientRect();
+      if (rect.width <= 0 || rect.height <= 0) return;
+
+      setSvgViewport((current) => {
+        if (
+          Math.abs(current.width - rect.width) < 0.5 &&
+          Math.abs(current.height - rect.height) < 0.5
+        ) {
+          return current;
+        }
+
+        return { width: rect.width, height: rect.height };
+      });
+    };
+
+    updateViewport();
+
+    if (typeof ResizeObserver === "undefined") return;
+
+    const observer = new ResizeObserver(updateViewport);
+    observer.observe(svg);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     const media = window.matchMedia(COMPACT_VIEWPORT_QUERY);
@@ -362,6 +429,7 @@ export function GraphView({
         Use Tab to enter the graph. Use the arrow keys to move between nearby heroes, Enter or Space to select a hero, and Escape to leave the current focus or matchup.
       </p>
       <svg
+      ref={svgRef}
       className={isPanning ? "graph graph-panning" : "graph"}
       viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
       preserveAspectRatio={isCompactViewport ? "xMidYMid slice" : "xMidYMid meet"}
