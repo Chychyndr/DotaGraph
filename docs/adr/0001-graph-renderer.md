@@ -45,7 +45,7 @@ The Graphology adapter preserved node and edge parity with the DotaGraph domain 
 
 ### Rendering capability
 
-Sigma handled the current graph size easily and its built-in camera and interaction model are strong.
+Sigma handled the current graph size easily and its built-in camera and interaction model are strong. In CI Chromium, the spike rendered 127 nodes and 23 directed edges with a measured first Sigma render of 4.2 ms; this timing excludes the later portrait texture preparation.
 
 Its WebGL renderer is a better scaling foundation if DotaGraph eventually needs thousands of simultaneously visible nodes or a very large number of edges.
 
@@ -58,10 +58,10 @@ The production build before the spike was:
 
 With Sigma, Graphology and the image-node renderer included, the comparison build was:
 
-- JavaScript: 439.01 kB;
-- gzip: 127.59 kB.
+- JavaScript: 439.11 kB;
+- gzip: 127.63 kB.
 
-That adds about 190.37 kB of JavaScript, or 48.70 kB gzip, before the graph needs that additional rendering capacity.
+That adds about 190.47 kB of JavaScript, or 48.74 kB gzip, before the graph needs that additional rendering capacity.
 
 ### Portrait pipeline
 
