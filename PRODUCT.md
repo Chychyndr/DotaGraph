@@ -13,11 +13,11 @@ The primary user should be able to understand a selected hero's strongest reliab
 3. What is the source hero's matchup win rate?
 4. What evidence explains the relationship?
 
-## V1
+## Current product scope
 
-V1 includes heroes, directed counter relationships, search, graph overview, focus, matchup state, win rate, sample size, and a compact contextual card.
+The current product scope includes heroes, directed counter relationships, search, graph overview, focus, matchup state, win rate, sample size, and a compact contextual card.
 
-V1 excludes items, synergies, facets/aspects, rank filters, patch history, live draft automation, accounts, voting, analytics dashboards, and settings-heavy UI.
+The current product scope excludes items, synergies, facets/aspects, rank filters, patch history, live draft automation, accounts, voting, analytics dashboards, and settings-heavy UI.
 
 ## Statistical scope
 
