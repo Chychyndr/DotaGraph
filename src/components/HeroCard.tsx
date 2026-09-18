@@ -1,6 +1,5 @@
 import type { Hero, MatchupRelationship } from "../domain/types";
 import { formatPercent } from "../domain/relationships";
-import { heroById } from "../data/heroes";
 import { HeroPortrait } from "./HeroPortrait";
 
 interface HeroCardProps {
@@ -8,16 +7,19 @@ interface HeroCardProps {
   incoming: MatchupRelationship[];
   outgoing: MatchupRelationship[];
   onMatchup: (neighborHeroId: string) => void;
+  heroesById: ReadonlyMap<string, Hero>;
 }
 
 function RelationRows({
   relationships,
   selectedHeroId,
-  onMatchup
+  onMatchup,
+  heroesById
 }: {
   relationships: MatchupRelationship[];
   selectedHeroId: string;
   onMatchup: (neighborHeroId: string) => void;
+  heroesById: ReadonlyMap<string, Hero>;
 }) {
   if (!relationships.length) {
     return <p className="card-empty">No reliable relationships.</p>;
@@ -29,9 +31,9 @@ function RelationRows({
         const neighborId = relationship.sourceHeroId === selectedHeroId
           ? relationship.targetHeroId
           : relationship.sourceHeroId;
-        const neighbor = heroById.get(neighborId);
-        const source = heroById.get(relationship.sourceHeroId);
-        const target = heroById.get(relationship.targetHeroId);
+        const neighbor = heroesById.get(neighborId);
+        const source = heroesById.get(relationship.sourceHeroId);
+        const target = heroesById.get(relationship.targetHeroId);
         if (!neighbor || !source || !target) return null;
 
         return (
@@ -54,7 +56,7 @@ function RelationRows({
   );
 }
 
-export function HeroCard({ hero, incoming, outgoing, onMatchup }: HeroCardProps) {
+export function HeroCard({ hero, incoming, outgoing, onMatchup, heroesById }: HeroCardProps) {
   return (
     <aside className="context-card" aria-label={`${hero.name} counter summary`}>
       <div className="card-hero">
@@ -70,7 +72,12 @@ export function HeroCard({ hero, incoming, outgoing, onMatchup }: HeroCardProps)
           <span>Countered by</span>
           <small>{incoming.length}/5</small>
         </div>
-        <RelationRows relationships={incoming} selectedHeroId={hero.id} onMatchup={onMatchup} />
+        <RelationRows
+          relationships={incoming}
+          selectedHeroId={hero.id}
+          onMatchup={onMatchup}
+          heroesById={heroesById}
+        />
       </div>
 
       <div className="card-section">
@@ -78,7 +85,12 @@ export function HeroCard({ hero, incoming, outgoing, onMatchup }: HeroCardProps)
           <span>Counters</span>
           <small>{outgoing.length}/5</small>
         </div>
-        <RelationRows relationships={outgoing} selectedHeroId={hero.id} onMatchup={onMatchup} />
+        <RelationRows
+          relationships={outgoing}
+          selectedHeroId={hero.id}
+          onMatchup={onMatchup}
+          heroesById={heroesById}
+        />
       </div>
     </aside>
   );
