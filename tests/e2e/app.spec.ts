@@ -27,17 +27,67 @@ test("hero alias search resolves from metadata", async ({ page }) => {
   await expect(page).toHaveURL(/hero=phantom-assassin/);
 });
 
-test("direct URL state loads focus", async ({ page }) => {
+test("direct URL state loads focus without status copy inside the hero card", async ({ page }) => {
   await page.goto("/?hero=viper");
-  await expect(page.getByLabel("Viper counter summary")).toBeVisible();
+  const card = page.getByLabel("Viper counter summary");
+  await expect(card).toBeVisible();
+  await expect(card).not.toContainText("Ancient+");
+  await expect(card).not.toContainText("Patch");
+  await expect(page.getByText("Fixture data", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("Hero counters", { exact: true })).toHaveCount(0);
 });
 
-test("a direction with no reliable fixture relationships shows an explicit empty state", async ({ page }) => {
+test("a direction with no reliable relationships shows an explicit empty state", async ({ page }) => {
   await page.goto("/");
   const search = page.getByRole("textbox", { name: "Search for a hero" });
   await search.fill("night stalker");
   await page.getByRole("option", { name: /Night Stalker/ }).click();
-  await expect(page.getByText("No reliable fixture relationships.")).toBeVisible();
+  await expect(page.getByText("No reliable relationships.")).toBeVisible();
+});
+
+test("clicking empty graph space exits the selected hero", async ({ page }) => {
+  await page.goto("/?hero=viper");
+  await expect(page.getByLabel("Viper counter summary")).toBeVisible();
+
+  const graph = page.getByRole("img", { name: "Interactive graph of Dota 2 hero counter relationships" });
+  await graph.click({ position: { x: 24, y: 24 } });
+
+  await expect(page).not.toHaveURL(/hero=/);
+  await expect(page.getByLabel("Viper counter summary")).toHaveCount(0);
+});
+
+test("dragging pans the graph without clearing the selected hero", async ({ page }) => {
+  await page.goto("/?hero=viper");
+  const graph = page.getByRole("img", { name: "Interactive graph of Dota 2 hero counter relationships" });
+  const camera = page.locator(".graph-camera");
+  const box = await graph.boundingBox();
+  expect(box).not.toBeNull();
+
+  const before = await camera.getAttribute("transform");
+  await page.mouse.move(box!.x + box!.width * 0.82, box!.y + box!.height * 0.25);
+  await page.mouse.down();
+  await page.mouse.move(box!.x + box!.width * 0.72, box!.y + box!.height * 0.34, { steps: 6 });
+  await page.mouse.up();
+
+  const after = await camera.getAttribute("transform");
+  expect(after).not.toBe(before);
+  await expect(page).toHaveURL(/hero=viper/);
+});
+
+test("mouse wheel zooms the graph", async ({ page }) => {
+  await page.goto("/");
+  const graph = page.getByRole("img", { name: "Interactive graph of Dota 2 hero counter relationships" });
+  const camera = page.locator(".graph-camera");
+  const box = await graph.boundingBox();
+  expect(box).not.toBeNull();
+
+  const before = await camera.getAttribute("transform");
+  await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2);
+  await page.mouse.wheel(0, -320);
+  await page.waitForTimeout(40);
+
+  const after = await camera.getAttribute("transform");
+  expect(after).not.toBe(before);
 });
 
 for (const viewport of [
