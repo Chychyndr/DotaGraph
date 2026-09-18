@@ -2,6 +2,13 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent, WheelEvent as ReactWheelEvent } from "react";
 import type { Hero, MatchupRelationship, SelectedRelations } from "../domain/types";
 import { formatPercent } from "../domain/relationships";
+import {
+  HERO_ATLAS_CELL_SIZE,
+  HERO_ATLAS_HEIGHT,
+  HERO_ATLAS_URL,
+  HERO_ATLAS_WIDTH,
+  getHeroSpriteCell
+} from "../data/heroSprite";
 
 interface GraphViewProps {
   heroes: Hero[];
@@ -304,6 +311,29 @@ export function GraphView({
         <marker id="arrow-outgoing" viewBox="0 0 6 6" refX="5.3" refY="3" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
           <path d="M0 0 6 3 0 6Z" className="marker-outgoing" />
         </marker>
+
+        <image
+          id="hero-atlas-image"
+          href={HERO_ATLAS_URL}
+          width={HERO_ATLAS_WIDTH}
+          height={HERO_ATLAS_HEIGHT}
+        />
+        {heroes.map((hero) => {
+          const sprite = getHeroSpriteCell(hero.spriteIndex);
+
+          return (
+            <pattern
+              id={`hero-portrait-${hero.spriteIndex}`}
+              key={`hero-portrait-${hero.id}`}
+              width="1"
+              height="1"
+              viewBox={`${sprite.x} ${sprite.y} ${HERO_ATLAS_CELL_SIZE} ${HERO_ATLAS_CELL_SIZE}`}
+              preserveAspectRatio="xMidYMid slice"
+            >
+              <use href="#hero-atlas-image" />
+            </pattern>
+          );
+        })}
       </defs>
 
       <g className="graph-camera" transform={cameraTransform}>
@@ -411,14 +441,10 @@ export function GraphView({
               >
                 <circle className="node-hitarea" r={Math.max(24, radius + 8)} />
                 <circle className="node-ring" r={radius + (isSelected ? 4 : 2)} />
-                <image
-                  href={hero.portrait}
-                  x={-radius}
-                  y={-radius}
-                  width={size}
-                  height={size}
-                  preserveAspectRatio="xMidYMid slice"
-                  clipPath={`circle(${radius}px at ${radius}px ${radius}px)`}
+                <circle
+                  className="hero-portrait-node"
+                  r={radius}
+                  fill={`url(#hero-portrait-${hero.spriteIndex})`}
                 />
                 {showLabel && (
                   <text className="hero-label" x={radius + 9} y="4">{hero.name}</text>
