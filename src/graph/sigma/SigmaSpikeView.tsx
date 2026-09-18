@@ -115,6 +115,14 @@ export function SigmaSpikeView({
 
     rendererRef.current = renderer;
 
+    const startedAt = performance.now();
+    const markReady = () => {
+      container.dataset.ready = "true";
+      container.dataset.firstRenderMs = (performance.now() - startedAt).toFixed(1);
+      renderer.off("afterRender", markReady);
+    };
+    renderer.on("afterRender", markReady);
+
     renderer.on("clickNode", ({ node }) => {
       const state = latestState.current;
       if (state.selectedHeroId && state.activeIds.has(node) && node !== state.selectedHeroId) {
