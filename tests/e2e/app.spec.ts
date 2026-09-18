@@ -13,7 +13,7 @@ test("search, focus, matchup and reset flow", async ({ page }) => {
   await expect(page).toHaveURL(/hero=viper/);
 
   await page.getByRole("button", { name: /Shadow Demon/ }).last().click();
-  await expect(page.getByLabel("Shadow Demon counters Viper")).toBeVisible();
+  await expect(page.getByRole("complementary", { name: "Shadow Demon counters Viper" })).toBeVisible();
   await expect(page).toHaveURL(/matchup=shadow-demon/);
 
   await page.getByRole("button", { name: "Reset" }).click();
