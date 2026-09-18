@@ -40,6 +40,7 @@ def compute_layout(
     height: float = 760.0,
     margin: float = 52.0,
     min_distance: float = 46.0,
+    fill_ratio: float = 0.76,
     iterations: int = 900,
 ) -> dict[str, tuple[float, float]]:
     """Return deterministic force-directed coordinates.
@@ -137,15 +138,20 @@ def compute_layout(
     min_y = min(point[1] for point in positions)
     max_y = max(point[1] for point in positions)
 
-    usable_width = width - margin * 2
-    usable_height = height - margin * 2
+    fill_ratio = _clamp(fill_ratio, 0.5, 1.0)
+    usable_width = (width - margin * 2) * fill_ratio
+    usable_height = (height - margin * 2) * fill_ratio
+    left = (width - usable_width) / 2
+    top = (height - usable_height) / 2
+    right = left + usable_width
+    bottom = top + usable_height
     x_span = max(max_x - min_x, 1e-8)
     y_span = max(max_y - min_y, 1e-8)
 
     pixel_positions = [
         [
-            margin + (point[0] - min_x) / x_span * usable_width,
-            margin + (point[1] - min_y) / y_span * usable_height,
+            left + (point[0] - min_x) / x_span * usable_width,
+            top + (point[1] - min_y) / y_span * usable_height,
         ]
         for point in positions
     ]
@@ -182,8 +188,8 @@ def compute_layout(
                 moved = True
 
         for point in pixel_positions:
-            point[0] = _clamp(point[0], margin, width - margin)
-            point[1] = _clamp(point[1], margin, height - margin)
+            point[0] = _clamp(point[0], left, right)
+            point[1] = _clamp(point[1], top, bottom)
 
         if not moved:
             break
