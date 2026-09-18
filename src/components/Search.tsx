@@ -70,11 +70,12 @@ export function Search({ heroes, onSelect }: SearchProps) {
           role="combobox"
           aria-autocomplete="list"
           aria-haspopup="listbox"
+          aria-keyshortcuts="/"
           aria-expanded={Boolean(query)}
           aria-controls={query ? "hero-search-results" : undefined}
           aria-activedescendant={query && results[activeIndex] ? `hero-result-${results[activeIndex].id}` : undefined}
         />
-        <kbd>/</kbd>
+        <kbd aria-hidden="true">/</kbd>
       </div>
 
       {query && (
