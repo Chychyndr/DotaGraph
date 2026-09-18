@@ -2,16 +2,28 @@ from __future__ import annotations
 
 import unittest
 
+from pathlib import Path
+
 from dotagraph_pipeline.generate_patch_layout import (
     MIN_SAMPLE,
     _build_affinities,
     _hero_baselines,
+    _load_catalog,
+    _load_opendota_hero_map,
     _normalize_pairs,
     _select_layout_affinities,
 )
 
 
 class PatchLayoutTests(unittest.TestCase):
+    def test_vendored_opendota_mapping_covers_catalog(self) -> None:
+        repo_root = Path(__file__).resolve().parents[2]
+        catalog = _load_catalog(repo_root)
+        hero_map = _load_opendota_hero_map(repo_root, catalog)
+
+        self.assertEqual(set(hero_map.values()), catalog)
+        self.assertEqual(len(hero_map), len(catalog))
+
     def test_radiant_and_dire_rows_merge_into_one_pair(self) -> None:
         rows = [
             {
