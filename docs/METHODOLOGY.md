@@ -140,7 +140,7 @@ The graph topology may use real matchup observations before the final public cou
 For the patch 7.41e layout evaluation:
 - source corpus: OpenDota `public_matches`;
 - clean historical window: 2026-08-01T00:00:00Z inclusive through 2026-09-15T00:00:00Z exclusive;
-- ranked All Pick only;
+- OpenDota `game_mode_all_draft` (22) with `lobby_type_ranked` (7) only;
 - OpenDota average rank tier >= 60 as the adapter predicate for the Ancient+ target population;
 - minimum 500 observed hero-pair matches before a pair may influence primary layout affinity;
 - both directions matter: heroes that strongly counter each other in either direction should remain spatially close;
