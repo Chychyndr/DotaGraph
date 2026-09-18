@@ -35,6 +35,26 @@ test("overview renders the complete hero roster and search reaches the newest he
   await expect(page.getByLabel("Largo counter summary")).toBeVisible();
 });
 
+test("hero artwork loads from one local atlas without Steamstatic requests", async ({ page }) => {
+  let atlasResponses = 0;
+  let steamstaticRequests = 0;
+
+  page.on("request", (request) => {
+    if (request.url().includes("steamstatic.com")) steamstaticRequests += 1;
+  });
+
+  page.on("response", (response) => {
+    if (response.url().includes("/assets/heroes-atlas.webp")) atlasResponses += 1;
+  });
+
+  await page.goto("/");
+  await expect(page.locator(".hero-node")).toHaveCount(127);
+  await page.waitForLoadState("networkidle");
+
+  expect(steamstaticRequests).toBe(0);
+  expect(atlasResponses).toBe(1);
+});
+
 test("hero alias search resolves from metadata", async ({ page }) => {
   await page.goto("/");
   const search = page.getByRole("textbox", { name: "Search for a hero" });
