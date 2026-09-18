@@ -222,6 +222,25 @@ Restrictions:
 
 Review date: 2026-09-18.
 
+## Production gate outcome
+
+This review is complete for the currently listed providers, but it does **not** approve production statistical ingestion yet.
+
+Current outcome:
+- static hero identity/constants metadata from OpenDota dotaconstants is approved under MIT;
+- D2PT is excluded from ingestion under its current Terms of Service;
+- DOTABUFF remains manual research only;
+- Valve/Steam, OpenDota hosted statistics, and STRATZ remain conditional for the exact DotaGraph production use described above.
+
+Before implementing a production statistical source adapter:
+1. obtain explicit current permission/terms for caching and publishing derived aggregate data from the chosen hosted provider;
+2. verify that the provider can supply the approved rank/patch population;
+3. record the exact endpoint/query, quotas, attribution, and provenance fields in this registry;
+4. keep credentials server-side/pipeline-only;
+5. update this document in the same PR that introduces the adapter.
+
+Source/legal review may continue independently of methodology work. The next methodology tasks can define sample-size, ranking, aggregation, and freshness semantics without ingesting blocked provider data.
+
 ## Project licensing
 
 DotaGraph code is MIT.
