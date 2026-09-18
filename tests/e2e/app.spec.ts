@@ -288,6 +288,44 @@ test("selecting a distant hero moves the camera progressively", async ({ page })
   await expect(page).toHaveURL(/hero=underlord/);
 });
 
+test("focus camera zooms out to keep distant active counters visible", async ({ page }) => {
+  await page.setViewportSize({ width: 1366, height: 768 });
+  await page.goto("/?hero=spectre");
+  await page.waitForTimeout(520);
+
+  const graph = page.getByRole("group", { name: "Dota 2 hero counter relationships" });
+  const graphBox = await graph.boundingBox();
+  expect(graphBox).not.toBeNull();
+
+  const selectedBox = await page.locator("#graph-hero-spectre").boundingBox();
+  expect(selectedBox).not.toBeNull();
+
+  const graphCenterX = graphBox!.x + graphBox!.width / 2;
+  const graphCenterY = graphBox!.y + graphBox!.height / 2;
+  const selectedCenterX = selectedBox!.x + selectedBox!.width / 2;
+  const selectedCenterY = selectedBox!.y + selectedBox!.height / 2;
+
+  expect(Math.abs(selectedCenterX - graphCenterX)).toBeLessThan(4);
+  expect(Math.abs(selectedCenterY - graphCenterY)).toBeLessThan(4);
+
+  const transform = await page.locator(".graph-camera").getAttribute("transform");
+  const scaleMatch = transform?.match(/scale\(([^)]+)\)/);
+  expect(scaleMatch).not.toBeNull();
+  expect(Number(scaleMatch![1])).toBeLessThan(0.75);
+
+  const activeHeroes = page.locator(".hero-active");
+  await expect(activeHeroes).toHaveCount(2);
+
+  for (let index = 0; index < await activeHeroes.count(); index += 1) {
+    const box = await activeHeroes.nth(index).boundingBox();
+    expect(box).not.toBeNull();
+    expect(box!.x).toBeGreaterThanOrEqual(graphBox!.x);
+    expect(box!.y).toBeGreaterThanOrEqual(graphBox!.y);
+    expect(box!.x + box!.width).toBeLessThanOrEqual(graphBox!.x + graphBox!.width);
+    expect(box!.y + box!.height).toBeLessThanOrEqual(graphBox!.y + graphBox!.height);
+  }
+});
+
 test("reduced-motion preference skips the focus camera animation", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/");
