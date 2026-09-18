@@ -172,9 +172,26 @@ Review date: 2026-09-18.
 
 ## Dota2ProTracker
 
-Do not scrape or ingest the website under the current project decision.
+**Decision: Blocked for data ingestion. UX observation only.**
 
-Use only as a permitted manual/UX research reference unless terms/permission change.
+Official references:
+- Terms of Service: https://dota2protracker.com/terms-of-service
+- contact: https://dota2protracker.com/contact
+
+Current terms explicitly restrict the site to personal, non-commercial browsing and prohibit:
+- bots, scrapers, crawlers, and similar automated extraction;
+- copying, reproducing, republishing, distributing, or creating derivative works from its data;
+- using its data to build or improve a database, application, analytics system, or machine-learning model;
+- using its data to support a competing service;
+- bypassing technical restrictions or rate limits.
+
+DotaGraph decision:
+- no scraping, browser automation, API reverse-engineering, dataset copying, or derived statistical ingestion;
+- do not copy D2PT matchup/build numbers into DotaGraph;
+- UX/navigation ideas may be observed manually without reproducing protected content or data;
+- this source can only become a data provider if D2PT gives explicit written permission that covers DotaGraph's intended use.
+
+Review date: 2026-09-18.
 
 ## Reddit/community
 
