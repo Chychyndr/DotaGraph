@@ -1,0 +1,36 @@
+name: Matchup or data problem
+description: Report a wrong, missing, stale, or questionable counter relationship
+title: "[Data] "
+body:
+  - type: input
+    id: matchup
+    attributes:
+      label: Hero or matchup
+      placeholder: "Shadow Demon -> Viper"
+    validations:
+      required: true
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Problem type
+      options:
+        - Wrong direction
+        - Wrong percentage
+        - Missing counter
+        - Weak/low-sample counter shown
+        - Stale patch data
+        - Explanation problem
+        - Source/provenance problem
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: Link sources and explain why the relationship should be reviewed.
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Additional context
