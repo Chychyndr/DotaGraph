@@ -55,3 +55,4 @@
 - Escape closes/clears.
 - Slash may focus the field.
 - Aliases come from hero metadata.
+NaN
