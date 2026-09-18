@@ -47,8 +47,12 @@ The Claude artifact is an interaction reference only. DotaGraph has its own visu
 
 ## Status
 
-The graph/frontend foundation and the first full source/licensing review are complete. The current UI still uses development fixtures.
+The graph/frontend foundation and the first full source/licensing review are complete.
 
-Canonical sample-size semantics are now documented: one distinct completed match per source observation, with a 500-match normal-candidate minimum and no cross-provider count summing.
+Hero **geometry** is now generated from real patch 7.41e OpenDota matchup evidence: related counter/countered heroes influence a deterministic offline layout, then the frontend uses the committed coordinates without a runtime force simulation.
 
-The next data-methodology task is counter-ranking methodology, followed by aggregation/disagreement rules and freshness handling. Production statistical ingestion remains blocked until both methodology and the exact provider rights/scope are approved.
+The currently displayed matchup percentages/relationship fixtures are still development fixtures. The real-data layout does not turn its internal geometric affinity into a public counter score.
+
+Canonical sample-size semantics are documented: one distinct completed match per source observation, with a 500-match normal-candidate minimum and no cross-provider count summing.
+
+The next statistical methodology task is counter-ranking methodology, followed by aggregation/disagreement rules and freshness handling. Production headline matchup statistics remain blocked until both methodology and the exact provider rights/scope are approved.
