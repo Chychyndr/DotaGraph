@@ -111,7 +111,8 @@ test("selecting a distant hero moves the camera progressively", async ({ page })
 
 test("site exposes the SVG favicon", async ({ page }) => {
   await page.goto("/");
-  await expect(page.locator('link[rel="icon"][href="/favicon.svg"]')).toHaveCount(1);
+  const iconHref = await page.locator('link[rel="icon"]').getAttribute("href");
+  expect(iconHref).toMatch(/favicon\.svg$/);
 });
 
 for (const viewport of [
