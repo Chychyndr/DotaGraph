@@ -75,9 +75,17 @@ export default function App() {
   return (
     <main className="app-shell">
       <header className="topbar">
-        <div className="brand-block">
-          <h1>DotaGraph</h1>
-          <p>{scope.rankLabel} · Patch {scope.patch}</p>
+        <div className="brand">
+          <img
+            className="brand-logo"
+            src={`${import.meta.env.BASE_URL}favicon.svg`}
+            alt=""
+            aria-hidden="true"
+          />
+          <div className="brand-block">
+            <h1>DotaGraph</h1>
+            <p>{scope.rankLabel} · Patch {scope.patch}</p>
+          </div>
         </div>
 
         <div className="topbar-actions">
