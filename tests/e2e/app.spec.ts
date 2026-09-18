@@ -109,10 +109,14 @@ test("selecting a distant hero moves the camera progressively", async ({ page })
   await expect(page).toHaveURL(/hero=underlord/);
 });
 
-test("site exposes the SVG favicon", async ({ page }) => {
+test("site exposes the DotaGraph logo as favicon and header brand", async ({ page }) => {
   await page.goto("/");
   const iconHref = await page.locator('link[rel="icon"]').getAttribute("href");
   expect(iconHref).toMatch(/favicon\.svg$/);
+
+  const logo = page.locator(".brand-logo");
+  await expect(logo).toBeVisible();
+  await expect(logo).toHaveAttribute("src", /favicon\.svg$/);
 });
 
 for (const viewport of [
