@@ -231,6 +231,16 @@ button:focus-visible, input:focus-visible, [role="button"]:focus-visible {
 
 .graph-panning { cursor: grabbing; }
 
+.sigma-spike {
+  width: 100%;
+  height: calc(100vh - 68px);
+  background: var(--canvas);
+}
+
+.sigma-spike canvas {
+  display: block;
+}
+
 .edge {
   stroke: #6e7681;
   stroke-width: 1;
