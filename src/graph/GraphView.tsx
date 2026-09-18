@@ -514,6 +514,18 @@ export function GraphView({
 
               setKeyboardHeroId(next.id);
               onHoverHero(next.id);
+
+              if (isCompactViewport && !selectedHeroId) {
+                cancelCameraAnimation();
+                setCamera((current) => ({
+                  ...current,
+                  anchorX: next.x,
+                  anchorY: next.y,
+                  panX: 0,
+                  panY: 0
+                }));
+              }
+
               window.requestAnimationFrame(() => {
                 document.getElementById(`graph-hero-${next.id}`)?.focus({ preventScroll: true });
               });
