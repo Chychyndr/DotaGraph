@@ -142,9 +142,33 @@ Review date: 2026-09-18.
 
 ## DOTABUFF
 
-Useful manual research/validation reference.
+**Decision: Research only. Automated ingestion is blocked unless Elo Entertainment gives explicit permission or publishes an applicable API/data license.**
 
-Do not implement automated scraping until explicit current terms/permission allow the intended use.
+Official references:
+- about/data description: https://www.dotabuff.com/pages/about
+- privacy policy: https://www.dotabuff.com/pages/privacy
+- support/FAQ: https://www.dotabuff.com/pages/faq
+- copyright/fair-use page: https://www.dotabuff.com/pages/copyright
+
+Access:
+- public website intended for human browsing;
+- no public production API or data-export license suitable for DotaGraph was found during this review.
+
+Automation:
+- do not scrape DOTABUFF HTML;
+- do not reverse-engineer private/internal endpoints;
+- do not use browser automation to bypass the absence of an approved API.
+
+Caching and redistribution:
+- no reviewed public terms grant DotaGraph permission to copy and republish DOTABUFF's derived statistical dataset;
+- visual availability of a statistic is not permission to ingest it.
+
+DotaGraph decision:
+- use DOTABUFF only for manual product/methodology comparison and sanity checks;
+- never copy DOTABUFF numbers into the production bundle;
+- if DOTABUFF is desired as a formal source later, request written permission through its published support channel before building an adapter.
+
+Review date: 2026-09-18.
 
 ## Dota2ProTracker
 
