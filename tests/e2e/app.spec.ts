@@ -111,6 +111,31 @@ test("graph exposes one keyboard tab stop and supports spatial arrow navigation"
   await expect(tabbableHeroes).toHaveCount(1);
 });
 
+test("compact keyboard navigation keeps the focused hero in view", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+
+  const graph = page.getByRole("group", { name: "Dota 2 hero counter relationships" });
+  const camera = page.locator(".graph-camera");
+  const tabbableHero = page.locator('.hero-node[tabindex="0"]');
+
+  await tabbableHero.focus();
+  const before = await camera.getAttribute("transform");
+  await page.keyboard.press("ArrowRight");
+  const after = await camera.getAttribute("transform");
+
+  expect(after).not.toBe(before);
+
+  const focusedBox = await page.locator(":focus").boundingBox();
+  const graphBox = await graph.boundingBox();
+  expect(focusedBox).not.toBeNull();
+  expect(graphBox).not.toBeNull();
+  expect(focusedBox!.x).toBeGreaterThanOrEqual(graphBox!.x);
+  expect(focusedBox!.x + focusedBox!.width).toBeLessThanOrEqual(graphBox!.x + graphBox!.width);
+  expect(focusedBox!.y).toBeGreaterThanOrEqual(graphBox!.y);
+  expect(focusedBox!.y + focusedBox!.height).toBeLessThanOrEqual(graphBox!.y + graphBox!.height);
+});
+
 test("keyboard search selection moves focus to the selected graph hero", async ({ page }) => {
   await page.goto("/");
 
