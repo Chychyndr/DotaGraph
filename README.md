@@ -55,4 +55,6 @@ The currently displayed matchup percentages/relationship fixtures are still deve
 
 Canonical sample-size semantics are documented: one distinct completed match per source observation, with a 500-match normal-candidate minimum and no cross-provider count summing.
 
-The next statistical methodology task is counter-ranking methodology, followed by aggregation/disagreement rules and freshness handling. Production headline matchup statistics remain blocked until both methodology and the exact provider rights/scope are approved.
+Owner-approved direct Dota data sources are **OpenDota, STRATZ, DOTABUFF, and Dota2ProTracker**. Official APIs are preferred where available; direct-source approval does not override provider authentication, rate limits, or anti-scraping restrictions.
+
+The next statistical methodology task is counter-ranking methodology, followed by aggregation/disagreement rules and freshness handling. Production headline matchup statistics remain blocked by those methodology decisions; the allowed direct-source set itself is now approved.
