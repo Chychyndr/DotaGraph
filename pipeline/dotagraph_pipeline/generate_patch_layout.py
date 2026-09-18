@@ -115,13 +115,13 @@ def _load_opendota_hero_map(catalog_slugs: set[str]) -> dict[int, str]:
     return result
 
 
-def _pair_query() -> str:
+def _pair_query(start_epoch: int, end_epoch: int) -> str:
     return f"""
 WITH scoped_matches AS (
   SELECT radiant_win, radiant_team, dire_team
   FROM public_matches
-  WHERE start_time >= {PATCH_START_EPOCH}
-    AND start_time < {PATCH_END_EPOCH}
+  WHERE start_time >= {start_epoch}
+    AND start_time < {end_epoch}
     AND avg_rank_tier >= {AVG_RANK_TIER_MIN}
     AND game_mode = {GAME_MODE}
     AND lobby_type = {LOBBY_TYPE}
@@ -141,19 +141,64 @@ ORDER BY radiant_hero.hero_id, dire_hero.hero_id
 """.strip()
 
 
-def _fetch_pair_rows() -> list[dict[str, Any]]:
-    payload = _request_json(_api_url("/explorer", {"sql": _pair_query()}))
+def _fetch_pair_rows_for_range(
+    start_epoch: int,
+    end_epoch: int,
+) -> list[dict[str, Any]]:
+    try:
+        payload = _request_json(
+            _api_url("/explorer", {"sql": _pair_query(start_epoch, end_epoch)})
+        )
+    except RuntimeError as exc:
+        duration = end_epoch - start_epoch
+        if "Query read timeout" not in str(exc) or duration <= 86_400:
+            raise
+
+        midpoint = start_epoch + duration // 2
+        midpoint -= midpoint % 86_400
+        if midpoint <= start_epoch or midpoint >= end_epoch:
+            midpoint = start_epoch + duration // 2
+
+        return (
+            _fetch_pair_rows_for_range(start_epoch, midpoint)
+            + _fetch_pair_rows_for_range(midpoint, end_epoch)
+        )
 
     if not isinstance(payload, dict):
         raise RuntimeError("OpenDota Explorer returned a non-object response")
     if payload.get("err"):
-        raise RuntimeError(f"OpenDota Explorer error: {payload['err']}")
+        message = str(payload["err"])
+        duration = end_epoch - start_epoch
+        if "Query read timeout" in message and duration > 86_400:
+            midpoint = start_epoch + duration // 2
+            midpoint -= midpoint % 86_400
+            if midpoint <= start_epoch or midpoint >= end_epoch:
+                midpoint = start_epoch + duration // 2
+            return (
+                _fetch_pair_rows_for_range(start_epoch, midpoint)
+                + _fetch_pair_rows_for_range(midpoint, end_epoch)
+            )
+        raise RuntimeError(f"OpenDota Explorer error: {message}")
 
     rows = payload.get("rows")
     if not isinstance(rows, list):
         raise RuntimeError("OpenDota Explorer response did not contain rows")
 
     return [row for row in rows if isinstance(row, dict)]
+
+
+def _fetch_pair_rows() -> list[dict[str, Any]]:
+    chunk_seconds = 3 * 86_400
+    rows: list[dict[str, Any]] = []
+    start_epoch = PATCH_START_EPOCH
+
+    while start_epoch < PATCH_END_EPOCH:
+        end_epoch = min(start_epoch + chunk_seconds, PATCH_END_EPOCH)
+        rows.extend(_fetch_pair_rows_for_range(start_epoch, end_epoch))
+        start_epoch = end_epoch
+        time.sleep(0.2)
+
+    return rows
 
 
 def _normalize_pairs(
