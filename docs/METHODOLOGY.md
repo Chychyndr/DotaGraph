@@ -133,6 +133,24 @@ The graph displays source-hero matchup win rate.
 
 `A -> B` at 55.4% means A has 55.4% win rate against B in the stated scope.
 
+## Data-driven graph layout
+
+The graph topology may use real matchup observations before the final public counter-ranking formula is approved, but this use is strictly geometric.
+
+For the patch 7.41e layout evaluation:
+- source corpus: OpenDota `public_matches`;
+- clean historical window: 2026-08-01T00:00:00Z inclusive through 2026-09-15T00:00:00Z exclusive;
+- ranked All Pick only;
+- OpenDota average rank tier >= 60 as the adapter predicate for the Ancient+ target population;
+- minimum 500 observed hero-pair matches before a pair may influence primary layout affinity;
+- both directions matter: heroes that strongly counter each other in either direction should remain spatially close;
+- raw pair win rate is adjusted by the heroes' observed baseline strength before determining layout affinity;
+- sample size strengthens geometric confidence but cannot be summed across providers.
+
+The current layout affinity is intentionally **not** a user-visible counter score and is not the final production counter-ranking methodology. Its only output is stable hero coordinates plus quality/provenance metadata.
+
+The OpenDota `public_matches` table is a public-match sample, so this snapshot represents the observed OpenDota sample under the recorded query scope rather than every Ancient+ match played during 7.41e.
+
 ## Future ranking
 
 Raw matchup win rate alone is not enough to rank specific counters because hero baseline strength changes the expected result.
