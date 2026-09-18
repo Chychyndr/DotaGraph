@@ -25,14 +25,15 @@ Roadmap order describes dependency and product logic, not release dates.
 
 ## Source/legal methodology gate
 
-- finalize source registry;
-- verify current API/data terms;
-- approve source adapters;
+- source registry reviewed on 2026-09-18;
+- current API/data terms reviewed for Valve/Steam, OpenDota, STRATZ, DOTABUFF, Dota2ProTracker, and community sources;
+- obtain explicit permission/terms for any conditional hosted provider before production ingestion;
+- approve source adapters only after the exact caching/derived-publication rights and scope are clear;
 - define canonical sample-size semantics;
 - define counter-ranking methodology;
 - define stale/current-patch handling.
 
-No production ingestion starts before this gate is approved.
+No production statistical ingestion starts before both the source-rights decision and methodology gates are approved.
 
 ## Current production hero data
 
