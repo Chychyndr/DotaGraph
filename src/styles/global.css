@@ -297,28 +297,39 @@ button:focus-visible, input:focus-visible, [role="button"]:focus-visible {
   background: #21262d;
 }
 
-.data-warning {
+.stage-notices {
   position: absolute;
   top: 12px;
   left: 50%;
   z-index: 20;
   width: min(560px, calc(100% - 24px));
+  display: grid;
+  gap: 6px;
+  transform: translateX(-50%);
+}
+
+.data-warning {
   display: flex;
   align-items: baseline;
   justify-content: center;
   gap: 7px;
   padding: 7px 10px;
-  transform: translateX(-50%);
   color: #d29922;
   background: rgba(22, 27, 34, .96);
   border: 1px solid rgba(210, 153, 34, .48);
   border-radius: 6px;
   box-shadow: 0 4px 16px rgba(1, 4, 9, .28);
   font-size: 10px;
+  text-align: center;
 }
 
 .data-warning span {
   color: var(--secondary);
+}
+
+.portrait-warning {
+  color: var(--secondary);
+  border-color: var(--border);
 }
 
 @keyframes data-state-spin {
