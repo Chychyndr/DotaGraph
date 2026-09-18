@@ -2,19 +2,13 @@ name: Generate 7.41e layout
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - feature/real-7.41e-layout
-    paths:
-      - pipeline/**
-      - .github/workflows/generate-741e-layout.yml
 
 permissions:
   contents: write
 
 concurrency:
   group: dotagraph-generate-741e-layout
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   generate:
