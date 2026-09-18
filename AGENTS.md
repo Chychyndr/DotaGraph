@@ -210,7 +210,7 @@ Never use generative-image output as final hero art, item art, UI icons, screens
 Target:
 - dark tinted canvas;
 - quiet surfaces;
-- Manrope direction unless Figma changes it;
+- GitHub-like system font stack unless the owner-approved Figma changes it;
 - coral incoming;
 - cyan outgoing;
 - restrained gold selected state;
