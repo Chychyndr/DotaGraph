@@ -2,9 +2,9 @@
 
 DotaGraph is an open-source, graph-first Dota 2 matchup project.
 
-The first milestone is a UX prototype for ordinary players who want to answer two questions quickly during a draft: who counters this hero, and whom does this hero counter?
+DotaGraph is built for ordinary players who want to answer two questions quickly during a draft: who counters this hero, and whom does this hero counter?
 
-The current branch uses development fixture statistics. They are deliberately marked as fixture data and must not be treated as real Dota statistics.
+The current frontend uses development fixture statistics for interface work. They must not be treated as real Dota statistics.
 
 ## Run locally
 
@@ -29,7 +29,7 @@ GitHub Pages deployment uses a compiled Vite artifact. See [docs/DEPLOYMENT.md](
 - `A -> B` always means A counters B.
 - Focus view shows 0–5 reliable incoming and 0–5 reliable outgoing relationships.
 - The displayed percentage is the source hero's matchup win rate.
-- V1 contains heroes and hero-vs-hero counter relationships only.
+- The current product scope contains heroes and hero-vs-hero counter relationships only.
 - Headline scope is Ancient+ and the current patch supplied through data/configuration.
 - Production data ingestion has not started.
 
@@ -47,4 +47,4 @@ The Claude artifact is an interaction reference only. DotaGraph has its own visu
 
 ## Status
 
-This is the first UX/frontend foundation. Real source aggregation, scraping/API ingestion, production matchup methodology, items, synergies, accounts, analytics, and historical patch data are intentionally out of scope.
+The graph/frontend foundation is in place. Real source aggregation, scraping/API ingestion, production matchup methodology, items, synergies, accounts, analytics, and historical patch data remain outside the current scope.
