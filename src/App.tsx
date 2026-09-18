@@ -97,6 +97,14 @@ export default function App() {
       </header>
 
       <section className="graph-stage" aria-label="DotaGraph counter map">
+        <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">
+          {matchup && matchupSource && matchupTarget
+            ? `${matchupSource.name} counters ${matchupTarget.name}`
+            : selectedHero
+              ? `${selectedHero.name} selected`
+              : "Graph overview"}
+        </div>
+
         <GraphView
           heroes={heroes}
           relationships={fixtureRelationships.filter((relationship) => relationship.sampleSize >= scope.minimumSample)}
