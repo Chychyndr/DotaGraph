@@ -67,13 +67,13 @@ def _request_json(url: str, *, attempts: int = 4) -> Any:
                 f"OpenDota HTTP {exc.code} for {exc.url}: {body[:2000]}"
             )
             last_error = detail
-            if exc.code not in {429, 500, 502, 503, 504}:
+            if exc.code != 429 and not 500 <= exc.code < 600:
                 raise detail from exc
         except (URLError, TimeoutError) as exc:
             last_error = exc
 
         if attempt + 1 < attempts:
-            time.sleep(2 ** attempt)
+            time.sleep(min(15, 2 ** (attempt + 1)))
 
     if last_error is None:
         raise RuntimeError("OpenDota request failed without an error")
