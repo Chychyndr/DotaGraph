@@ -195,9 +195,19 @@ Review date: 2026-09-18.
 
 ## Reddit/community
 
-Qualitative evidence only.
+**Decision: Qualitative-only research source; not a production statistics provider.**
 
-Community discussion can inform explanation hypotheses, but never the headline numerical percentage. Preserve links and verify claims before publication.
+Use:
+- community discussion may suggest explanation hypotheses, edge cases, terminology, or counterplay to verify elsewhere;
+- preserve links when a discussion materially informs a draft explanation.
+
+Restrictions:
+- community opinions never contribute directly to headline numerical win rates or ranking;
+- no automated Reddit/community ingestion is approved under this review;
+- if automated API collection is proposed later, perform a separate current API/terms/privacy review before implementation;
+- do not treat user comments as authoritative facts about current mechanics.
+
+Review date: 2026-09-18.
 
 ## Project licensing
 
