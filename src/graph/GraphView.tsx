@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent, WheelEvent as ReactWheelEvent } from "react";
 import type { Hero, MatchupRelationship, SelectedRelations } from "../domain/types";
 import { formatPercent } from "../domain/relationships";
-import { findHeroInDirection, type GraphNavigationDirection } from "./keyboardNavigation";
+import { findHeroInDirection, findNearestHeroToPoint, type GraphNavigationDirection } from "./keyboardNavigation";
 import {
   HERO_ATLAS_CELL_SIZE,
   HERO_ATLAS_HEIGHT,
@@ -92,7 +92,10 @@ export function GraphView({
 
   const [camera, setCameraState] = useState<CameraState>(initialCamera);
   const [isPanning, setIsPanning] = useState(false);
-  const [keyboardHeroId, setKeyboardHeroId] = useState<string | null>(selectedHeroId ?? heroes[0]?.id ?? null);
+  const initialKeyboardHero = selectedHeroId
+    ? byId.get(selectedHeroId)
+    : findNearestHeroToPoint(heroes, WIDTH / 2, HEIGHT / 2);
+  const [keyboardHeroId, setKeyboardHeroId] = useState<string | null>(initialKeyboardHero?.id ?? null);
   const cameraRef = useRef(camera);
   const animationFrameRef = useRef<number | null>(null);
   const previousCameraTargetRef = useRef(`${selectedHeroId ?? ""}:${initialCompactViewport}`);
