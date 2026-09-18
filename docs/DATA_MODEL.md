@@ -25,6 +25,10 @@ A relationship has:
 - sourceKind;
 - optional fixture explanation.
 
+For production data, `sampleSize` is the known count of qualifying matches behind the source observation selected to support the published relationship. One qualifying match is one distinct completed match for the hero pair inside one exact source/patch/rank/match-population/observation-window scope.
+
+A published relationship must not contain an estimated or semantically ambiguous sample count. Unknown-count observations cannot be promoted into the headline relationship set.
+
 Direction is explicit.
 
 `A -> B` means A counters B. The displayed win rate belongs to A.
@@ -59,4 +63,16 @@ Ordering must be deterministic.
 
 ## Future production shape
 
-Real observations will also need source/provenance metadata, source observation timestamps, aggregation metadata, and validated current-patch generation output.
+Real source observations will also need:
+- provider/source identity;
+- source query or endpoint provenance;
+- patch;
+- rank population and provider-specific rank predicate;
+- match/game population filters;
+- observation window;
+- known source-local sample size;
+- source observation timestamp(s);
+- aggregation metadata where applicable;
+- validated current-patch generation metadata.
+
+Provider observations stay separate. Their `sampleSize` values are never summed unless a future approved aggregation method can prove the underlying match populations do not overlap.
