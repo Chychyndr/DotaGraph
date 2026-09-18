@@ -1,5 +1,6 @@
 import type { Hero, MatchupRelationship, ScopeConfig } from "../domain/types";
 import { formatPercent, formatSample } from "../domain/relationships";
+import { HeroPortrait } from "./HeroPortrait";
 
 interface MatchupCardProps {
   source: Hero;
@@ -16,12 +17,12 @@ export function MatchupCard({ source, target, relationship, scope, onBack }: Mat
 
       <div className="matchup-title">
         <span className="matchup-hero">
-          <img src={source.portrait} alt="" />
+          <HeroPortrait hero={source} />
           <strong>{source.name}</strong>
         </span>
         <span className="matchup-arrow" aria-hidden="true">→</span>
         <span className="matchup-hero">
-          <img src={target.portrait} alt="" />
+          <HeroPortrait hero={target} />
           <strong>{target.name}</strong>
         </span>
       </div>
