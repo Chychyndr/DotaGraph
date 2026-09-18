@@ -13,3 +13,12 @@ Before a public production asset strategy is finalized, review the applicable Va
 ## Vendored agent skills
 
 Third-party development-agent skills under `.agents/skills/` retain their upstream licenses and notices. See `.agents/skills/THIRD_PARTY_NOTICES.md`.
+
+
+## OpenDota dotaconstants
+
+Current hero identity metadata (hero names and internal asset slugs) is based on the OpenDota dotaconstants project.
+
+Upstream: https://github.com/odota/dotaconstants
+
+License: MIT License, Copyright (c) 2017 The OpenDota Project.

@@ -8,8 +8,8 @@ export interface Hero {
   portrait: string;
   x: number;
   y: number;
-  overallWinRate: number;
-  sampleSize: number;
+  overallWinRate?: number;
+  sampleSize?: number;
 }
 
 export interface MatchupRelationship {
