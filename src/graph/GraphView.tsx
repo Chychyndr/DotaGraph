@@ -9,6 +9,11 @@ import {
   HERO_ATLAS_WIDTH,
   getHeroSpriteCell
 } from "../data/heroSprite";
+import {
+  EDGE_LABEL_HEIGHT,
+  EDGE_LABEL_WIDTH,
+  layoutSourceAnchoredEdgeLabels
+} from "./edgeLabelLayout";
 
 interface GraphViewProps {
   heroes: Hero[];
@@ -197,6 +202,29 @@ export function GraphView({
     };
   };
 
+  const edgeLabelPlacements = layoutSourceAnchoredEdgeLabels(
+    activeRelationships.flatMap((relationship) => {
+      const source = byId.get(relationship.sourceHeroId);
+      const target = byId.get(relationship.targetHeroId);
+      if (!source || !target) return [];
+
+      return [{
+        id: relationship.id,
+        segment: edgeGeometry(source, target)
+      }];
+    }),
+    [...activeIds].flatMap((heroId) => {
+      const hero = byId.get(heroId);
+      if (!hero) return [];
+
+      return [{
+        x: hero.x,
+        y: hero.y,
+        radius: radiusFor(hero.id) + 7
+      }];
+    })
+  );
+
   const handlePointerDown = (event: ReactPointerEvent<SVGSVGElement>) => {
     if (event.button !== 0) return;
     const target = event.target;
@@ -363,9 +391,7 @@ export function GraphView({
             ].filter(Boolean).join(" ");
 
             const geometry = edgeGeometry(source, target);
-            const labelT = isOutgoing ? 0.42 : 0.30;
-            const labelX = geometry.x1 + (geometry.x2 - geometry.x1) * labelT;
-            const labelY = geometry.y1 + (geometry.y2 - geometry.y1) * labelT;
+            const labelPlacement = edgeLabelPlacements.get(relationship.id);
 
             return (
               <g key={relationship.id}>
@@ -377,17 +403,26 @@ export function GraphView({
                   y2={geometry.y2}
                   markerEnd={isIncoming ? "url(#arrow-incoming)" : isOutgoing ? "url(#arrow-outgoing)" : undefined}
                 />
-                {isActive && (
+                {isActive && labelPlacement && (
                   <g
                     className={[
                       "edge-label",
                       isIncoming ? "label-incoming" : "label-outgoing",
                       matchupHeroId && !isMatchup ? "edge-label-deemphasized" : ""
                     ].filter(Boolean).join(" ")}
-                    transform={`translate(${labelX} ${labelY})`}
+                    transform={`translate(${labelPlacement.x} ${labelPlacement.y})`}
+                    data-source-hero={relationship.sourceHeroId}
+                    data-target-hero={relationship.targetHeroId}
+                    data-label-t={labelPlacement.t.toFixed(3)}
                     aria-hidden="true"
                   >
-                    <rect x="-25" y="-10" width="50" height="20" rx="10" />
+                    <rect
+                      x={-EDGE_LABEL_WIDTH / 2}
+                      y={-EDGE_LABEL_HEIGHT / 2}
+                      width={EDGE_LABEL_WIDTH}
+                      height={EDGE_LABEL_HEIGHT}
+                      rx={EDGE_LABEL_HEIGHT / 2}
+                    />
                     <text textAnchor="middle" dominantBaseline="central">{formatPercent(relationship.sourceWinRate)}</text>
                   </g>
                 )}
