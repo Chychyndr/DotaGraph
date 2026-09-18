@@ -19,6 +19,14 @@ jobs:
           node-version: "22"
 
       - run: npm install
+      - name: Cache generated hero atlas
+        uses: actions/cache@v4
+        with:
+          path: |
+            public/assets/heroes-atlas.webp
+            public/assets/heroes-atlas.manifest.json
+          key: hero-atlas-${{ hashFiles('src/data/heroCatalog.json', 'scripts/generate-hero-atlas.mjs') }}
+
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
