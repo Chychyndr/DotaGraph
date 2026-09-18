@@ -240,6 +240,26 @@ test("selecting a distant hero moves the camera progressively", async ({ page })
   await expect(page).toHaveURL(/hero=underlord/);
 });
 
+test("reduced-motion preference skips the focus camera animation", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/");
+
+  const camera = page.locator(".graph-camera");
+  const before = await camera.getAttribute("transform");
+
+  const search = page.getByRole("combobox", { name: "Search for a hero" });
+  await search.fill("underlord");
+  await page.keyboard.press("Enter");
+  await page.waitForTimeout(30);
+
+  const afterSelection = await camera.getAttribute("transform");
+  await page.waitForTimeout(520);
+  const afterWait = await camera.getAttribute("transform");
+
+  expect(afterSelection).not.toBe(before);
+  expect(afterWait).toBe(afterSelection);
+});
+
 test("site exposes the DotaGraph logo as favicon and header brand", async ({ page }) => {
   await page.goto("/");
   const iconHref = await page.locator('link[rel="icon"]').getAttribute("href");
