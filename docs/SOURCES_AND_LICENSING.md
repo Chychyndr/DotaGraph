@@ -222,6 +222,28 @@ Restrictions:
 
 Review date: 2026-09-18.
 
+## OpenDota dotaconstants
+
+**Decision: Approved for static identity/constants metadata under its MIT license.**
+
+Official references:
+- repository: https://github.com/odota/dotaconstants
+- license: https://github.com/odota/dotaconstants/blob/master/LICENSE
+
+Use:
+- hero IDs, canonical/internal names, display names, and other static constants needed to interpret Dota data;
+- current DotaGraph roster/identity generation may continue to use it.
+
+License:
+- repository is MIT licensed;
+- preserve the upstream copyright/license notice when redistributing substantial portions or vendored/generated material derived from the repository.
+
+Boundary:
+- this approval applies only to the MIT-licensed repository contents;
+- it does not grant rights to OpenDota hosted statistics, Valve artwork, or third-party data linked from constants.
+
+Review date: 2026-09-18.
+
 ## Production gate outcome
 
 This review is complete for the currently listed providers, but it does **not** approve production statistical ingestion yet.
@@ -246,26 +268,3 @@ Source/legal review may continue independently of methodology work. The next met
 DotaGraph code is MIT.
 
 That license does not automatically cover Valve art/trademarks, third-party screenshots, third-party data, source text, or vendored agent skills.
-
-
-## OpenDota dotaconstants
-
-**Decision: Approved for static identity/constants metadata under its MIT license.**
-
-Official references:
-- repository: https://github.com/odota/dotaconstants
-- license: https://github.com/odota/dotaconstants/blob/master/LICENSE
-
-Use:
-- hero IDs, canonical/internal names, display names, and other static constants needed to interpret Dota data;
-- current DotaGraph roster/identity generation may continue to use it.
-
-License:
-- repository is MIT licensed;
-- preserve the upstream copyright/license notice when redistributing substantial portions or vendored/generated material derived from the repository.
-
-Boundary:
-- this approval applies only to the MIT-licensed repository contents;
-- it does not grant rights to OpenDota hosted statistics, Valve artwork, or third-party data linked from constants.
-
-Review date: 2026-09-18.
