@@ -258,6 +258,15 @@ for (const viewport of [
     expect(cardBox!.x).toBeGreaterThanOrEqual(0);
     expect(cardBox!.x + cardBox!.width).toBeLessThanOrEqual(viewport.width);
     expect(cardBox!.y + cardBox!.height).toBeLessThanOrEqual(viewport.height + 1);
+
+    if (viewport.width <= 640) {
+      await expect(graph).toHaveAttribute("preserveAspectRatio", "xMidYMid slice");
+
+      const selectedNode = page.locator("#graph-hero-viper");
+      const selectedBox = await selectedNode.boundingBox();
+      expect(selectedBox).not.toBeNull();
+      expect(selectedBox!.y + selectedBox!.height).toBeLessThan(cardBox!.y + 4);
+    }
   });
 }
 
