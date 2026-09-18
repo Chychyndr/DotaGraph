@@ -57,7 +57,7 @@ A correct production deployment never serves that source entry. Vite replaces it
 
 `/DotaGraph/assets/`
 
-If a browser still shows an older blank version immediately after a successful deployment, use a hard refresh. GitHub Pages and the browser may still have the previously published HTML cached for a short period.
+If a browser still shows an older blank page immediately after a successful deployment, use a hard refresh. GitHub Pages and the browser may still have the previously published HTML cached for a short period.
 
 On Windows browsers:
 

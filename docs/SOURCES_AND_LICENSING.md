@@ -22,7 +22,7 @@ Preferred for game identity/static data where permitted.
 
 API keys are secrets and must never ship to the browser.
 
-The prototype references Valve/Steamstatic hero portrait URLs rather than committing copied portrait binaries. Asset rights still require explicit production review.
+The frontend currently references Valve/Steamstatic hero portrait URLs rather than committing copied portrait binaries. Asset rights still require explicit production review.
 
 ## OpenDota
 

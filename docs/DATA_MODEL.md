@@ -9,7 +9,7 @@ A hero has:
 - aliases;
 - portrait URL;
 - deterministic layout position;
-- optional overall fixture win rate/sample used only for prototype UI.
+- optional overall fixture win rate/sample used only for the current fixture-driven UI.
 
 Aliases are data, not Search-component conditionals.
 

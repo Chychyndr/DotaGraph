@@ -1,10 +1,10 @@
 # Methodology
 
-Status: initial design document. Production methodology is not approved yet.
+Status: production methodology is not approved yet.
 
-## Current prototype
+## Current fixture methodology
 
-All matchup percentages in the first UX milestone are development fixtures.
+All matchup percentages used for current interface work are development fixtures.
 
 They exist only to test direction, density, labels, cards, and selection behavior.
 

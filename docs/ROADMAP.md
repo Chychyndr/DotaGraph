@@ -2,7 +2,7 @@
 
 Roadmap order describes dependency and product logic, not release dates.
 
-## Milestone 1 — UX foundation
+## UX foundation
 
 - graph-first frontend;
 - Overview / Hover / Focus / Matchup states;
@@ -13,7 +13,7 @@ Roadmap order describes dependency and product logic, not release dates.
 - fixture-only data;
 - tests and GitHub Pages deployment.
 
-## Milestone 2 — renderer and visual hardening
+## Renderer and visual hardening
 
 - validate the current SVG UX with owner review;
 - compare source-side win-rate label variants;
@@ -23,7 +23,7 @@ Roadmap order describes dependency and product logic, not release dates.
 - improve viewport behavior and accessibility;
 - performance budgets.
 
-## Milestone 3 — source/legal methodology gate
+## Source/legal methodology gate
 
 - finalize source registry;
 - verify current API/data terms;
@@ -34,7 +34,7 @@ Roadmap order describes dependency and product logic, not release dates.
 
 No production ingestion starts before this gate is approved.
 
-## Milestone 4 — current production hero data
+## Current production hero data
 
 - source adapters;
 - Python + uv pipeline;
@@ -45,7 +45,7 @@ No production ingestion starts before this gate is approved.
 - current-patch generated bundle;
 - detailed source provenance.
 
-## Milestone 5 — reviewed explanations
+## Reviewed explanations
 
 - AI-assisted drafts;
 - source-linked evidence;

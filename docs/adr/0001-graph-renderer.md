@@ -1,6 +1,6 @@
 # ADR 0001: first graph renderer
 
-Status: accepted for the first UX milestone.
+Status: accepted for the current graph/frontend architecture.
 
 ## Context
 
@@ -10,13 +10,13 @@ Sigma.js + Graphology is the leading long-term candidate.
 
 ## Decision
 
-Use a deterministic SVG renderer for the first UX milestone behind a graph-specific module boundary.
+Use a deterministic SVG renderer for the current graph/frontend work behind a graph-specific module boundary.
 
 ## Why
 
-The first milestone validates product semantics rather than maximum graph scale.
+The current implementation validates product semantics rather than maximum graph scale.
 
-SVG makes these prototype requirements simpler:
+SVG makes these current requirements simpler:
 - image nodes;
 - tiny arrowheads;
 - edge labels;
