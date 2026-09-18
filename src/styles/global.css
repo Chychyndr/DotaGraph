@@ -250,11 +250,12 @@ button:focus-visible, input:focus-visible, [role="button"]:focus-visible {
 .marker-outgoing { fill: var(--outgoing-strong); }
 
 .edge-label {
+  pointer-events: none;
   transition: opacity 140ms ease;
 }
 
 .edge-label rect {
-  fill: var(--header);
+  fill: rgba(1, 4, 9, .96);
   stroke-width: 1;
 }
 
