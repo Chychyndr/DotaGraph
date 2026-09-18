@@ -1,19 +1,11 @@
 import type { Hero } from "../domain/types";
-import { getHeroSpriteStyle } from "../data/heroSprite";
+import { getHeroFallbackLabel, getHeroSpriteStyle } from "../data/heroSprite";
 import { usePortraitAsset } from "./PortraitProvider";
 
 interface HeroPortraitProps {
   hero: Hero;
   className?: string;
 }
-
-const fallbackLabel = (name: string) =>
-  name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase() ?? "")
-    .join("");
 
 export function HeroPortrait({ hero, className = "" }: HeroPortraitProps) {
   const asset = usePortraitAsset();
@@ -29,7 +21,7 @@ export function HeroPortrait({ hero, className = "" }: HeroPortraitProps) {
       aria-hidden="true"
     >
       {asset.status === "failed" && (
-        <span className="hero-portrait-fallback-text">{fallbackLabel(hero.name)}</span>
+        <span className="hero-portrait-fallback-text">{getHeroFallbackLabel(hero.name)}</span>
       )}
     </span>
   );
