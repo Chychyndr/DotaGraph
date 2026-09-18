@@ -4,6 +4,23 @@ This file applies to the entire repository unless a deeper AGENTS.md explicitly 
 
 DotaGraph is an open-source, graph-first Dota 2 matchup knowledge project. It should become a reliable, explainable, current-patch tool that ordinary players can open during a draft while still preserving enough provenance and methodology for advanced users and contributors.
 
+## Project and documentation naming
+
+Do not label DotaGraph itself, its documentation, roadmap stages, public releases, or issues with release/status names such as `V1`, `V2`, `alpha`, `beta`, `test version`, `prototype version`, numbered milestones, or similar project-version labels.
+
+Use plain scope language instead, such as:
+- current scope;
+- current implementation;
+- next;
+- later;
+- planned;
+- current frontend;
+- current data work.
+
+The word `test` remains valid only for actual automated/manual testing, test suites, test files, and verification work. Do not use `test` as a product, release, documentation, roadmap, or issue status.
+
+Dependency, API, schema, runtime, and library version numbers may still be documented when technically necessary.
+
 ## Product priorities
 
 Optimize in this order:
@@ -64,7 +81,7 @@ The first/default layer is Hero counters.
 
 Do not render all layers simultaneously. Future complexity must be handled through explicit layers or modes so the graph remains readable.
 
-Do not over-generalize V1 code in anticipation of every future node type. Keep domain data separate from rendering adapters so future layers can be added cleanly.
+Do not over-generalize current code in anticipation of every future node type. Keep domain data separate from rendering adapters so future layers can be added cleanly.
 
 ## Current patch only
 
@@ -597,7 +614,7 @@ Ask the owner before:
 - changing project license;
 - adding a mandatory backend/runtime;
 - replacing GitHub Pages;
-- adding Items/Synergies to V1;
+- adding Items/Synergies to the current hero-counter scope;
 - redesigning the product away from graph-first.
 
 ## When uncertain
@@ -636,7 +653,7 @@ https://www.figma.com/design/rydgq1wV8C0hlVb5n7Ohws/DotaGraph-Design?node-id=1-2
 Optional for temporary PR/design previews. Production target remains GitHub Pages.
 
 ### Sentry
-Potentially useful later when the public product has meaningful runtime traffic. Do not add it to the first milestone.
+Potentially useful later when the public product has meaningful runtime traffic. Do not add it before there is a real product need.
 
 ### Cloudflare
 No current requirement. Revisit only if an actual CDN/serverless/edge feature requires it.
