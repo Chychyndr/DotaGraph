@@ -11,6 +11,37 @@ const PortraitAssetContext = createContext<PortraitAssetState>({
   url: HERO_ATLAS_URL
 });
 
+let atlasPromise: Promise<string> | null = null;
+
+function loadPortraitAtlas(): Promise<string> {
+  if (atlasPromise) return atlasPromise;
+
+  atlasPromise = fetch(HERO_ATLAS_URL)
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error(`Hero atlas request failed with ${response.status}`);
+      }
+      return response.blob();
+    })
+    .then((blob) => new Promise<string>((resolve, reject) => {
+      const objectUrl = URL.createObjectURL(blob);
+      const image = new Image();
+
+      image.onload = () => resolve(objectUrl);
+      image.onerror = () => {
+        URL.revokeObjectURL(objectUrl);
+        reject(new Error("Hero atlas could not be decoded"));
+      };
+      image.src = objectUrl;
+    }));
+
+  atlasPromise.catch(() => {
+    atlasPromise = null;
+  });
+
+  return atlasPromise;
+}
+
 export function PortraitProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<PortraitAssetState>({
     status: "loading",
@@ -19,41 +50,17 @@ export function PortraitProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let active = true;
-    let objectUrl: string | null = null;
 
-    const fail = () => {
-      if (objectUrl) {
-        URL.revokeObjectURL(objectUrl);
-        objectUrl = null;
-      }
-      if (active) setState({ status: "failed", url: null });
-    };
-
-    fetch(HERO_ATLAS_URL)
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error(`Hero atlas request failed with ${response.status}`);
-        }
-        return response.blob();
+    loadPortraitAtlas()
+      .then((url) => {
+        if (active) setState({ status: "ready", url });
       })
-      .then((blob) => {
-        if (!active) return;
-
-        objectUrl = URL.createObjectURL(blob);
-        const image = new Image();
-
-        image.onload = () => {
-          if (!active || !objectUrl) return;
-          setState({ status: "ready", url: objectUrl });
-        };
-        image.onerror = fail;
-        image.src = objectUrl;
-      })
-      .catch(fail);
+      .catch(() => {
+        if (active) setState({ status: "failed", url: null });
+      });
 
     return () => {
       active = false;
-      if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
   }, []);
 
