@@ -51,7 +51,9 @@ A focused hero view may show 0–5 reliable relationships per direction.
 
 Never force exactly five and never add weak relationships just to fill the UI.
 
-Current planned minimum sample is 500 matches in the relevant statistical scope. Keep this threshold in methodology/configuration rather than scattering a magic number through the codebase.
+The approved normal-candidate minimum is 500 qualifying matches per source observation in one exact statistical scope. Keep this threshold in methodology/configuration rather than scattering a magic number through the codebase.
+
+One sample means one distinct completed match for the hero pair inside one source/patch/rank/match-population/observation-window scope. Never add counts from separate providers to cross the 500-match threshold.
 
 If a hero has many meaningful counters, show the best up to five in the focused graph. The full dataset may contain far more relationships.
 
@@ -403,7 +405,7 @@ Do not implement a production statistical adapter for a conditional source until
 
 The normal UI may show one aggregate win rate while details expose individual source observations.
 
-Never sum sample counts across overlapping providers.
+Sample size is source-observation-local. Never sum provider sample counts merely because the labels/scopes appear compatible; overlapping populations are assumed possible unless non-overlap is proven under an approved aggregation method.
 
 Preserve observations by source.
 
