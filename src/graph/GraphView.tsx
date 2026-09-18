@@ -6,10 +6,11 @@ import { findHeroInDirection, findNearestHeroToPoint, type GraphNavigationDirect
 import {
   HERO_ATLAS_CELL_SIZE,
   HERO_ATLAS_HEIGHT,
-  HERO_ATLAS_URL,
   HERO_ATLAS_WIDTH,
+  getHeroFallbackLabel,
   getHeroSpriteCell
 } from "../data/heroSprite";
+import { usePortraitAsset } from "../components/PortraitProvider";
 import {
   EDGE_LABEL_HEIGHT,
   EDGE_LABEL_WIDTH,
@@ -77,6 +78,7 @@ export function GraphView({
   onHoverHero,
   onClearSelection
 }: GraphViewProps) {
+  const portraitAsset = usePortraitAsset();
   const byId = useMemo(() => new Map(heroes.map((hero) => [hero.id, hero])), [heroes]);
   const initialCompactViewport = window.matchMedia(COMPACT_VIEWPORT_QUERY).matches;
   const [isCompactViewport, setIsCompactViewport] = useState(initialCompactViewport);
@@ -381,28 +383,32 @@ export function GraphView({
           <path d="M0 0 6 3 0 6Z" className="marker-outgoing" />
         </marker>
 
-        <image
-          id="hero-atlas-image"
-          href={HERO_ATLAS_URL}
-          width={HERO_ATLAS_WIDTH}
-          height={HERO_ATLAS_HEIGHT}
-        />
-        {heroes.map((hero) => {
-          const sprite = getHeroSpriteCell(hero.spriteIndex);
+        {portraitAsset.status === "ready" && (
+          <>
+            <image
+              id="hero-atlas-image"
+              href={portraitAsset.url}
+              width={HERO_ATLAS_WIDTH}
+              height={HERO_ATLAS_HEIGHT}
+            />
+            {heroes.map((hero) => {
+              const sprite = getHeroSpriteCell(hero.spriteIndex);
 
-          return (
-            <pattern
-              id={`hero-portrait-${hero.spriteIndex}`}
-              key={`hero-portrait-${hero.id}`}
-              width="1"
-              height="1"
-              viewBox={`${sprite.x} ${sprite.y} ${HERO_ATLAS_CELL_SIZE} ${HERO_ATLAS_CELL_SIZE}`}
-              preserveAspectRatio="xMidYMid slice"
-            >
-              <use href="#hero-atlas-image" />
-            </pattern>
-          );
-        })}
+              return (
+                <pattern
+                  id={`hero-portrait-${hero.spriteIndex}`}
+                  key={`hero-portrait-${hero.id}`}
+                  width="1"
+                  height="1"
+                  viewBox={`${sprite.x} ${sprite.y} ${HERO_ATLAS_CELL_SIZE} ${HERO_ATLAS_CELL_SIZE}`}
+                  preserveAspectRatio="xMidYMid slice"
+                >
+                  <use href="#hero-atlas-image" />
+                </pattern>
+              );
+            })}
+          </>
+        )}
       </defs>
 
       <g className="graph-camera" transform={cameraTransform}>
@@ -570,11 +576,30 @@ export function GraphView({
               >
                 <circle className="node-hitarea" r={Math.max(24, radius + 8)} />
                 <circle className="node-ring" r={radius + (isSelected ? 4 : 2)} />
-                <circle
-                  className="hero-portrait-node"
-                  r={radius}
-                  fill={`url(#hero-portrait-${hero.spriteIndex})`}
-                />
+                {portraitAsset.status === "ready" ? (
+                  <circle
+                    className="hero-portrait-node"
+                    r={radius}
+                    fill={`url(#hero-portrait-${hero.spriteIndex})`}
+                  />
+                ) : (
+                  <>
+                    <circle
+                      className={`hero-portrait-node hero-portrait-node-${portraitAsset.status}`}
+                      r={radius}
+                    />
+                    {portraitAsset.status === "failed" && (
+                      <text
+                        className="hero-node-fallback-text"
+                        textAnchor="middle"
+                        dominantBaseline="central"
+                        aria-hidden="true"
+                      >
+                        {getHeroFallbackLabel(hero.name)}
+                      </text>
+                    )}
+                  </>
+                )}
                 {showLabel && (
                   <text className="hero-label" x={radius + 9} y="4">{hero.name}</text>
                 )}
