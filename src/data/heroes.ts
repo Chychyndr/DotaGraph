@@ -84,6 +84,13 @@ const FIXTURE_OVERRIDES: Record<string, HeroOverride> = {
   axe: { id:"axe", overallWinRate:0.508, sampleSize:151031 }
 };
 
+const slugifyName = (name: string) =>
+  name
+    .toLowerCase()
+    .replace(/[’']/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+
 const DISPLAY_ID_OVERRIDES: Record<string, string> = {
   nevermore: "shadow-fiend",
   zuus: "zeus",
