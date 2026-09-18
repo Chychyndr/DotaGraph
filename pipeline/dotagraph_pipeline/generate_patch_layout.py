@@ -137,8 +137,11 @@ FROM scoped_matches
 CROSS JOIN LATERAL unnest(radiant_team) AS radiant_hero(hero_id)
 CROSS JOIN LATERAL unnest(dire_team) AS dire_hero(hero_id)
 GROUP BY radiant_hero.hero_id, dire_hero.hero_id
-ORDER BY radiant_hero.hero_id, dire_hero.hero_id
 """.strip()
+
+
+def _is_explorer_timeout(message: str) -> bool:
+    return "timeout" in message.lower()
 
 
 def _fetch_pair_rows_for_range(
@@ -151,7 +154,7 @@ def _fetch_pair_rows_for_range(
         )
     except RuntimeError as exc:
         duration = end_epoch - start_epoch
-        if "Query read timeout" not in str(exc) or duration <= 86_400:
+        if not _is_explorer_timeout(str(exc)) or duration <= 86_400:
             raise
 
         midpoint = start_epoch + duration // 2
@@ -169,7 +172,7 @@ def _fetch_pair_rows_for_range(
     if payload.get("err"):
         message = str(payload["err"])
         duration = end_epoch - start_epoch
-        if "Query read timeout" in message and duration > 86_400:
+        if _is_explorer_timeout(message) and duration > 86_400:
             midpoint = start_epoch + duration // 2
             midpoint -= midpoint % 86_400
             if midpoint <= start_epoch or midpoint >= end_epoch:
