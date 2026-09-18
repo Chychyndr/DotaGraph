@@ -19,6 +19,18 @@ test("search, focus, matchup and reset flow", async ({ page }) => {
   await expect(page).not.toHaveURL(/hero=/);
 });
 
+test("overview renders the complete hero roster and search reaches the newest hero", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.locator(".hero-node")).toHaveCount(127);
+
+  const search = page.getByRole("textbox", { name: "Search for a hero" });
+  await search.fill("largo");
+  await page.getByRole("option", { name: /Largo/ }).click();
+
+  await expect(page).toHaveURL(/hero=largo/);
+  await expect(page.getByLabel("Largo counter summary")).toBeVisible();
+});
+
 test("hero alias search resolves from metadata", async ({ page }) => {
   await page.goto("/");
   const search = page.getByRole("textbox", { name: "Search for a hero" });
