@@ -13,6 +13,19 @@ This document records a conservative engineering decision from publicly availabl
 - **Research only** — manual comparison/reference is allowed; no automated ingestion into DotaGraph.
 - **Blocked** — current terms prohibit the intended automation/use, or required permission is absent.
 
+## Review summary
+
+| Source | Programmatic access | Production statistical use | Decision |
+| --- | --- | --- | --- |
+| Valve / Steam Web API | Official API | Draft-time use needs clause-specific review; artwork rights separate | Conditional |
+| OpenDota hosted API | Official public API | Derived-data redistribution rights and Ancient+ scope unresolved | Conditional |
+| OpenDota dotaconstants | GitHub repository | Static identity/constants metadata under MIT | Approved |
+| STRATZ GraphQL API | Official token-authenticated API | Caching/derived-data redistribution rights unresolved | Conditional |
+| DOTABUFF | No approved public API found | No automated ingestion | Research only |
+| Dota2ProTracker | Website only for this project | Current terms expressly prohibit intended ingestion | Blocked |
+| Reddit/community | Not approved for automation | Qualitative hypotheses only | Research only |
+
+
 Before automating any source, record and re-check:
 - official URL;
 - access method;
