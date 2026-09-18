@@ -6,7 +6,7 @@ The current implementation uses React + TypeScript + Vite with a deterministic S
 
 SVG is deliberately used for the current graph/frontend work because the fixture graph is small and custom portrait nodes, arrowheads, edge labels, keyboard focus, and DOM accessibility are straightforward.
 
-The domain model and relationship selection logic are independent from the renderer so a later Sigma.js + Graphology renderer can replace SVG without rewriting product logic.
+The domain model and relationship selection logic are independent from the renderer. A Sigma.js + Graphology spike was completed and the project chose to keep the deterministic SVG renderer for the current graph because it is smaller and better aligned with source-owned label layout, DOM accessibility, and deterministic testing. A future renderer change remains possible if graph scale materially changes.
 
 See `docs/adr/0001-graph-renderer.md`.
 
