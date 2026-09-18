@@ -11,6 +11,7 @@ The goal is narrow: long Codex threads should leave compact redacted session dig
 - Automated session memory lives outside the repository in the llm-wiki HUB, normally `~/wiki/.sessions/`.
 - DotaGraph code, tests, ADRs, issues, and living docs remain canonical project truth.
 - Session digests are operational context. They should not silently become project documentation.
+- Setup seeds one historical bootstrap digest distilled from the pre-llm-wiki DotaGraph chat. It is written only once; newer real sessions naturally supersede it.
 
 ## One-time setup
 
@@ -40,7 +41,7 @@ To replace an existing session profile:
 bash ./scripts/setup-llm-wiki.sh --force-session-config
 ```
 
-Both scripts preserve an existing HUB path. If there is no llm-wiki configuration yet, they use the portable default `~/wiki`.
+Both scripts preserve an existing HUB path. If there is no llm-wiki configuration yet, they use the portable default `~/wiki`. They also seed the one-time historical DotaGraph digest from `config/llm-wiki-dotagraph-bootstrap.md` so the first new thread does not start cold.
 
 The upstream Codex hooks invoke `python3`; make sure that command exists. On macOS with Homebrew:
 
@@ -81,7 +82,7 @@ The last item is deliberate for DotaGraph: one compact resume block at the begin
 
 Work in Codex normally.
 
-For a new thread in the same DotaGraph checkout, trusted hooks should supply the recent distilled session context automatically.
+For a new thread in the same DotaGraph checkout, trusted hooks should supply the recent distilled session context automatically. On the first run after installation, the historical bootstrap digest provides the minimal context from the old DotaGraph chat; after real sessions are captured, the newer digests are selected first.
 
 For a small targeted lookup, use:
 

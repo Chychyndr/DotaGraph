@@ -753,6 +753,7 @@ Repository setup:
 - the compact read-only `wiki-query` skill is vendored under `.agents/skills/wiki-query/`;
 - the full `wiki@llm-wiki` Codex plugin is installed at user scope with `scripts/setup-llm-wiki.ps1` on Windows or `scripts/setup-llm-wiki.sh` on macOS/Linux;
 - automated session digests live in the configured llm-wiki HUB outside this public repository;
+- setup seeds one one-time historical DotaGraph digest from the pre-llm-wiki chat so the first new Codex thread does not start cold;
 - `.wiki/` is ignored if project-local mode is ever used.
 
 Session behavior for DotaGraph:
