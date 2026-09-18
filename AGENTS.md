@@ -264,15 +264,16 @@ Measure before micro-optimizing.
 
 ## Frontend architecture
 
-Preferred direction:
+Current direction:
 - TypeScript strict;
 - React;
 - static-friendly build;
 - GitHub Pages;
-- Sigma.js + Graphology as the leading graph candidate, subject to a documented spike/ADR;
+- deterministic SVG renderer for the current graph;
 - CSS variables/tokens;
-- CSS Modules or similarly explicit styling;
 - intentionally small dependency set.
+
+Sigma.js + Graphology was evaluated in a dedicated spike and is not the current renderer choice. Keep the renderer boundary clean so a future scale-driven change remains possible without rewriting domain logic. See `docs/adr/0001-graph-renderer.md`.
 
 Do not install a global state library until ordinary React state/context is genuinely insufficient.
 
