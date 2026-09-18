@@ -29,3 +29,6 @@ coverage/
 # Generated hero artwork atlas
 public/assets/heroes-atlas.webp
 public/assets/heroes-atlas.manifest.json
+
+# llm-wiki project-local vault/session data is private operational context
+.wiki/

@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "enabled": true,
+  "mode": "balanced",
+  "auto_capture": {
+    "tool_events": 50,
+    "pre_compact": true,
+    "post_compact": true,
+    "session_end": true,
+    "stop": true
+  },
+  "rehydrate": {
+    "session_start": true,
+    "user_prompt": false,
+    "strict": false
+  },
+  "raw_transcripts": false,
+  "privacy": "redacted",
+  "feedback": {
+    "enabled": true,
+    "capture_approvals": true,
+    "min_confidence": "medium"
+  }
+}

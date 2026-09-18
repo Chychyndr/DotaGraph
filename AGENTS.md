@@ -742,6 +742,33 @@ Good workflow:
 5. Human visually reviews.
 6. Use richer Impeccable workflows only in a supported harness.
 
+## llm-wiki cross-session memory
+
+Upstream:
+https://github.com/nvk/llm-wiki
+
+Use llm-wiki as operational memory for long Codex sessions.
+
+Repository setup:
+- the compact read-only `wiki-query` skill is vendored under `.agents/skills/wiki-query/`;
+- the full `wiki@llm-wiki` Codex plugin is installed at user scope with `scripts/setup-llm-wiki.ps1` on Windows or `scripts/setup-llm-wiki.sh` on macOS/Linux;
+- automated session digests live in the configured llm-wiki HUB outside this public repository;
+- `.wiki/` is ignored if project-local mode is ever used.
+
+Session behavior for DotaGraph:
+- prefer automatic SessionStart rehydration before re-reading broad repository history;
+- when the user says continue/resume/where were we, inspect llm-wiki session memory first;
+- use `$wiki-query` for narrow read-only lookups so only indexes and relevant notes are loaded;
+- use `@wiki` for session status, capture, promotion, research, or other write-capable wiki workflows;
+- do not paste or load full historical transcripts when a digest or targeted query is sufficient;
+- session memory is operational context, not canonical truth; current code/tests, accepted ADRs, living docs, owner-approved Figma, and newer explicit owner decisions win on conflicts;
+- never auto-promote a session digest into public project documentation;
+- never commit the live llm-wiki HUB, raw transcripts, or complete session history to the public DotaGraph repository.
+
+The repository session profile intentionally rehydrates only on SessionStart, not on every UserPromptSubmit, to reduce repeated context tokens while preserving cross-thread continuity.
+
+See `docs/LLM_WIKI.md` for setup and privacy details.
+
 ## Browser/testing tools
 
 Recommended:
@@ -805,8 +832,9 @@ For normal DotaGraph work:
 3. interface-kit
 4. junior-to-senior for major decisions
 5. last-20-percent before milestones
-6. context-canary for long sessions
-7. deslopify or humanizer for public prose
-8. Impeccable detector for frontend review
+6. llm-wiki / wiki-query for cross-session context and selective recall
+7. context-canary for detecting degradation inside one very long session
+8. deslopify or humanizer for public prose
+9. Impeccable detector for frontend review
 
 Add loop-factory when task volume grows. Use grill-me when a difficult decision needs pressure-testing.
