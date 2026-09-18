@@ -11,6 +11,7 @@ export interface SigmaSpikeNodeAttributes {
   image?: string;
   type?: string;
   hidden?: boolean;
+  forceLabel?: boolean;
   zIndex?: number;
 }
 
