@@ -41,3 +41,16 @@ export function findHeroInDirection(
         a.hero.name.localeCompare(b.hero.name)
     )[0]?.hero;
 }
+
+
+export function findNearestHeroToPoint(
+  heroes: Hero[],
+  x: number,
+  y: number
+): Hero | undefined {
+  return [...heroes].sort((a, b) => {
+    const distanceA = Math.hypot(a.x - x, a.y - y);
+    const distanceB = Math.hypot(b.x - x, b.y - y);
+    return distanceA - distanceB || a.name.localeCompare(b.name);
+  })[0];
+}
