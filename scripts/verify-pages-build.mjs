@@ -49,6 +49,15 @@ if (!existsSync(join(dist, "favicon.svg"))) {
   fail("dist/favicon.svg is missing.");
 }
 
+const atlasPath = join(dist, "assets", "heroes-atlas.webp");
+if (!existsSync(atlasPath)) {
+  fail("compiled site is missing the local hero atlas.");
+}
+const atlasBytes = readFileSync(atlasPath);
+if (atlasBytes.length === 0 || atlasBytes.length > 1_500_000) {
+  fail(`hero atlas size is invalid: ${atlasBytes.length} bytes.`);
+}
+
 if (expectedBuildSha) {
   const javascript = assetPaths
     .filter((assetPath) => assetPath.endsWith(".js"))
@@ -61,6 +70,10 @@ if (expectedBuildSha) {
 
   if (!javascript.includes("dotagraphBuild")) {
     fail("compiled JavaScript does not expose the DotaGraph build marker.");
+  }
+
+  if (javascript.includes("cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes")) {
+    fail("compiled application must not reference Steamstatic hero portraits at runtime.");
   }
 }
 
