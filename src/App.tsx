@@ -76,11 +76,8 @@ export default function App() {
     <main className="app-shell">
       <header className="topbar">
         <div className="brand-block">
-          <div className="brand-row">
-            <h1>DotaGraph</h1>
-            <span className="fixture-badge">Fixture data</span>
-          </div>
-          <p>{scope.rankLabel} · Patch {scope.patch} · Hero counters</p>
+          <h1>DotaGraph</h1>
+          <p>{scope.rankLabel} · Patch {scope.patch}</p>
         </div>
 
         <div className="topbar-actions">
@@ -102,17 +99,13 @@ export default function App() {
           onSelectHero={selectHero}
           onSelectMatchup={setMatchupHeroId}
           onHoverHero={setHoveredHeroId}
+          onClearSelection={reset}
         />
-
-        <div className="graph-hint" aria-hidden="true">
-          <span><i className="legend-dot incoming-dot" /> Counters selected</span>
-          <span><i className="legend-dot outgoing-dot" /> Selected counters</span>
-        </div>
 
         {!selectedHero && (
           <div className="empty-guidance">
-            <strong>Explore the counter graph</strong>
-            <span>Search or select a hero to reveal reliable local relationships.</span>
+            <strong>Explore the graph</strong>
+            <span>Search or select a hero. Drag to move and use the mouse wheel to zoom.</span>
           </div>
         )}
 
@@ -121,7 +114,6 @@ export default function App() {
             hero={selectedHero}
             incoming={selectedRelations.incoming}
             outgoing={selectedRelations.outgoing}
-            scope={scope}
             onMatchup={setMatchupHeroId}
           />
         )}

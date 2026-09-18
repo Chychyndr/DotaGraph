@@ -21,7 +21,7 @@ https://www.figma.com/design/rydgq1wV8C0hlVb5n7Ohws/DotaGraph-Design?node-id=1-2
 - coral/red incoming counter edges;
 - cyan/blue outgoing counter edges;
 - restrained gold selected-hero ring;
-- Manrope direction;
+- IBM Plex Sans for product UI typography;
 - Dota portrait art carries most of the color.
 
 Approximate initial node sizes:
@@ -36,6 +36,8 @@ Overview keeps the whole graph as a weak spiderweb.
 Hover reveals only local context and never relayouts the graph.
 
 Focus centers the selected hero, strongly dims unrelated graph context, reveals 0–5 relationships per direction, adds tiny arrowheads, and shows win-rate labels.
+
+The graph canvas supports drag-to-pan and pointer-centered mouse-wheel zoom. A simple click on empty canvas clears the current hero selection; a drag never does.
 
 Matchup keeps the graph visible, emphasizes one pair, and changes the compact card from HeroCard to MatchupCard.
 

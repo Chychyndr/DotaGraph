@@ -1,4 +1,4 @@
-import type { Hero, MatchupRelationship, ScopeConfig } from "../domain/types";
+import type { Hero, MatchupRelationship } from "../domain/types";
 import { formatPercent } from "../domain/relationships";
 import { heroById } from "../data/heroes";
 
@@ -6,7 +6,6 @@ interface HeroCardProps {
   hero: Hero;
   incoming: MatchupRelationship[];
   outgoing: MatchupRelationship[];
-  scope: ScopeConfig;
   onMatchup: (neighborHeroId: string) => void;
 }
 
@@ -20,7 +19,7 @@ function RelationRows({
   onMatchup: (neighborHeroId: string) => void;
 }) {
   if (!relationships.length) {
-    return <p className="card-empty">No reliable fixture relationships.</p>;
+    return <p className="card-empty">No reliable relationships.</p>;
   }
 
   return (
@@ -51,15 +50,12 @@ function RelationRows({
   );
 }
 
-export function HeroCard({ hero, incoming, outgoing, scope, onMatchup }: HeroCardProps) {
+export function HeroCard({ hero, incoming, outgoing, onMatchup }: HeroCardProps) {
   return (
     <aside className="context-card" aria-label={`${hero.name} counter summary`}>
       <div className="card-hero">
         <img src={hero.portrait} alt="" />
-        <div>
-          <h2>{hero.name}</h2>
-          <p>{scope.rankLabel} · Patch {scope.patch}</p>
-        </div>
+        <h2>{hero.name}</h2>
         <strong className="overall-rate">{formatPercent(hero.overallWinRate)}</strong>
       </div>
 
@@ -78,8 +74,6 @@ export function HeroCard({ hero, incoming, outgoing, scope, onMatchup }: HeroCar
         </div>
         <RelationRows relationships={outgoing} selectedHeroId={hero.id} onMatchup={onMatchup} />
       </div>
-
-      <div className="card-footnote">Development fixture data · {hero.sampleSize.toLocaleString()} hero sample</div>
     </aside>
   );
 }

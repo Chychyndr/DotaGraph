@@ -1,4 +1,5 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { PointerEvent as ReactPointerEvent, WheelEvent as ReactWheelEvent } from "react";
 import type { Hero, MatchupRelationship, SelectedRelations } from "../domain/types";
 import { formatPercent } from "../domain/relationships";
 
@@ -12,10 +13,26 @@ interface GraphViewProps {
   onSelectHero: (heroId: string) => void;
   onSelectMatchup: (heroId: string) => void;
   onHoverHero: (heroId: string | null) => void;
+  onClearSelection: () => void;
+}
+
+interface DragState {
+  pointerId: number;
+  startX: number;
+  startY: number;
+  lastX: number;
+  lastY: number;
+  moved: boolean;
 }
 
 const WIDTH = 1200;
 const HEIGHT = 760;
+const MIN_ZOOM = 0.55;
+const MAX_ZOOM = 2.4;
+const DRAG_THRESHOLD = 5;
+
+const clamp = (value: number, min: number, max: number) =>
+  Math.min(max, Math.max(min, value));
 
 export function GraphView({
   heroes,
@@ -26,9 +43,15 @@ export function GraphView({
   selectedRelations,
   onSelectHero,
   onSelectMatchup,
-  onHoverHero
+  onHoverHero,
+  onClearSelection
 }: GraphViewProps) {
   const byId = useMemo(() => new Map(heroes.map((hero) => [hero.id, hero])), [heroes]);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [isPanning, setIsPanning] = useState(false);
+  const dragRef = useRef<DragState | null>(null);
+
   const activeRelationships = [...selectedRelations.incoming, ...selectedRelations.outgoing];
   const activeIds = new Set(activeRelationships.flatMap((relationship) => [
     relationship.sourceHeroId,
@@ -36,9 +59,17 @@ export function GraphView({
   ]));
   const activeRelationshipIds = new Set(activeRelationships.map((relationship) => relationship.id));
   const selectedHero = selectedHeroId ? byId.get(selectedHeroId) : undefined;
-  const focusTransform = selectedHero
-    ? `translate(${WIDTH / 2} ${HEIGHT / 2}) scale(1.04) translate(${-selectedHero.x} ${-selectedHero.y})`
-    : undefined;
+  const focusScale = selectedHero ? 1.04 : 1;
+  const anchorX = selectedHero?.x ?? WIDTH / 2;
+  const anchorY = selectedHero?.y ?? HEIGHT / 2;
+  const cameraScale = zoom * focusScale;
+  const cameraTransform =
+    `translate(${WIDTH / 2 + pan.x} ${HEIGHT / 2 + pan.y}) scale(${cameraScale}) translate(${-anchorX} ${-anchorY})`;
+
+  useEffect(() => {
+    setPan({ x: 0, y: 0 });
+    setZoom(1);
+  }, [selectedHeroId]);
 
   const hoverRelationshipIds = new Set(
     hoveredHeroId
@@ -74,12 +105,105 @@ export function GraphView({
     };
   };
 
+  const handlePointerDown = (event: ReactPointerEvent<SVGSVGElement>) => {
+    if (event.button !== 0) return;
+    const target = event.target;
+    if (target instanceof Element && target.closest(".hero-node")) return;
+
+    dragRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      lastX: event.clientX,
+      lastY: event.clientY,
+      moved: false
+    };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+
+  const handlePointerMove = (event: ReactPointerEvent<SVGSVGElement>) => {
+    const drag = dragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+
+    const totalDistance = Math.hypot(
+      event.clientX - drag.startX,
+      event.clientY - drag.startY
+    );
+
+    if (!drag.moved && totalDistance >= DRAG_THRESHOLD) {
+      drag.moved = true;
+      setIsPanning(true);
+    }
+
+    if (!drag.moved) return;
+
+    const ctm = event.currentTarget.getScreenCTM();
+    const scaleX = ctm ? Math.hypot(ctm.a, ctm.b) : 1;
+    const scaleY = ctm ? Math.hypot(ctm.c, ctm.d) : 1;
+    const dx = (event.clientX - drag.lastX) / Math.max(scaleX, 0.001);
+    const dy = (event.clientY - drag.lastY) / Math.max(scaleY, 0.001);
+
+    drag.lastX = event.clientX;
+    drag.lastY = event.clientY;
+    setPan((current) => ({ x: current.x + dx, y: current.y + dy }));
+  };
+
+  const finishPointer = (event: ReactPointerEvent<SVGSVGElement>, cancelled = false) => {
+    const drag = dragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+
+    if (!cancelled && !drag.moved && selectedHeroId) {
+      onClearSelection();
+    }
+
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+    dragRef.current = null;
+    setIsPanning(false);
+  };
+
+  const handleWheel = (event: ReactWheelEvent<SVGSVGElement>) => {
+    event.preventDefault();
+
+    const svg = event.currentTarget;
+    const ctm = svg.getScreenCTM();
+    if (!ctm) return;
+
+    const point = svg.createSVGPoint();
+    point.x = event.clientX;
+    point.y = event.clientY;
+    const cursor = point.matrixTransform(ctm.inverse());
+
+    const nextZoom = clamp(
+      zoom * Math.exp(-event.deltaY * 0.0012),
+      MIN_ZOOM,
+      MAX_ZOOM
+    );
+    if (Math.abs(nextZoom - zoom) < 0.0001) return;
+
+    const ratio = nextZoom / zoom;
+    const centerX = WIDTH / 2;
+    const centerY = HEIGHT / 2;
+
+    setPan((current) => ({
+      x: cursor.x - centerX - ratio * (cursor.x - centerX - current.x),
+      y: cursor.y - centerY - ratio * (cursor.y - centerY - current.y)
+    }));
+    setZoom(nextZoom);
+  };
+
   return (
     <svg
-      className="graph"
+      className={isPanning ? "graph graph-panning" : "graph"}
       viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
       role="img"
       aria-label="Interactive graph of Dota 2 hero counter relationships"
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={(event) => finishPointer(event)}
+      onPointerCancel={(event) => finishPointer(event, true)}
+      onWheel={handleWheel}
     >
       <defs>
         <marker id="arrow-incoming" viewBox="0 0 6 6" refX="5.3" refY="3" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
@@ -88,14 +212,9 @@ export function GraphView({
         <marker id="arrow-outgoing" viewBox="0 0 6 6" refX="5.3" refY="3" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
           <path d="M0 0 6 3 0 6Z" className="marker-outgoing" />
         </marker>
-        {heroes.map((hero) => (
-          <clipPath id={`clip-${hero.id}`} key={hero.id}>
-            <circle cx="0" cy="0" r="1" />
-          </clipPath>
-        ))}
       </defs>
 
-      <g className="graph-camera" transform={focusTransform}>
+      <g className="graph-camera" transform={cameraTransform}>
         <g className="edges">
           {relationships.map((relationship) => {
             const source = byId.get(relationship.sourceHeroId);
@@ -190,6 +309,7 @@ export function GraphView({
                 onMouseEnter={() => onHoverHero(hero.id)}
                 onMouseLeave={() => onHoverHero(null)}
                 onClick={activate}
+                onPointerDown={(event) => event.stopPropagation()}
                 onKeyDown={(event) => {
                   if (event.key === "Enter" || event.key === " ") {
                     event.preventDefault();
