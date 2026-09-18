@@ -12,6 +12,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: dotagraph-generate-741e-layout
+  cancel-in-progress: true
+
 jobs:
   generate:
     runs-on: ubuntu-latest
