@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { HeroCard } from "./components/HeroCard";
 import { MatchupCard } from "./components/MatchupCard";
+import { usePortraitAsset } from "./components/PortraitProvider";
 import { Search } from "./components/Search";
 import type { DatasetBundle } from "./data/dataset";
 import { loadDataset, type DatasetLoadResult } from "./data/loadDataset";
@@ -87,6 +88,7 @@ function BlockingDataState({
 }
 
 function ReadyApp({ data }: { data: DatasetBundle }) {
+  const portraitAsset = usePortraitAsset();
   const { heroes, relationships, scope, metadata } = data;
   const heroById = useMemo(() => new Map(heroes.map((hero) => [hero.id, hero])), [heroes]);
   const initial = useMemo(() => readInitialState(heroById), [heroById]);
@@ -167,10 +169,20 @@ function ReadyApp({ data }: { data: DatasetBundle }) {
       </header>
 
       <section className="graph-stage" aria-label="DotaGraph counter map">
-        {metadata.freshness.status === "stale" && (
-          <div className="data-warning" role="status">
-            <strong>Matchup data may be outdated.</strong>
-            <span>{metadata.freshness.reason}</span>
+        {(metadata.freshness.status === "stale" || portraitAsset.status === "failed") && (
+          <div className="stage-notices">
+            {metadata.freshness.status === "stale" && (
+              <div className="data-warning" role="status">
+                <strong>Matchup data may be outdated.</strong>
+                <span>{metadata.freshness.reason}</span>
+              </div>
+            )}
+            {portraitAsset.status === "failed" && (
+              <div className="data-warning portrait-warning" role="status">
+                <strong>Hero portraits are unavailable.</strong>
+                <span>Showing text fallbacks so the graph stays usable.</span>
+              </div>
+            )}
           </div>
         )}
 
