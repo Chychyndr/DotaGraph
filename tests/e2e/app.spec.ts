@@ -66,6 +66,10 @@ test("hovered hero label renders above every portrait node", async ({ page }) =>
 
 test("win-rate badges render above every camera edge", async ({ page }) => {
   await page.goto("/?hero=viper");
+  await expect(
+    page.getByRole("group", { name: "Dota 2 hero counter relationships" })
+  ).toBeVisible();
+  await expect(page.locator(".edge-label").first()).toBeVisible();
 
   const order = await page.evaluate(() => {
     const graph = document.querySelector("svg.graph");
