@@ -416,10 +416,15 @@ def generate(
         if total is None or total.games <= 0:
             hero_stats[slug] = None
             continue
+        if total.games % 5 != 0:
+            raise RuntimeError(
+                f"Hero {slug} pair-observation count is not divisible by five: "
+                f"{total.games}"
+            )
         hero_stats[slug] = {
             "overallWinRate": total.wins / total.games,
             "pairObservationGames": total.games,
-            "estimatedMatchCount": total.games // 5,
+            "matchCount": total.games // 5,
         }
 
     relationships = [
