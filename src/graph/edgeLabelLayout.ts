@@ -115,8 +115,19 @@ export function layoutSourceAnchoredEdgeLabels(
 ) {
   const placements = new Map<string, EdgeLabelPlacement>();
   const placedRects: Rect[] = [];
+  const orderedInputs = [...inputs].sort((a, b) => {
+    const aLength = Math.hypot(
+      a.segment.x2 - a.segment.x1,
+      a.segment.y2 - a.segment.y1
+    );
+    const bLength = Math.hypot(
+      b.segment.x2 - b.segment.x1,
+      b.segment.y2 - b.segment.y1
+    );
+    return aLength - bLength || a.id.localeCompare(b.id);
+  });
 
-  for (const input of inputs) {
+  for (const input of orderedInputs) {
     const { segment } = input;
     const length = Math.hypot(segment.x2 - segment.x1, segment.y2 - segment.y1) || 1;
     const sourceTs = [
