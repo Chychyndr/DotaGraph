@@ -670,7 +670,7 @@ test("mouse wheel zooms the graph", async ({ page }) => {
     .not.toBe(before);
 });
 
-test("desktop hero selection keeps the overview camera stable", async ({ page }) => {
+test("desktop hero selection only pans the existing overview camera for the card", async ({ page }) => {
   await page.setViewportSize({ width: 1366, height: 768 });
   await page.goto("/");
 
@@ -682,7 +682,28 @@ test("desktop hero selection keeps the overview camera stable", async ({ page })
   await page.getByRole("option", { name: /Underlord/ }).click();
   await page.waitForTimeout(520);
 
-  expect(await camera.getAttribute("transform")).toBe(before);
+  const after = await camera.getAttribute("transform");
+  expect(before).not.toBeNull();
+  expect(after).not.toBeNull();
+
+  const parseCamera = (transform: string) => {
+    const match = transform.match(
+      /translate\(([-\d.]+) ([-\d.]+)\) scale\(([-\d.]+)\) translate\(([-\d.]+) ([-\d.]+)\)/
+    );
+    if (!match) return null;
+    return match.slice(1).map(Number);
+  };
+
+  const beforeParts = parseCamera(before!);
+  const afterParts = parseCamera(after!);
+  expect(beforeParts).not.toBeNull();
+  expect(afterParts).not.toBeNull();
+
+  expect(afterParts![0] - beforeParts![0]).toBeCloseTo(100, 1);
+  expect(afterParts![1]).toBeCloseTo(beforeParts![1], 4);
+  expect(afterParts![2]).toBeCloseTo(beforeParts![2], 4);
+  expect(afterParts![3]).toBeCloseTo(beforeParts![3], 4);
+  expect(afterParts![4]).toBeCloseTo(beforeParts![4], 4);
   await expect(page).toHaveURL(/hero=underlord/);
 
   const activeHeroes = page.locator(".hero-active");
@@ -691,7 +712,7 @@ test("desktop hero selection keeps the overview camera stable", async ({ page })
   expect(activeCount).toBeLessThanOrEqual(10);
 });
 
-test("reduced-motion desktop selection also keeps the same camera", async ({ page }) => {
+test("reduced-motion desktop selection applies only the card pan immediately", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.setViewportSize({ width: 1366, height: 768 });
   await page.goto("/");
@@ -704,7 +725,10 @@ test("reduced-motion desktop selection also keeps the same camera", async ({ pag
   await page.keyboard.press("Enter");
   await page.waitForTimeout(30);
 
-  expect(await camera.getAttribute("transform")).toBe(before);
+  const afterSelection = await camera.getAttribute("transform");
+  await page.waitForTimeout(120);
+  expect(afterSelection).not.toBe(before);
+  expect(await camera.getAttribute("transform")).toBe(afterSelection);
 });
 
 test("site exposes the DotaGraph logo as favicon and header brand", async ({ page }) => {
