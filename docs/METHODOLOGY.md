@@ -1,6 +1,6 @@
 # Methodology
 
-Status: production methodology is not approved yet.
+Status: current-patch sample-size and counter-ranking methodology are approved. Cross-source aggregation/disagreement rules remain a separate decision.
 
 ## Current fixture methodology
 
@@ -151,20 +151,49 @@ The current layout affinity is intentionally **not** a user-visible counter scor
 
 The OpenDota `public_matches` table is a public-match sample, so this snapshot represents the observed OpenDota sample under the recorded query scope rather than every Ancient+ match played during 7.41e.
 
-## Future ranking
+## Counter ranking
 
-Raw matchup win rate alone is not enough to rank specific counters because hero baseline strength changes the expected result.
+Status: **approved for implementation/evaluation on patch 7.41f**.
 
-Research direction:
-- baseline strength of both heroes;
-- expected matchup win rate;
-- actual-vs-expected delta;
-- sample-size confidence;
-- cross-source agreement;
-- freshness;
-- rank-scope compatibility.
+The percentage shown to users remains the raw source-hero matchup win rate. Ranking uses a separate internal conservative score so globally strong heroes do not automatically dominate the counter list.
 
-No user-visible confidence/counter score should be invented before the formula is justified.
+For ordered matchup `A -> B`:
+
+```text
+p = wins(A vs B) / matches(A vs B)
+
+baselineA = A win rate against all other heroes
+baselineB = B win rate against all other heroes
+
+expected = 0.5 + (baselineA - baselineB) / 2
+delta = p - expected
+
+se = sqrt(
+  p * (1 - p) / nPair
+  + baselineA * (1 - baselineA) / (4 * nBaselineA)
+  + baselineB * (1 - baselineB) / (4 * nBaselineB)
+)
+
+rankingScore = delta - 1.645 * se
+```
+
+The direct A-vs-B observation is excluded from both hero baselines.
+
+Eligibility:
+- exact current patch/scope;
+- known sample count;
+- `nPair >= 500`;
+- `rankingScore > 0`.
+
+Sort order:
+1. `rankingScore` descending;
+2. `delta` descending;
+3. `sampleSize` descending;
+4. stable hero IDs.
+
+Show at most five relationships per direction. Never fill missing slots with weak or previous-patch relationships.
+
+`rankingScore` is internal and is not presented as a user-facing percentage or invented “counter score”.
 
 ## Aggregation
 
