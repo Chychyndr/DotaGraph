@@ -19,11 +19,18 @@ const round = (value: number) => Math.round(value * 100) / 100;
 
 const uniqueHeroes = (heroes: Hero[], excluded = new Set<string>()) => {
   const seen = new Set(excluded);
-  return heroes.filter((hero) => {
-    if (seen.has(hero.id)) return false;
-    seen.add(hero.id);
-    return true;
-  });
+  return heroes
+    .filter((hero) => {
+      if (seen.has(hero.id)) return false;
+      seen.add(hero.id);
+      return true;
+    })
+    .sort(
+      (a, b) =>
+        a.y - b.y ||
+        a.x - b.x ||
+        a.id.localeCompare(b.id)
+    );
 };
 
 const placeSide = (
@@ -35,14 +42,10 @@ const placeSide = (
   result: Map<string, FocusPosition>
 ) => {
   const count = heroes.length;
-  const maxStep = Math.PI * 5 / 36;
-  const verticalStep =
-    count <= 1
-      ? 0
-      : Math.min(maxStep, halfArcAngle * 2 / (count - 1));
 
   heroes.forEach((hero, index) => {
-    const verticalAngle = (index - (count - 1) / 2) * verticalStep;
+    const progress = count <= 1 ? 0.5 : index / (count - 1);
+    const verticalAngle = -halfArcAngle + progress * halfArcAngle * 2;
     const angle =
       side === "right"
         ? verticalAngle
