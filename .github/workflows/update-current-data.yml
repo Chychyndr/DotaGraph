@@ -8,7 +8,7 @@ on:
     branches:
       - feature/real-7.41f-matchups
       - fix/graph-layout-density
-    # Temporary branch trigger for final real layout screenshot validation.
+    # Temporary branch trigger for rare-hero real layout validation.
     paths:
       - .github/workflows/update-current-data.yml
 
