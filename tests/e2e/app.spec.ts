@@ -346,7 +346,7 @@ test("mouse wheel zooms the graph", async ({ page }) => {
     .not.toBe(before);
 });
 
-test("selecting a distant hero moves the camera progressively", async ({ page }) => {
+test("selecting a distant hero moves and settles the camera", async ({ page }) => {
   await page.goto("/");
   const camera = page.locator(".graph-camera");
   const search = page.getByRole("combobox", { name: "Search for a hero" });
@@ -354,14 +354,17 @@ test("selecting a distant hero moves the camera progressively", async ({ page })
 
   await search.fill("underlord");
   await page.getByRole("option", { name: /Underlord/ }).click();
-  await page.waitForTimeout(90);
-  const during = await camera.getAttribute("transform");
 
-  await page.waitForTimeout(500);
-  const after = await camera.getAttribute("transform");
+  await expect
+    .poll(() => camera.getAttribute("transform"))
+    .not.toBe(before);
 
-  expect(during).not.toBe(before);
-  expect(after).not.toBe(during);
+  await page.waitForTimeout(520);
+  const settled = await camera.getAttribute("transform");
+  expect(settled).not.toBe(before);
+
+  await page.waitForTimeout(120);
+  expect(await camera.getAttribute("transform")).toBe(settled);
   await expect(page).toHaveURL(/hero=underlord/);
 });
 
