@@ -1,5 +1,38 @@
 import { describe, expect, it } from "vitest";
-import { calculateFocusScale, visibleViewBoxForViewport } from "./focusCamera";
+import {
+  calculateFocusScale,
+  calculateOverviewCamera,
+  visibleViewBoxForViewport
+} from "./focusCamera";
+
+describe("calculateOverviewCamera", () => {
+  it("centers the overview on the actual hero bounds", () => {
+    const camera = calculateOverviewCamera(
+      [
+        { x: 200, y: 120 },
+        { x: 900, y: 640 },
+        { x: 600, y: 400 }
+      ],
+      { width: 1200, height: 760 }
+    );
+
+    expect(camera.anchorX).toBe(550);
+    expect(camera.anchorY).toBe(380);
+  });
+
+  it("zooms out only as much as needed to fit the graph bounds", () => {
+    const camera = calculateOverviewCamera(
+      [
+        { x: 20, y: 20 },
+        { x: 1180, y: 740 }
+      ],
+      { width: 1200, height: 760 }
+    );
+
+    expect(camera.scale).toBeLessThan(1);
+    expect(camera.scale).toBeGreaterThanOrEqual(0.7);
+  });
+});
 
 describe("calculateFocusScale", () => {
   it("keeps close relationships at the normal focus scale", () => {
