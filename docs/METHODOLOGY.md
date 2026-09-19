@@ -2,13 +2,19 @@
 
 Status: current-patch sample-size and counter-ranking methodology are approved. Cross-source aggregation/disagreement rules remain a separate decision.
 
-## Current fixture methodology
+## Current production snapshot
 
-All matchup percentages used for current interface work are development fixtures.
+The published graph uses generated current-patch matchup observations rather than development fixtures.
 
-They exist only to test direction, density, labels, cards, and selection behavior.
+Current production scope:
+- patch 7.41f;
+- OpenDota `public_matches` as the headline source;
+- ranked All Draft only (`game_mode = 22`, `lobby_type = 7`);
+- OpenDota average rank tier >= 60 as the Ancient+ adapter predicate;
+- observation window starts at the recorded 7.41f patch boundary and ends at generation time;
+- daily generation runs in GitHub Actions.
 
-Do not cite or publish fixture values as real Dota statistics.
+Development fixtures may still exist in tests, but they must never be substituted for the published production bundle.
 
 ## Canonical sample-size semantics
 
@@ -135,21 +141,24 @@ The graph displays source-hero matchup win rate.
 
 ## Data-driven graph layout
 
-The graph topology may use real matchup observations before the final public counter-ranking formula is approved, but this use is strictly geometric.
+Graph geometry is derived from real current-patch matchup evidence, but layout eligibility is deliberately separate from headline-counter publication.
 
-For the patch 7.41e layout evaluation:
-- source corpus: OpenDota `public_matches`;
-- clean historical window: 2026-08-01T00:00:00Z inclusive through 2026-09-15T00:00:00Z exclusive;
-- OpenDota `game_mode_all_draft` (22) with `lobby_type_ranked` (7) only;
-- OpenDota average rank tier >= 60 as the adapter predicate for the Ancient+ target population;
-- minimum 500 observed hero-pair matches before a pair may influence primary layout affinity;
-- both directions matter: heroes that strongly counter each other in either direction should remain spatially close;
-- raw pair win rate is adjusted by the heroes' observed baseline strength before determining layout affinity;
-- sample size strengthens geometric confidence but cannot be summed across providers.
+Primary layout affinity:
+- source corpus and scope are the same current 7.41f OpenDota ranked Ancient+ observations used by the production pipeline;
+- a pair needs at least 500 observed matches;
+- layout ranking uses the baseline-adjusted matchup delta without the one-sided 95% headline confidence penalty (`confidence_z = 0`);
+- up to five strongest incident affinity relationships are retained per hero;
+- the resulting relationships affect coordinates only.
 
-The current layout affinity is intentionally **not** a user-visible counter score and is not the final production counter-ranking methodology. Its only output is stable hero coordinates plus quality/provenance metadata.
+Rare-hero geometry fallback:
+- if a hero would otherwise have fewer than two layout neighbors, geometry may use current-patch observations down to the explicit 100-match fallback floor;
+- fallback edges are never published as headline counters;
+- fallback observations do not alter displayed win rates, headline ranking, or the normal 500-match eligibility rule;
+- low-degree heroes are pulled toward the centroid of their real affinity neighbors before collision relaxation so sparse evidence does not create detached layout islands.
 
-The OpenDota `public_matches` table is a public-match sample, so this snapshot represents the observed OpenDota sample under the recorded query scope rather than every Ancient+ match played during 7.41e.
+Final coordinates are deterministic. Collision relaxation enforces a 58 px default center distance, and generated snapshots record node-spacing, nearest-neighbor, isolation, and edge-distance metrics. CI rejects the committed production snapshot if any hero is isolated, minimum spacing falls below the tested threshold, or the worst nearest-neighbor gap exceeds the approved quality gate.
+
+The layout affinity is not a user-visible counter score. Its output is stable geometry and layout-quality metadata only.
 
 ## Counter ranking
 
