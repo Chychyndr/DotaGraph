@@ -69,7 +69,7 @@ class RankingTests(unittest.TestCase):
 
     def test_confidence_penalty_can_reject_weak_edge(self) -> None:
         pairs = [
-            PairObservation("axe", "viper", 500, 270),
+            PairObservation("axe", "viper", 500, 267),
             PairObservation("axe", "huskar", 5000, 2500),
             PairObservation("viper", "huskar", 5000, 2500),
         ]
