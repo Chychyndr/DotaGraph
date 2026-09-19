@@ -156,6 +156,51 @@ def compute_layout(
         for point in positions
     ]
 
+    degrees = [0 for _ in nodes]
+    neighbors: list[list[int]] = [[] for _ in nodes]
+    for edge in valid_edges:
+        source_index = index[edge.source]
+        target_index = index[edge.target]
+        degrees[source_index] += 1
+        degrees[target_index] += 1
+        neighbors[source_index].append(target_index)
+        neighbors[target_index].append(source_index)
+
+    # Rare heroes with only a couple of real affinity edges can be pushed onto the
+    # outer hull by pairwise repulsion. Pull only those low-degree nodes toward the
+    # centroid of their real layout neighbors before collision relaxation.
+    for _ in range(40):
+        moved = False
+        for node_index, degree in enumerate(degrees):
+            if degree == 0 or degree > 2:
+                continue
+
+            neighbor_indices = neighbors[node_index]
+            target_x = sum(pixel_positions[i][0] for i in neighbor_indices) / len(
+                neighbor_indices
+            )
+            target_y = sum(pixel_positions[i][1] for i in neighbor_indices) / len(
+                neighbor_indices
+            )
+            x, y = pixel_positions[node_index]
+            distance = math.hypot(target_x - x, target_y - y)
+            if distance <= 150.0:
+                continue
+
+            step = min(8.0, (distance - 150.0) * 0.18)
+            pixel_positions[node_index][0] += (target_x - x) / distance * step
+            pixel_positions[node_index][1] += (target_y - y) / distance * step
+            pixel_positions[node_index][0] = _clamp(
+                pixel_positions[node_index][0], layout_left, layout_right
+            )
+            pixel_positions[node_index][1] = _clamp(
+                pixel_positions[node_index][1], layout_top, layout_bottom
+            )
+            moved = True
+
+        if not moved:
+            break
+
     # Deterministic collision relaxation. It only prevents portrait overlap;
     # graph attraction has already determined the topology.
     for _ in range(220):
