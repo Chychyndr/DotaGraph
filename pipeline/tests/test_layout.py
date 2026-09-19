@@ -46,6 +46,17 @@ class LayoutTests(unittest.TestCase):
                     45.8,
                 )
 
+    def test_default_spacing_keeps_portraits_separated(self) -> None:
+        positions = compute_layout(self.nodes, self.edges, iterations=180)
+        values = list(positions.values())
+
+        for index, first in enumerate(values):
+            for second in values[index + 1 :]:
+                self.assertGreaterEqual(
+                    math.hypot(second[0] - first[0], second[1] - first[1]),
+                    57.8,
+                )
+
     def test_metrics_cover_layout_edges(self) -> None:
         positions = compute_layout(self.nodes, self.edges, iterations=180)
         metrics = layout_metrics(positions, self.edges)
