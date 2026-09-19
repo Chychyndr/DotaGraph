@@ -146,9 +146,12 @@ Core states:
 
 ### Focus
 - selected hero prominent;
-- unrelated graph strongly dimmed;
+- only the selected hero and its active relationship heroes remain visible;
+- incoming relationship heroes are arranged on the left;
+- outgoing relationship heroes are arranged on the right;
 - 0–5 incoming relationships;
 - 0–5 outgoing relationships;
+- hero names stay outside relationship paths;
 - compact HeroCard.
 
 ### Matchup
@@ -181,8 +184,8 @@ Win-rate label:
 - do not cover portraits or arrowheads.
 
 Background graph:
-- remains visible as context;
-- roughly 5–10% opacity direction;
+- remains visible in Overview and Hover as context;
+- Focus removes unrelated nodes and edges so the active subgraph is unambiguous;
 - do not render hundreds of prominent arrows or labels at once.
 
 No continuous drift or breathing animation.
@@ -289,7 +292,7 @@ The overview must not randomly reorganize on every page load.
 
 Prefer deterministic/precomputed positions, seeded layout, or cached stable positions generated as part of the data build.
 
-Focus/hover should alter rendering and camera, not cause the entire topology to explode into a new layout.
+Hover must not relayout the graph. Focus may use a deterministic presentation layout for only the selected hero and its active neighbors; Overview coordinates remain unchanged and return exactly when Focus ends.
 
 ## URL state
 
