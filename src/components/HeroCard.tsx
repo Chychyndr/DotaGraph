@@ -14,12 +14,14 @@ function RelationRows({
   relationships,
   selectedHeroId,
   onMatchup,
-  heroesById
+  heroesById,
+  direction
 }: {
   relationships: MatchupRelationship[];
   selectedHeroId: string;
   onMatchup: (neighborHeroId: string) => void;
   heroesById: ReadonlyMap<string, Hero>;
+  direction: "incoming" | "outgoing";
 }) {
   if (!relationships.length) {
     return <p className="card-empty">No reliable relationships.</p>;
@@ -42,6 +44,8 @@ function RelationRows({
             className="relation-row"
             type="button"
             aria-label={`${source.name} counters ${target.name}; ${source.name} win rate ${formatPercent(relationship.sourceWinRate)}`}
+            data-neighbor-hero={neighborId}
+            data-relation-direction={direction}
             onClick={() => onMatchup(neighborId)}
           >
             <span className="relation-hero">
@@ -76,6 +80,7 @@ export function HeroCard({ hero, incoming, outgoing, onMatchup, heroesById }: He
           selectedHeroId={hero.id}
           onMatchup={onMatchup}
           heroesById={heroesById}
+          direction="incoming"
         />
       </div>
 
@@ -88,6 +93,7 @@ export function HeroCard({ hero, incoming, outgoing, onMatchup, heroesById }: He
           selectedHeroId={hero.id}
           onMatchup={onMatchup}
           heroesById={heroesById}
+          direction="outgoing"
         />
       </div>
     </aside>
