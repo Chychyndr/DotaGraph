@@ -115,4 +115,4 @@ jobs:
             --header "Authorization: Bearer $GH_TOKEN" \
             --header "X-GitHub-Api-Version: 2022-11-28" \
             "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/workflows/ci.yml/dispatches" \
-            --data "{"ref":"${GITHUB_REF_NAME}"}"
+            --data "$(printf '{"ref":"%s"}' "$GITHUB_REF_NAME")"
