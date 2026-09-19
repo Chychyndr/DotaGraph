@@ -6,6 +6,7 @@ import unittest
 from unittest.mock import patch
 
 from dotagraph_pipeline.generate_current_bundle import (
+    _ensure_layout_neighbors,
     _normalize_pairs,
     _select_layout_relationships,
     generate,
@@ -70,6 +71,45 @@ class CurrentBundleTests(unittest.TestCase):
             {"chen", "axe", "viper", "naga_siren", "huskar"},
         )
         self.assertLessEqual(len(selected), len(covered))
+
+    def test_layout_fallback_anchors_rare_hero(self) -> None:
+        def relationship(source: str, target: str, delta: float) -> RankedRelationship:
+            return RankedRelationship(
+                source=source,
+                target=target,
+                source_win_rate=0.55,
+                sample_size=180,
+                source_baseline=0.5,
+                target_baseline=0.5,
+                expected_win_rate=0.5,
+                baseline_adjusted_delta=delta,
+                standard_error=0.02,
+                ranking_score=delta,
+            )
+
+        primary = [
+            relationship("axe", "viper", 0.08),
+            relationship("viper", "huskar", 0.07),
+        ]
+        fallback = [
+            relationship("chen", "axe", 0.06),
+            relationship("chen", "viper", 0.05),
+            relationship("chen", "huskar", 0.04),
+        ]
+
+        selected = _ensure_layout_neighbors(
+            primary,
+            fallback,
+            {"chen", "axe", "viper", "huskar"},
+            minimum_neighbors=2,
+        )
+
+        chen_neighbors = [
+            item
+            for item in selected
+            if item.source == "chen" or item.target == "chen"
+        ]
+        self.assertEqual(len(chen_neighbors), 2)
 
     def test_generate_emits_741f_production_contract(self) -> None:
         repo_root = Path(__file__).resolve().parents[2]
