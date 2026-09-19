@@ -410,7 +410,8 @@ export function GraphView({
           y1: start.y,
           x2: end.x,
           y2: end.y
-        }
+        },
+        preferredT: relationship.sourceHeroId === selectedHeroId ? 0.46 : 0.34
       }];
     }),
     [...activeIds].flatMap((heroId) => {
