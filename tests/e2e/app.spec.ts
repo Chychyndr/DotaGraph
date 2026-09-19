@@ -168,6 +168,32 @@ test("overview renders a sparse relationship backbone", async ({ page }) => {
   expect(edgeCount).toBeLessThanOrEqual(127);
 });
 
+test("hover reveals local relationships without moving or replacing the overview graph", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.locator(".hero-node")).toHaveCount(127);
+
+  const before = await page.locator(".hero-node").evaluateAll(nodes =>
+    nodes
+      .map(node => [node.id, node.getAttribute("transform") ?? ""] as const)
+      .sort(([a], [b]) => a.localeCompare(b))
+  );
+
+  await page.locator("#graph-hero-viper").hover();
+  await page.waitForTimeout(180);
+
+  const after = await page.locator(".hero-node").evaluateAll(nodes =>
+    nodes
+      .map(node => [node.id, node.getAttribute("transform") ?? ""] as const)
+      .sort(([a], [b]) => a.localeCompare(b))
+  );
+
+  expect(after).toEqual(before);
+  expect(await page.locator(".edge-hover").count()).toBeGreaterThan(0);
+  expect(await page.locator(".edge-hover").count()).toBeLessThanOrEqual(5);
+  await expect(page.locator(".context-card")).toHaveCount(0);
+  await expect(page.locator('[data-hero-label="viper"]')).toBeVisible();
+});
+
 test("focus keeps the same graph and only highlights selected relationships", async ({ page }) => {
   await page.goto("/");
   await expect(page.locator(".hero-node")).toHaveCount(127);
