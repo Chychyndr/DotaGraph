@@ -23,9 +23,9 @@
 
 ## Focus
 
-- Selected hero remains the camera anchor. On desktop the focused composition shifts slightly right so the left-side HeroCard never covers active hero names.
-- Focus scale adapts to the active relationship spread: close matchups keep the normal scale, while distant counters trigger only as much zoom-out as needed to fit the active set with padding.
-- Compact focus keeps its upward offset for the context card and uses the cropped visible graph span when calculating scale.
+- Desktop Focus keeps the same camera transform as Overview; selecting a hero does not recenter, zoom, or shift the graph.
+- Compact Focus may reframe the same committed graph coordinates to keep the selected hero usable above the context card.
+- No viewport mode creates a second focus topology.
 - Gold ring.
 - The same Overview hero nodes remain visible at the same committed coordinates.
 - Unrelated heroes are dimmed in place; active relationship heroes are emphasized where they already live in the graph.
