@@ -216,6 +216,131 @@ test("focused win-rate labels stay source-anchored and do not overlap", async ({
   });
 });
 
+test("dense focus keeps win-rate badges on their own lines and clear of portraits", async ({ page }) => {
+  await page.setViewportSize({ width: 1366, height: 768 });
+
+  for (const heroId of ["dragon-knight", "rubick"]) {
+    await page.goto(`/?hero=${heroId}`);
+    await page.waitForTimeout(520);
+
+    const geometry = await page.evaluate(() => {
+      const labels = [...document.querySelectorAll<SVGGElement>(".edge-label")];
+      const activePortraits = [
+        ...document.querySelectorAll<SVGGraphicsElement>(
+          ".hero-selected .hero-portrait-node, .hero-active .hero-portrait-node"
+        )
+      ];
+
+      const transformPoint = (
+        x: number,
+        y: number,
+        matrix: DOMMatrix
+      ) => ({
+        x: matrix.a * x + matrix.c * y + matrix.e,
+        y: matrix.b * x + matrix.d * y + matrix.f
+      });
+
+      const pointToSegmentDistance = (
+        point: { x: number; y: number },
+        start: { x: number; y: number },
+        end: { x: number; y: number }
+      ) => {
+        const dx = end.x - start.x;
+        const dy = end.y - start.y;
+        const lengthSquared = dx * dx + dy * dy;
+        if (lengthSquared <= 1e-9) return Math.hypot(point.x - start.x, point.y - start.y);
+
+        const t = Math.max(
+          0,
+          Math.min(
+            1,
+            ((point.x - start.x) * dx + (point.y - start.y) * dy) /
+              lengthSquared
+          )
+        );
+        return Math.hypot(
+          point.x - (start.x + dx * t),
+          point.y - (start.y + dy * t)
+        );
+      };
+
+      const rows = labels.map(label => {
+        const source = label.dataset.sourceHero ?? "";
+        const target = label.dataset.targetHero ?? "";
+        const line = document.querySelector<SVGLineElement>(
+          `.edge[data-source-hero="${source}"][data-target-hero="${target}"]`
+        );
+        const labelMatrix = label.getScreenCTM();
+        const lineMatrix = line?.getScreenCTM();
+        if (!line || !labelMatrix || !lineMatrix) return null;
+
+        const start = transformPoint(line.x1.baseVal.value, line.y1.baseVal.value, lineMatrix);
+        const end = transformPoint(line.x2.baseVal.value, line.y2.baseVal.value, lineMatrix);
+        const center = transformPoint(0, 0, labelMatrix);
+        const badge = label.getBoundingClientRect();
+
+        const overlapsPortrait = activePortraits.some(portrait => {
+          const box = portrait.getBoundingClientRect();
+          return (
+            badge.left < box.right &&
+            badge.right > box.left &&
+            badge.top < box.bottom &&
+            badge.bottom > box.top
+          );
+        });
+
+        return {
+          source,
+          target,
+          offset: Number(label.dataset.labelOffset),
+          distanceToLine: pointToSegmentDistance(center, start, end),
+          overlapsPortrait
+        };
+      }).filter((row): row is NonNullable<typeof row> => row !== null);
+
+      const selected = document.querySelector<SVGGElement>(".hero-selected");
+      const active = [...document.querySelectorAll<SVGGElement>(".hero-active")];
+      const selectedMatrix = selected?.transform.baseVal.consolidate()?.matrix;
+
+      const activeDistances = selectedMatrix
+        ? active.map(node => {
+            const matrix = node.transform.baseVal.consolidate()?.matrix;
+            return matrix
+              ? Math.hypot(matrix.e - selectedMatrix.e, matrix.f - selectedMatrix.f)
+              : 0;
+          })
+        : [];
+
+      const activePairDistances: number[] = [];
+      for (let left = 0; left < active.length; left += 1) {
+        const a = active[left].transform.baseVal.consolidate()?.matrix;
+        if (!a) continue;
+        for (let right = left + 1; right < active.length; right += 1) {
+          const b = active[right].transform.baseVal.consolidate()?.matrix;
+          if (!b) continue;
+          activePairDistances.push(Math.hypot(b.e - a.e, b.f - a.f));
+        }
+      }
+
+      return { rows, activeDistances, activePairDistances };
+    });
+
+    expect(geometry.rows.length).toBeGreaterThan(0);
+    for (const row of geometry.rows) {
+      expect(row.offset).toBe(0);
+      expect(row.distanceToLine).toBeLessThan(1.25);
+      expect(row.overlapsPortrait).toBe(false);
+    }
+
+    for (const distance of geometry.activeDistances) {
+      expect(distance).toBeGreaterThanOrEqual(179);
+    }
+    for (const distance of geometry.activePairDistances) {
+      expect(distance).toBeGreaterThanOrEqual(109);
+    }
+  }
+});
+
 test("hero artwork loads from one local atlas without Steamstatic requests", async ({ page }) => {
   let atlasResponses = 0;
   let steamstaticRequests = 0;
