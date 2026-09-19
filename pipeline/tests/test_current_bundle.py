@@ -7,9 +7,11 @@ from unittest.mock import patch
 
 from dotagraph_pipeline.generate_current_bundle import (
     _normalize_pairs,
+    _select_layout_relationships,
     generate,
 )
 from dotagraph_pipeline.logging_utils import configure_logging
+from dotagraph_pipeline.ranking import RankedRelationship
 
 
 class CurrentBundleTests(unittest.TestCase):
@@ -32,6 +34,42 @@ class CurrentBundleTests(unittest.TestCase):
         self.assertEqual(len(pairs), 1)
         self.assertEqual(pairs[0].matches, 1000)
         self.assertEqual(pairs[0].first_wins, 580)
+
+    def test_layout_selection_covers_every_hero_with_affinity_evidence(self) -> None:
+        def relationship(source: str, target: str, delta: float) -> RankedRelationship:
+            return RankedRelationship(
+                source=source,
+                target=target,
+                source_win_rate=0.55,
+                sample_size=1000,
+                source_baseline=0.5,
+                target_baseline=0.5,
+                expected_win_rate=0.5,
+                baseline_adjusted_delta=delta,
+                standard_error=0.01,
+                ranking_score=delta,
+            )
+
+        ranked = [
+            relationship("chen", "axe", 0.08),
+            relationship("chen", "viper", 0.06),
+            relationship("naga_siren", "viper", 0.07),
+            relationship("naga_siren", "huskar", 0.05),
+            relationship("axe", "huskar", 0.04),
+        ]
+
+        selected = _select_layout_relationships(ranked, neighbors_per_hero=1)
+        covered = {
+            hero
+            for item in selected
+            for hero in (item.source, item.target)
+        }
+
+        self.assertEqual(
+            covered,
+            {"chen", "axe", "viper", "naga_siren", "huskar"},
+        )
+        self.assertLessEqual(len(selected), len(covered))
 
     def test_generate_emits_741f_production_contract(self) -> None:
         repo_root = Path(__file__).resolve().parents[2]
