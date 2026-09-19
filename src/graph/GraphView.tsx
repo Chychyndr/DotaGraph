@@ -408,8 +408,7 @@ export function GraphView({
   );
 
   const radiusFor = (heroId: string) => {
-    if (heroId === selectedHeroId) return 36;
-    if (activeIds.has(heroId)) return 21;
+    if (heroId === selectedHeroId || activeIds.has(heroId)) return 14;
     if (heroId === hoveredHeroId) return 18;
     return 14;
   };
@@ -728,7 +727,7 @@ export function GraphView({
             const isHovered = hero.id === hoveredHeroId;
             const isMatchup = hero.id === matchupHeroId;
             const shouldDim = Boolean(selectedHeroId && !isSelected && !isActive);
-            const size = isSelected ? 72 : isActive ? 42 : isHovered ? 36 : 28;
+            const size = isSelected || isActive ? 28 : isHovered ? 36 : 28;
             const radius = size / 2;
             const nodeClass = [
               "hero-node",
