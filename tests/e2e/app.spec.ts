@@ -129,6 +129,26 @@ test("win-rate badges keep native screen scale after camera zoom", async ({ page
   expect(Math.abs(scales!.labelScale - scales!.graphScale)).toBeLessThan(0.01);
 });
 
+test("overview renders a sparse relationship backbone", async ({ page }) => {
+  await page.goto("/");
+  await expect(
+    page.getByRole("group", { name: "Dota 2 hero counter relationships" })
+  ).toBeVisible();
+
+  const edgeCount = await page.locator(".edges .edge").count();
+  expect(edgeCount).toBeGreaterThan(0);
+  expect(edgeCount).toBeLessThanOrEqual(127);
+});
+
+test("focus renders only the selected hero relationships", async ({ page }) => {
+  await page.goto("/?hero=viper");
+  await expect(page.getByLabel("Viper counter summary")).toBeVisible();
+
+  const edgeCount = await page.locator(".edges .edge").count();
+  expect(edgeCount).toBeGreaterThan(0);
+  expect(edgeCount).toBeLessThanOrEqual(10);
+});
+
 test("focused win-rate labels stay source-anchored and do not overlap", async ({ page }) => {
   await page.goto("/?hero=viper");
 
