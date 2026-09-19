@@ -3,69 +3,95 @@
 ## Hero
 
 A hero has:
-- stable id;
-- slug;
+- stable UI id;
+- stable internal Dota/OpenDota slug;
 - display name;
 - aliases;
 - sprite index in the shared local portrait atlas;
-- deterministic layout position;
-- optional overall fixture win rate/sample used only for the current fixture-driven UI.
+- deterministic current-patch layout position;
+- optional generated overall win rate;
+- optional generated current-scope match count.
 
 Aliases are data, not Search-component conditionals.
 
+The generated hero match count is exact for the current 5v5 OpenDota query: each hero-match contributes five opponent-pair observations, so the pipeline validates divisibility by five before publishing it.
+
 ## MatchupRelationship
 
-A relationship has:
+A published relationship has:
 - sourceHeroId;
 - targetHeroId;
-- sourceWinRate;
+- raw sourceWinRate;
 - sampleSize;
 - patch;
 - rankScope;
 - sourceKind;
-- optional fixture explanation.
-
-For production data, `sampleSize` is the known count of qualifying matches behind the source observation selected to support the published relationship. One qualifying match is one distinct completed match for the hero pair inside one exact source/patch/rank/match-population/observation-window scope.
-
-A published relationship must not contain an estimated or semantically ambiguous sample count. Unknown-count observations cannot be promoted into the headline relationship set.
+- internal rankingScore;
+- baselineAdjustedDelta;
+- expectedWinRate;
+- standardError;
+- provenanceSource;
+- observation window;
+- optional reviewed explanation.
 
 Direction is explicit.
 
-`A -> B` means A counters B. The displayed win rate belongs to A.
+`A -> B` means A counters B. The percentage shown on the edge belongs to A and is the raw observed A-vs-B win rate.
 
-## Patch-scoped layout snapshot
+`rankingScore` selects/orders reliable relationships but is never presented as a percentage.
 
-Hero geometry is generated separately from public relationship statistics.
+For production data, `sampleSize` is the known count of qualifying matches behind that exact source observation. One qualifying sample is one distinct completed match for the hero pair inside one source/patch/rank/match-population/observation-window scope.
 
-A layout snapshot contains:
-- schema version and patch;
+A published relationship must not contain an estimated or semantically ambiguous sample count. Counts from separate providers are never silently summed.
+
+## Generated current snapshot
+
+GitHub Actions writes one generated static file:
+
+`public/data/current-matchups.json`
+
+Schema v2 contains:
+- current patch;
 - generation timestamp;
-- exact source/query scope used to derive affinity;
-- hero coverage and missing-source coverage;
-- layout-quality metrics;
-- one deterministic `x/y` position for every catalog hero.
+- exact rank/mode/observation scope;
+- headline source provenance;
+- coverage diagnostics;
+- layout quality metrics;
+- generated hero statistics;
+- every confidence-qualified directed relationship;
+- deterministic `x/y` position for every catalog hero.
 
-Coordinates are keyed by stable internal hero slug so display-id aliases do not change topology.
+Coordinates and source observations are keyed by stable internal hero slug. The frontend converts those slugs to stable UI ids after loading.
 
-The layout snapshot must not contain player-identifying data. For the 7.41e evaluation it also does not publish the raw OpenDota matchup matrix; only geometry and aggregate quality/provenance metadata are committed.
+The snapshot contains aggregate matchup data only. It does not contain player identities or raw match IDs.
 
-## Published dataset bundle
+## Frontend DatasetBundle
 
-The frontend loads one bundle containing:
+The frontend converts the generated snapshot into one validated bundle containing:
 - heroes;
 - relationships;
 - scope;
 - metadata.
 
-Metadata currently contains:
+Metadata schema v2 contains:
 - `schemaVersion`;
 - `generatedAt`;
-- an upstream freshness status: `current` or `stale`;
-- a required human-readable reason when the bundle is marked stale.
+- headline `source`;
+- `observationWindowStart`;
+- `observationWindowEndExclusive`;
+- freshness state.
 
-The frontend validates the complete bundle before exposing it to the graph. Unknown hero references, duplicate ids, invalid win rates/sample sizes, unsupported scope values, malformed timestamps, and scope mismatches make the bundle unusable rather than partially rendering it.
+A snapshot is treated as stale after 36 hours without regeneration. Stale data remains usable with a visible warning; malformed data blocks the graph.
 
-The UI does not derive a final time-based staleness threshold yet. That policy remains a separate methodology decision; the current frontend only renders the freshness state supplied by validated metadata.
+Runtime validation rejects:
+- unknown/duplicate hero references;
+- invalid coordinates;
+- invalid raw win rates;
+- sample counts below the published threshold;
+- non-positive generated ranking scores/deltas;
+- malformed provenance;
+- patch/rank scope mismatches;
+- malformed timestamps.
 
 ## Selection
 
@@ -73,22 +99,28 @@ For selected hero S:
 - incoming: `targetHeroId === S`;
 - outgoing: `sourceHeroId === S`.
 
-Filter below the configured minimum sample before taking the top five per direction.
+Filter by current patch/rank/sample requirements before taking the top five per direction.
 
-Ordering must be deterministic.
+Deterministic ordering:
+1. rankingScore descending;
+2. baselineAdjustedDelta descending;
+3. sampleSize descending;
+4. stable hero ids.
 
-## Future production shape
+Missing reliable relationships stay missing. Never fill slots with weak, previous-patch, or fabricated relationships.
 
-Real source observations will also need:
+## Multi-source detail model
+
+OpenDota currently supplies the reproducible headline numeric observation.
+
+Future STRATZ/DOTABUFF/Dota2ProTracker detail observations must remain source-local and preserve:
 - provider/source identity;
-- source query or endpoint provenance;
+- endpoint/page/query provenance;
 - patch;
-- rank population and provider-specific rank predicate;
-- match/game population filters;
+- rank/match population;
 - observation window;
 - known source-local sample size;
-- source observation timestamp(s);
-- aggregation metadata where applicable;
-- validated current-patch generation metadata.
+- source observation timestamps;
+- compatibility/disagreement metadata.
 
-Provider observations stay separate. Their `sampleSize` values are never summed unless a future approved aggregation method can prove the underlying match populations do not overlap.
+Cross-source sample sizes must not be summed unless non-overlap is proven under a separately approved aggregation method.
