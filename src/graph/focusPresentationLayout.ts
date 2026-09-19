@@ -35,10 +35,14 @@ const placeSide = (
   result: Map<string, FocusPosition>
 ) => {
   const count = heroes.length;
+  const maxStep = Math.PI * 5 / 36;
+  const verticalStep =
+    count <= 1
+      ? 0
+      : Math.min(maxStep, halfArcAngle * 2 / (count - 1));
 
   heroes.forEach((hero, index) => {
-    const progress = count <= 1 ? 0.5 : index / (count - 1);
-    const verticalAngle = -halfArcAngle + progress * halfArcAngle * 2;
+    const verticalAngle = (index - (count - 1) / 2) * verticalStep;
     const angle =
       side === "right"
         ? verticalAngle
