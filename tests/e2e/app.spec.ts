@@ -364,17 +364,43 @@ test("dragging pans the graph without clearing the selected hero", async ({ page
   await page.goto("/?hero=viper");
   const graph = page.getByRole("group", { name: "Dota 2 hero counter relationships" });
   const camera = page.locator(".graph-camera");
+  await page.waitForTimeout(520);
+
   const box = await graph.boundingBox();
   expect(box).not.toBeNull();
 
+  const start = await page.evaluate(({ left, top, width, height }) => {
+    const candidates = [
+      [0.08, 0.08],
+      [0.92, 0.08],
+      [0.92, 0.92],
+      [0.08, 0.92]
+    ];
+
+    for (const [xRatio, yRatio] of candidates) {
+      const x = left + width * xRatio;
+      const y = top + height * yRatio;
+      const element = document.elementFromPoint(x, y);
+      if (!element?.closest(".hero-node")) return { x, y };
+    }
+
+    return { x: left + 24, y: top + 24 };
+  }, {
+    left: box!.x,
+    top: box!.y,
+    width: box!.width,
+    height: box!.height
+  });
+
   const before = await camera.getAttribute("transform");
-  await page.mouse.move(box!.x + box!.width * 0.82, box!.y + box!.height * 0.25);
+  await page.mouse.move(start.x, start.y);
   await page.mouse.down();
-  await page.mouse.move(box!.x + box!.width * 0.72, box!.y + box!.height * 0.34, { steps: 6 });
+  await page.mouse.move(start.x - 90, start.y + 70, { steps: 6 });
   await page.mouse.up();
 
-  const after = await camera.getAttribute("transform");
-  expect(after).not.toBe(before);
+  await expect
+    .poll(() => camera.getAttribute("transform"))
+    .not.toBe(before);
   await expect(page).toHaveURL(/hero=viper/);
 });
 
