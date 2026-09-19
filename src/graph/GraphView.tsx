@@ -501,6 +501,7 @@ export function GraphView({
       const geometry = edgeGeometry(source, target);
       const start = projectGraphPoint(geometry.x1, geometry.y1);
       const end = projectGraphPoint(geometry.x2, geometry.y2);
+      const sourcePoint = projectGraphPoint(source.x, source.y);
 
       return [{
         id: relationship.id,
@@ -510,7 +511,12 @@ export function GraphView({
           x2: end.x,
           y2: end.y
         },
-        preferredT: relationship.sourceHeroId === selectedHeroId ? 0.46 : 0.34
+        preferredT: relationship.sourceHeroId === selectedHeroId ? 0.46 : 0.34,
+        source: {
+          x: sourcePoint.x,
+          y: sourcePoint.y,
+          radius: (radiusFor(source.id) + 7) * cameraScale
+        }
       }];
     }),
     [...activeIds].flatMap((heroId) => {
