@@ -204,10 +204,12 @@ def layout_metrics(
     positions: dict[str, tuple[float, float]],
     edges: Iterable[WeightedEdge],
 ) -> dict[str, float | int]:
+    edge_list = list(edges)
     distances = []
     weighted_distances = []
+    degrees = {node_id: 0 for node_id in positions}
 
-    for edge in edges:
+    for edge in edge_list:
         source = positions.get(edge.source)
         target = positions.get(edge.target)
         if source is None or target is None:
@@ -216,6 +218,35 @@ def layout_metrics(
         distance = math.hypot(target[0] - source[0], target[1] - source[1])
         distances.append(distance)
         weighted_distances.append(distance * (0.35 + _clamp(edge.weight, 0.0, 1.0)))
+        degrees[edge.source] = degrees.get(edge.source, 0) + 1
+        degrees[edge.target] = degrees.get(edge.target, 0) + 1
+
+    nearest_distances = []
+    position_items = list(positions.items())
+    for index, (_, first) in enumerate(position_items):
+        nearest = min(
+            (
+                math.hypot(second[0] - first[0], second[1] - first[1])
+                for other_index, (_, second) in enumerate(position_items)
+                if other_index != index
+            ),
+            default=0.0,
+        )
+        nearest_distances.append(nearest)
+
+    spacing_metrics = {
+        "minimumNodeDistance": round(min(nearest_distances), 2)
+        if nearest_distances
+        else 0.0,
+        "medianNearestNodeDistance": round(median(nearest_distances), 2)
+        if nearest_distances
+        else 0.0,
+        "maxNearestNodeDistance": round(max(nearest_distances), 2)
+        if nearest_distances
+        else 0.0,
+        "coveredNodeCount": sum(1 for degree in degrees.values() if degree > 0),
+        "isolatedNodeCount": sum(1 for degree in degrees.values() if degree == 0),
+    }
 
     if not distances:
         return {
@@ -225,6 +256,7 @@ def layout_metrics(
             "p95Distance": 0.0,
             "maxDistance": 0.0,
             "weightedMeanDistance": 0.0,
+            **spacing_metrics,
         }
 
     return {
@@ -234,4 +266,5 @@ def layout_metrics(
         "p95Distance": round(_percentile(distances, 0.95), 2),
         "maxDistance": round(max(distances), 2),
         "weightedMeanDistance": round(sum(weighted_distances) / len(weighted_distances), 2),
+        **spacing_metrics,
     }
