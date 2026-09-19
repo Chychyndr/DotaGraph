@@ -66,6 +66,7 @@ const DRAG_THRESHOLD = 5;
 const CAMERA_DURATION = 460;
 const COMPACT_VIEWPORT_QUERY = "(max-width: 640px)";
 const COMPACT_FOCUS_OFFSET_Y = -120;
+const DESKTOP_FOCUS_OFFSET_X = 100;
 
 const clamp = (value: number, min: number, max: number) =>
   Math.min(max, Math.max(min, value));
@@ -197,7 +198,10 @@ export function GraphView({
       selectedHero && initialCompactViewport
         ? selectedHero.y
         : overviewCamera.anchorY,
-    panX: 0,
+    panX:
+      selectedHero && !initialCompactViewport
+        ? DESKTOP_FOCUS_OFFSET_X
+        : 0,
     panY: selectedHero && initialCompactViewport ? COMPACT_FOCUS_OFFSET_Y : 0,
     zoom: 1,
     focusScale:
@@ -247,17 +251,20 @@ export function GraphView({
 
     cancelCameraAnimation();
 
-    const selected =
+    const compactSelected =
       selectedHeroId && isCompactViewport
         ? byId.get(selectedHeroId)
         : undefined;
     const target: CameraState = {
-      anchorX: selected?.x ?? overviewCamera.anchorX,
-      anchorY: selected?.y ?? overviewCamera.anchorY,
-      panX: 0,
-      panY: selected ? COMPACT_FOCUS_OFFSET_Y : 0,
+      anchorX: compactSelected?.x ?? overviewCamera.anchorX,
+      anchorY: compactSelected?.y ?? overviewCamera.anchorY,
+      panX:
+        selectedHeroId && !isCompactViewport
+          ? DESKTOP_FOCUS_OFFSET_X
+          : 0,
+      panY: compactSelected ? COMPACT_FOCUS_OFFSET_Y : 0,
       zoom: 1,
-      focusScale: selected ? targetFocusScale : overviewCamera.scale
+      focusScale: compactSelected ? targetFocusScale : overviewCamera.scale
     };
 
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
