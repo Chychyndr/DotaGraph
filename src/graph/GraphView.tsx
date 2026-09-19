@@ -26,6 +26,7 @@ import {
   selectHoverRelationships,
   selectOverviewBackbone
 } from "./relationshipVisibility";
+import { layoutFocusPresentation } from "./focusPresentationLayout";
 
 interface GraphViewProps {
   heroes: Hero[];
@@ -109,6 +110,37 @@ export function GraphView({
     });
   }, [byId, selectedHeroId, selectedRelations]);
 
+  const focusPositions = useMemo(
+    () =>
+      selectedHero
+        ? layoutFocusPresentation(selectedHero, relatedHeroes)
+        : new Map<string, { x: number; y: number }>(),
+    [relatedHeroes, selectedHero]
+  );
+  const presentationHeroes = useMemo(
+    () =>
+      heroes.map((hero) => {
+        const position = focusPositions.get(hero.id);
+        return position ? { ...hero, ...position } : hero;
+      }),
+    [focusPositions, heroes]
+  );
+  const presentationById = useMemo(
+    () => new Map(presentationHeroes.map((hero) => [hero.id, hero])),
+    [presentationHeroes]
+  );
+  const presentationSelectedHero = selectedHeroId
+    ? presentationById.get(selectedHeroId)
+    : undefined;
+  const presentationRelatedHeroes = useMemo(
+    () =>
+      relatedHeroes.flatMap((hero) => {
+        const presentationHero = presentationById.get(hero.id);
+        return presentationHero ? [presentationHero] : [];
+      }),
+    [presentationById, relatedHeroes]
+  );
+
   const visibleGraphSpan = useMemo(
     () => visibleViewBoxForViewport(
       svgViewport.width,
@@ -120,8 +152,8 @@ export function GraphView({
     [isCompactViewport, svgViewport]
   );
 
-  const targetFocusScale = selectedHero
-    ? calculateFocusScale(selectedHero, relatedHeroes, {
+  const targetFocusScale = presentationSelectedHero
+    ? calculateFocusScale(presentationSelectedHero, presentationRelatedHeroes, {
         ...visibleGraphSpan,
         offsetY: isCompactViewport ? COMPACT_FOCUS_OFFSET_Y : 0,
         paddingX: isCompactViewport ? 60 : 84,
@@ -138,26 +170,26 @@ export function GraphView({
   );
 
   const initialCamera: CameraState = {
-    anchorX: selectedHero?.x ?? overviewCamera.anchorX,
-    anchorY: selectedHero?.y ?? overviewCamera.anchorY,
+    anchorX: presentationSelectedHero?.x ?? overviewCamera.anchorX,
+    anchorY: presentationSelectedHero?.y ?? overviewCamera.anchorY,
     panX: 0,
     panY: selectedHero && initialCompactViewport ? COMPACT_FOCUS_OFFSET_Y : 0,
     zoom: 1,
-    focusScale: selectedHero ? targetFocusScale : overviewCamera.scale
+    focusScale: presentationSelectedHero ? targetFocusScale : overviewCamera.scale
   };
 
   const [camera, setCameraState] = useState<CameraState>(initialCamera);
   const [isPanning, setIsPanning] = useState(false);
   const initialKeyboardHero = selectedHeroId
-    ? byId.get(selectedHeroId)
-    : findNearestHeroToPoint(heroes, WIDTH / 2, HEIGHT / 2);
+    ? presentationById.get(selectedHeroId)
+    : findNearestHeroToPoint(presentationHeroes, WIDTH / 2, HEIGHT / 2);
   const [keyboardHeroId, setKeyboardHeroId] = useState<string | null>(initialKeyboardHero?.id ?? null);
   const cameraRef = useRef(camera);
   const svgRef = useRef<SVGSVGElement>(null);
   const animationFrameRef = useRef<number | null>(null);
   const previousCameraTargetRef = useRef(
     `${selectedHeroId ?? ""}:${initialCompactViewport}:${
-      selectedHero ? targetFocusScale.toFixed(4) : overviewCamera.scale.toFixed(4)
+      presentationSelectedHero ? targetFocusScale.toFixed(4) : overviewCamera.scale.toFixed(4)
     }:${overviewCamera.anchorX.toFixed(2)}:${overviewCamera.anchorY.toFixed(2)}`
   );
   const previousKeyboardSelectionRef = useRef(selectedHeroId);
@@ -180,14 +212,14 @@ export function GraphView({
 
   useEffect(() => {
     const cameraTargetKey = `${selectedHeroId ?? ""}:${isCompactViewport}:${
-      selectedHero ? targetFocusScale.toFixed(4) : overviewCamera.scale.toFixed(4)
+      presentationSelectedHero ? targetFocusScale.toFixed(4) : overviewCamera.scale.toFixed(4)
     }:${overviewCamera.anchorX.toFixed(2)}:${overviewCamera.anchorY.toFixed(2)}`;
     if (previousCameraTargetRef.current === cameraTargetKey) return;
     previousCameraTargetRef.current = cameraTargetKey;
 
     cancelCameraAnimation();
 
-    const selected = selectedHeroId ? byId.get(selectedHeroId) : undefined;
+    const selected = selectedHeroId ? presentationById.get(selectedHeroId) : undefined;
     const target: CameraState = {
       anchorX: selected?.x ?? overviewCamera.anchorX,
       anchorY: selected?.y ?? overviewCamera.anchorY,
@@ -231,7 +263,7 @@ export function GraphView({
   }, [
     selectedHeroId,
     selectedHero,
-    byId,
+    presentationById,
     isCompactViewport,
     targetFocusScale,
     overviewCamera
@@ -363,8 +395,8 @@ export function GraphView({
 
   const edgeLabelPlacements = layoutSourceAnchoredEdgeLabels(
     activeRelationships.flatMap((relationship) => {
-      const source = byId.get(relationship.sourceHeroId);
-      const target = byId.get(relationship.targetHeroId);
+      const source = presentationById.get(relationship.sourceHeroId);
+      const target = presentationById.get(relationship.targetHeroId);
       if (!source || !target) return [];
 
       const geometry = edgeGeometry(source, target);
@@ -378,11 +410,12 @@ export function GraphView({
           y1: start.y,
           x2: end.x,
           y2: end.y
-        }
+        },
+        preferredT: relationship.sourceHeroId === selectedHeroId ? 0.46 : 0.34
       }];
     }),
     [...activeIds].flatMap((heroId) => {
-      const hero = byId.get(heroId);
+      const hero = presentationById.get(heroId);
       if (!hero) return [];
 
       const point = projectGraphPoint(hero.x, hero.y);
@@ -525,7 +558,7 @@ export function GraphView({
               width={HERO_ATLAS_WIDTH}
               height={HERO_ATLAS_HEIGHT}
             />
-            {heroes.map((hero) => {
+            {presentationHeroes.map((hero) => {
               const sprite = getHeroSpriteCell(hero.spriteIndex);
 
               return (
@@ -548,8 +581,8 @@ export function GraphView({
       <g className="graph-camera" transform={cameraTransform}>
         <g className="edges">
           {visibleRelationships.map((relationship) => {
-            const source = byId.get(relationship.sourceHeroId);
-            const target = byId.get(relationship.targetHeroId);
+            const source = presentationById.get(relationship.sourceHeroId);
+            const target = presentationById.get(relationship.targetHeroId);
             if (!source || !target) return null;
 
             const isActive = activeRelationshipIds.has(relationship.id);
@@ -581,13 +614,15 @@ export function GraphView({
                 x2={geometry.x2}
                 y2={geometry.y2}
                 markerEnd={isIncoming ? "url(#arrow-incoming)" : isOutgoing ? "url(#arrow-outgoing)" : undefined}
+                data-source-hero={relationship.sourceHeroId}
+                data-target-hero={relationship.targetHeroId}
               />
             );
           })}
         </g>
 
         <g className="nodes">
-          {heroes.map((hero) => {
+          {presentationHeroes.map((hero) => {
             const isSelected = hero.id === selectedHeroId;
             const isActive = activeIds.has(hero.id) && !isSelected;
             const isHovered = hero.id === hoveredHeroId;
@@ -622,7 +657,7 @@ export function GraphView({
             };
 
             const moveKeyboardFocus = (direction: GraphNavigationDirection) => {
-              const next = findHeroInDirection(hero.id, direction, heroes);
+              const next = findHeroInDirection(hero.id, direction, presentationHeroes);
               if (!next) return;
 
               setKeyboardHeroId(next.id);
@@ -713,7 +748,7 @@ export function GraphView({
         </g>
 
         <g className="hero-label-layer" aria-hidden="true">
-          {heroes.map((hero) => {
+          {presentationHeroes.map((hero) => {
             const showLabel =
               hero.id === selectedHeroId ||
               activeIds.has(hero.id) ||
@@ -765,6 +800,7 @@ export function GraphView({
                 data-source-hero={relationship.sourceHeroId}
                 data-target-hero={relationship.targetHeroId}
                 data-label-t={labelPlacement.t.toFixed(3)}
+                data-label-offset={labelPlacement.offset.toFixed(1)}
               >
                 <rect
                   x={-EDGE_LABEL_WIDTH / 2}

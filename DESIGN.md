@@ -46,7 +46,7 @@ Matchup keeps the graph visible, emphasizes one pair, and changes the compact ca
 
 The percentage belongs to the source hero of the arrow.
 
-The accepted current behavior is source-anchored, collision-aware placement nearer the source end of the active edge. Labels must avoid hero portraits and other active percentage labels while keeping relationship direction obvious.
+The accepted current behavior is source-anchored, collision-aware placement on the active edge itself. Labels normally stay on the source half of the edge; when the selected hero is the source, the badge may sit farther down that half so dense outgoing fans remain readable. Labels must avoid hero portraits and other active percentage labels while keeping relationship direction obvious.
 
 ## Product chrome decisions
 

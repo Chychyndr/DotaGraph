@@ -36,6 +36,19 @@ test("capture settled Spectre focus badge rendering", async ({ page }) => {
   await page.screenshot({ path: `${output}/focus-spectre-settled.png`, fullPage: true });
 });
 
+test("capture dense Dragon Knight and Rubick focus geometry", async ({ page }) => {
+  await page.setViewportSize({ width: 1366, height: 768 });
+
+  for (const heroId of ["dragon-knight", "rubick"]) {
+    await page.goto(`/?hero=${heroId}`, { waitUntil: "networkidle" });
+    await page.waitForTimeout(520);
+    await page.screenshot({
+      path: `${output}/focus-${heroId}-edge-labels.png`,
+      fullPage: true
+    });
+  }
+});
+
 test("capture mobile Focus and Matchup states", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/?hero=viper", { waitUntil: "networkidle" });

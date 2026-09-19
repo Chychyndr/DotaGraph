@@ -32,7 +32,8 @@
 - Up to five outgoing relationships in cyan.
 - Hero names render above portrait nodes.
 - Tiny arrowheads clarify direction.
-- Win-rate pills appear nearer the source hero.
+- Win-rate pills stay centered on their own relationship lines and remain source-side; selected-source pills can sit farther down the source half to keep dense fans legible.
+- Active hero portraits are presentation-spaced in Focus so portraits, names, and percentage pills have clear breathing room.
 - HeroCard appears.
 - Clicking another background node refocuses.
 - Clicking empty graph space exits Focus.
