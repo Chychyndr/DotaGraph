@@ -62,17 +62,17 @@ describe("layoutFocusPresentation", () => {
     }
   });
 
-  it("orders each side from top to bottom using the stable overview order", () => {
+  it("keeps relationship rank order from top to bottom on each side", () => {
     const selected = hero("selected", 400, 300);
     const incoming = [
-      hero("bottom", 100, 600),
-      hero("top", 120, 80),
-      hero("middle", 110, 320)
+      hero("rank-1", 100, 600),
+      hero("rank-2", 120, 80),
+      hero("rank-3", 110, 320)
     ];
     const layout = layoutFocusPresentation(selected, { incoming, outgoing: [] });
 
-    expect(layout.get("top")!.y).toBeLessThan(layout.get("middle")!.y);
-    expect(layout.get("middle")!.y).toBeLessThan(layout.get("bottom")!.y);
+    expect(layout.get("rank-1")!.y).toBeLessThan(layout.get("rank-2")!.y);
+    expect(layout.get("rank-2")!.y).toBeLessThan(layout.get("rank-3")!.y);
   });
 
   it("keeps a five-hero side evenly separated", () => {
