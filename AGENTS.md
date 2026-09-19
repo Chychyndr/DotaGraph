@@ -55,7 +55,7 @@ The approved normal-candidate minimum is 500 qualifying matches per source obser
 
 One sample means one distinct completed match for the hero pair inside one source/patch/rank/match-population/observation-window scope. Never add counts from separate providers to cross the 500-match threshold.
 
-If a hero has many meaningful counters, show the best up to five in the focused graph. The full dataset may contain far more relationships.
+If a hero has many meaningful counters, highlight the best up to five per direction on the existing graph when that hero is selected. The full dataset may contain far more relationships.
 
 If there are no reliable relationships in a direction, show an intentional empty state.
 
