@@ -67,7 +67,7 @@ const DRAG_THRESHOLD = 5;
 const CAMERA_DURATION = 460;
 const COMPACT_VIEWPORT_QUERY = "(max-width: 640px)";
 const COMPACT_FOCUS_OFFSET_Y = -120;
-const DESKTOP_FOCUS_OFFSET_X = 100;
+const DESKTOP_FOCUS_OFFSET_X = 180;
 
 const clamp = (value: number, min: number, max: number) =>
   Math.min(max, Math.max(min, value));
