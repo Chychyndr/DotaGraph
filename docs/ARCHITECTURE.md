@@ -35,9 +35,9 @@ The layout build:
 - performs deterministic collision relaxation with a 58 px minimum center distance;
 - writes fixed coordinates plus spacing, isolation, and edge-distance quality metrics.
 
-The browser never runs a force simulation. Overview, hover, and focus reuse the same stable coordinates, so graph topology does not jump between page loads.
+The browser never runs a force simulation. Overview and Hover use the committed stable coordinates exactly. Focus derives a deterministic presentation-only arrangement for the selected hero plus its active neighbors: incoming heroes occupy a balanced left arc and outgoing heroes a balanced right arc. Leaving Focus restores the unchanged Overview coordinates.
 
-The SVG renderer also keeps display density separate from the full production relationship corpus. Overview renders a sparse deterministic backbone, while Focus renders only the selected hero's real active relationships (up to five incoming and five outgoing). This avoids thousands of inactive SVG lines without changing counter semantics.
+The SVG renderer also keeps display density separate from the full production relationship corpus. Overview renders a sparse deterministic backbone, while Focus renders only the selected hero, its real active relationship heroes, and those active edges (up to five incoming and five outgoing). This avoids the visual impression of a second graph layered over the Overview without changing counter semantics.
 
 Changing layout parameters must not change what `A -> B` means, alter the user-visible source win rate, or promote geometry-only evidence into the headline counter set.
 
