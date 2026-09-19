@@ -105,7 +105,7 @@ export function GraphView({
     );
 
     return [...ids].flatMap((heroId) => {
-      const hero = presentationById.get(heroId);
+      const hero = byId.get(heroId);
       return hero ? [hero] : [];
     });
   }, [byId, selectedHeroId, selectedRelations]);
