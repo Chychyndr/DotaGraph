@@ -23,7 +23,7 @@ It:
 4. uploads pipeline test/generation logs as a 14-day debug artifact;
 5. commits the JSON only when the generated snapshot changed.
 
-After merge, that generated commit lands on `main`, so the normal main CI runs automatically. A successful main CI then triggers the Pages workflow below. This makes a daily data refresh use the same validation and live-browser deployment gates as an ordinary code change.
+GitHub suppresses ordinary workflow chaining for commits pushed with `GITHUB_TOKEN`. Therefore, after the generated commit is pushed, the data workflow explicitly dispatches `CI` on the refreshed branch. On `main`, a successful dispatched CI then triggers the Pages workflow below through `workflow_run`. This keeps daily data refreshes behind the same validation and live-browser deployment gates as ordinary code changes.
 
 ## Deployment sequence
 
