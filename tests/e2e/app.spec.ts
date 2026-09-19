@@ -333,10 +333,10 @@ test("dense focus keeps win-rate badges on their own lines and clear of portrait
     }
 
     for (const distance of geometry.activeDistances) {
-      expect(distance).toBeGreaterThanOrEqual(179);
+      expect(distance).toBeGreaterThanOrEqual(209);
     }
     for (const distance of geometry.activePairDistances) {
-      expect(distance).toBeGreaterThanOrEqual(109);
+      expect(distance).toBeGreaterThanOrEqual(139);
     }
   }
 });
