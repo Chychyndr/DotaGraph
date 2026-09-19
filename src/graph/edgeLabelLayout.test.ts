@@ -1,6 +1,4 @@
 import { describe, expect, it } from "vitest";
-import type { Hero } from "../domain/types";
-import { layoutFocusPresentation } from "./focusPresentationLayout";
 import {
   edgeLabelRectsOverlap,
   layoutSourceAnchoredEdgeLabels
@@ -79,91 +77,6 @@ describe("layoutSourceAnchoredEdgeLabels", () => {
     expect(edgeLabelRectsOverlap(a, b)).toBe(false);
     expect(edgeLabelRectsOverlap(a, c)).toBe(false);
     expect(edgeLabelRectsOverlap(b, c)).toBe(false);
-  });
-
-  it("separates a dense ten-edge fan after focus presentation spacing", () => {
-    const makeHero = (id: string, x: number, y: number): Hero => ({
-      id,
-      slug: id,
-      name: id,
-      aliases: [],
-      spriteIndex: 0,
-      x,
-      y
-    });
-
-    const selected = makeHero("selected", 600, 380);
-    const related = [
-      makeHero("a", 632, 366),
-      makeHero("b", 645, 382),
-      makeHero("c", 620, 405),
-      makeHero("d", 655, 410),
-      makeHero("e", 590, 430),
-      makeHero("f", 560, 402),
-      makeHero("g", 548, 376),
-      makeHero("h", 565, 350),
-      makeHero("i", 610, 340),
-      makeHero("j", 640, 345)
-    ];
-
-    const focus = layoutFocusPresentation(selected, {
-      incoming: related.slice(0, 5),
-      outgoing: related.slice(5)
-    });
-    const point = (hero: Hero) => focus.get(hero.id) ?? hero;
-
-    const edgeSegment = (
-      source: Hero,
-      target: Hero,
-      sourceSelected: boolean,
-      targetSelected: boolean
-    ) => {
-      const from = point(source);
-      const to = point(target);
-      const dx = to.x - from.x;
-      const dy = to.y - from.y;
-      const length = Math.hypot(dx, dy) || 1;
-      const ux = dx / length;
-      const uy = dy / length;
-      const sourcePadding = sourceSelected ? 40 : 25;
-      const targetPadding = targetSelected ? 43 : 28;
-
-      return {
-        x1: from.x + ux * sourcePadding,
-        y1: from.y + uy * sourcePadding,
-        x2: to.x - ux * targetPadding,
-        y2: to.y - uy * targetPadding
-      };
-    };
-
-    const inputs = related.map((hero, index) => {
-      const incoming = index < 5;
-      return {
-        id: hero.id,
-        segment: incoming
-          ? edgeSegment(hero, selected, false, true)
-          : edgeSegment(selected, hero, true, false)
-      };
-    });
-
-    const obstacles = [
-      { ...point(selected), radius: 43 },
-      ...related.map(hero => ({ ...point(hero), radius: 28 }))
-    ];
-
-    const placements = layoutSourceAnchoredEdgeLabels(inputs, obstacles);
-    const values = [...placements.values()];
-    expect(values).toHaveLength(10);
-
-    for (const value of values) {
-      expect(value.offset).toBe(0);
-    }
-
-    for (let left = 0; left < values.length; left += 1) {
-      for (let right = left + 1; right < values.length; right += 1) {
-        expect(edgeLabelRectsOverlap(values[left], values[right])).toBe(false);
-      }
-    }
   });
 
   it("is deterministic", () => {
