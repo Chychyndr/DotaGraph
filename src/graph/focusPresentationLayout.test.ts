@@ -87,7 +87,8 @@ describe("layoutFocusPresentation", () => {
     const second = layout.get("rank-2")!;
     const firstAngle = Math.atan2(first.y - selected.y, first.x - selected.x);
     const secondAngle = Math.atan2(second.y - selected.y, second.x - selected.x);
-    const separation = Math.abs(firstAngle - secondAngle);
+    const rawSeparation = Math.abs(firstAngle - secondAngle);
+    const separation = Math.min(rawSeparation, Math.PI * 2 - rawSeparation);
 
     expect(separation).toBeGreaterThan(Math.PI / 8);
     expect(separation).toBeLessThan(Math.PI / 5);
