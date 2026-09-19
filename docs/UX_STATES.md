@@ -23,7 +23,7 @@
 
 ## Focus
 
-- Selected hero remains the camera anchor and stays centered on desktop.
+- Selected hero remains the camera anchor. On desktop the focused composition shifts slightly right so the left-side HeroCard never covers active hero names.
 - Focus scale adapts to the active relationship spread: close matchups keep the normal scale, while distant counters trigger only as much zoom-out as needed to fit the active set with padding.
 - Compact focus keeps its upward offset for the context card and uses the cropped visible graph span when calculating scale.
 - Gold ring.
