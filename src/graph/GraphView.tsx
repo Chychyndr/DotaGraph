@@ -17,6 +17,11 @@ import {
   layoutSourceAnchoredEdgeLabels
 } from "./edgeLabelLayout";
 import { calculateFocusScale, visibleViewBoxForViewport } from "./focusCamera";
+import {
+  mergeVisibleRelationships,
+  selectHoverRelationships,
+  selectOverviewBackbone
+} from "./relationshipVisibility";
 
 interface GraphViewProps {
   heroes: Hero[];
@@ -261,7 +266,35 @@ export function GraphView({
   }, [selectedHeroId]);
 
 
-  const activeRelationships = [...selectedRelations.incoming, ...selectedRelations.outgoing];
+  const activeRelationships = useMemo(
+    () => [...selectedRelations.incoming, ...selectedRelations.outgoing],
+    [selectedRelations]
+  );
+  const overviewRelationships = useMemo(
+    () => selectOverviewBackbone(relationships),
+    [relationships]
+  );
+  const hoverRelationships = useMemo(
+    () =>
+      hoveredHeroId && !selectedHeroId
+        ? selectHoverRelationships(hoveredHeroId, relationships)
+        : [],
+    [hoveredHeroId, relationships, selectedHeroId]
+  );
+  const visibleRelationships = useMemo(
+    () =>
+      mergeVisibleRelationships(
+        selectedHeroId ? [] : overviewRelationships,
+        activeRelationships,
+        hoverRelationships
+      ),
+    [
+      activeRelationships,
+      hoverRelationships,
+      overviewRelationships,
+      selectedHeroId
+    ]
+  );
   const activeIds = new Set(activeRelationships.flatMap((relationship) => [
     relationship.sourceHeroId,
     relationship.targetHeroId
@@ -276,13 +309,7 @@ export function GraphView({
   });
 
   const hoverRelationshipIds = new Set(
-    hoveredHeroId
-      ? relationships
-          .filter((relationship) =>
-            relationship.sourceHeroId === hoveredHeroId || relationship.targetHeroId === hoveredHeroId
-          )
-          .map((relationship) => relationship.id)
-      : []
+    hoverRelationships.map((relationship) => relationship.id)
   );
 
   const radiusFor = (heroId: string) => {
@@ -495,7 +522,7 @@ export function GraphView({
 
       <g className="graph-camera" transform={cameraTransform}>
         <g className="edges">
-          {relationships.map((relationship) => {
+          {visibleRelationships.map((relationship) => {
             const source = byId.get(relationship.sourceHeroId);
             const target = byId.get(relationship.targetHeroId);
             if (!source || !target) return null;
