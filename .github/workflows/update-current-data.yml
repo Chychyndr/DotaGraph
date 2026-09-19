@@ -64,6 +64,7 @@ jobs:
           print()
           print(f"- Patch: **{data['patch']}**")
           print(f"- Generated: **{data['generatedAt']}**")
+          print(f"- Heroes: **{coverage['mappedHeroCount']}/{coverage['catalogHeroCount']}**")
           print(f"- Relationships: **{coverage['rankedRelationshipCount']}**")
           print(f"- Qualifying pairs: **{coverage['qualifyingPairCount']}**")
           print(f"- Layout relationships: **{coverage['layoutRelationshipCount']}**")
