@@ -19,6 +19,18 @@ describe("layoutSourceAnchoredEdgeLabels", () => {
     expect(placements.get("b")?.t).toBeLessThanOrEqual(0.62);
   });
 
+  it("honors a per-edge preferred anchor while keeping the badge on the line", () => {
+    const segment = { x1: 100, y1: 160, x2: 500, y2: 160 };
+    const placement = layoutSourceAnchoredEdgeLabels([
+      { id: "edge", segment, preferredT: 0.46 }
+    ], []).get("edge")!;
+
+    expect(placement.offset).toBe(0);
+    expect(placement.t).toBeCloseTo(0.46, 2);
+    expect(placement.x).toBeCloseTo(284, 1);
+    expect(placement.y).toBeCloseTo(160, 6);
+  });
+
   it("keeps every badge center on its own relationship segment", () => {
     const inputs = [
       { id: "horizontal", segment: { x1: 80, y1: 120, x2: 420, y2: 120 } },
