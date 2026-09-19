@@ -129,6 +129,34 @@ test("win-rate badges keep native screen scale after camera zoom", async ({ page
   expect(Math.abs(scales!.labelScale - scales!.graphScale)).toBeLessThan(0.01);
 });
 
+test("initial overview centers the actual hero bounds", async ({ page }) => {
+  await page.setViewportSize({ width: 1366, height: 768 });
+  await page.goto("/");
+  const graph = page.getByRole("group", { name: "Dota 2 hero counter relationships" });
+  await expect(graph).toBeVisible();
+
+  const graphBox = await graph.boundingBox();
+  expect(graphBox).not.toBeNull();
+
+  const heroBounds = await page.locator(".hero-node").evaluateAll(nodes => {
+    const boxes = nodes.map(node => (node as SVGGraphicsElement).getBoundingClientRect());
+    return {
+      left: Math.min(...boxes.map(box => box.left)),
+      right: Math.max(...boxes.map(box => box.right)),
+      top: Math.min(...boxes.map(box => box.top)),
+      bottom: Math.max(...boxes.map(box => box.bottom))
+    };
+  });
+
+  const graphCenterX = graphBox!.x + graphBox!.width / 2;
+  const graphCenterY = graphBox!.y + graphBox!.height / 2;
+  const heroesCenterX = (heroBounds.left + heroBounds.right) / 2;
+  const heroesCenterY = (heroBounds.top + heroBounds.bottom) / 2;
+
+  expect(Math.abs(heroesCenterX - graphCenterX)).toBeLessThan(8);
+  expect(Math.abs(heroesCenterY - graphCenterY)).toBeLessThan(8);
+});
+
 test("overview renders a sparse relationship backbone", async ({ page }) => {
   await page.goto("/");
   await expect(
