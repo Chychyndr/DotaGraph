@@ -106,7 +106,10 @@ describe("layoutSourceAnchoredEdgeLabels", () => {
       makeHero("j", 640, 345)
     ];
 
-    const focus = layoutFocusPresentation(selected, related);
+    const focus = layoutFocusPresentation(selected, {
+      incoming: related.slice(0, 5),
+      outgoing: related.slice(5)
+    });
     const point = (hero: Hero) => focus.get(hero.id) ?? hero;
 
     const edgeSegment = (

@@ -177,6 +177,224 @@ test("focus renders only the selected hero relationships", async ({ page }) => {
   expect(edgeCount).toBeLessThanOrEqual(10);
 });
 
+test("focus shows only the selected hero and its real relationship heroes", async ({ page }) => {
+  await page.goto("/?hero=terrorblade");
+  await expect(page.getByLabel("Terrorblade counter summary")).toBeVisible();
+  await page.waitForTimeout(520);
+
+  const graphState = await page.evaluate(() => {
+    const nodeIds = [...document.querySelectorAll<SVGGElement>(".hero-node")]
+      .map((node) => node.id.replace(/^graph-hero-/, ""));
+    const edgeHeroIds = new Set<string>();
+
+    for (const edge of document.querySelectorAll<SVGLineElement>(".edges .edge")) {
+      const source = edge.dataset.sourceHero;
+      const target = edge.dataset.targetHero;
+      if (source) edgeHeroIds.add(source);
+      if (target) edgeHeroIds.add(target);
+    }
+
+    return {
+      nodeIds: [...nodeIds].sort(),
+      edgeHeroIds: [...edgeHeroIds].sort()
+    };
+  });
+
+  expect(graphState.nodeIds).toEqual(graphState.edgeHeroIds);
+  await expect(page.getByLabel("Terrorblade counter summary")).not.toContainText(/\/5/);
+});
+
+test("focused graph exactly matches the HeroCard relationship rows", async ({ page }) => {
+  await page.goto("/?hero=crystal-maiden");
+  await page.waitForTimeout(520);
+
+  const state = await page.evaluate(() => {
+    const rowsFor = (direction: "incoming" | "outgoing") =>
+      [...document.querySelectorAll<HTMLButtonElement>(
+        `.relation-row[data-relation-direction="${direction}"]`
+      )].map((row) => row.dataset.neighborHero ?? "");
+
+    const edgeHeroes = (direction: "incoming" | "outgoing") =>
+      [...document.querySelectorAll<SVGLineElement>(
+        direction === "incoming" ? ".edge-incoming" : ".edge-outgoing"
+      )].map((edge) =>
+        direction === "incoming"
+          ? edge.dataset.sourceHero ?? ""
+          : edge.dataset.targetHero ?? ""
+      );
+
+    const yFor = (id: string) =>
+      document.querySelector<SVGGElement>(`#graph-hero-${id}`)
+        ?.transform.baseVal.consolidate()?.matrix.f ?? Number.NaN;
+
+    const incomingRows = rowsFor("incoming");
+    const outgoingRows = rowsFor("outgoing");
+    const renderedNodeIds = [...document.querySelectorAll<SVGGElement>(".hero-node")]
+      .map((node) => node.id.replace(/^graph-hero-/, ""))
+      .sort();
+    const expectedNodeIds = [
+      "crystal-maiden",
+      ...incomingRows,
+      ...outgoingRows
+    ].sort();
+
+    return {
+      incomingRows,
+      outgoingRows,
+      incomingEdges: edgeHeroes("incoming"),
+      outgoingEdges: edgeHeroes("outgoing"),
+      incomingY: incomingRows.map(yFor),
+      outgoingY: outgoingRows.map(yFor),
+      renderedNodeIds,
+      expectedNodeIds,
+      edgeCount: document.querySelectorAll(".edges .edge").length
+    };
+  });
+
+  expect(state.incomingEdges).toEqual(state.incomingRows);
+  expect(state.outgoingEdges).toEqual(state.outgoingRows);
+  expect(state.renderedNodeIds).toEqual(state.expectedNodeIds);
+  expect(state.edgeCount).toBe(state.incomingRows.length + state.outgoingRows.length);
+
+  for (const ys of [state.incomingY, state.outgoingY]) {
+    for (let index = 1; index < ys.length; index += 1) {
+      expect(ys[index]).toBeGreaterThan(ys[index - 1]);
+    }
+  }
+});
+
+test("focus places incoming heroes left and outgoing heroes right", async ({ page }) => {
+  await page.goto("/?hero=terrorblade");
+  await page.waitForTimeout(520);
+
+  const directions = await page.evaluate(() => {
+    const selected = document.querySelector<SVGGElement>(".hero-selected");
+    const selectedTransform = selected?.transform.baseVal.consolidate()?.matrix;
+    if (!selectedTransform) return null;
+
+    const incoming = [...document.querySelectorAll<SVGLineElement>(".edge-incoming")]
+      .map((edge) => edge.dataset.sourceHero)
+      .filter((id): id is string => Boolean(id));
+    const outgoing = [...document.querySelectorAll<SVGLineElement>(".edge-outgoing")]
+      .map((edge) => edge.dataset.targetHero)
+      .filter((id): id is string => Boolean(id));
+
+    const xFor = (id: string) =>
+      document.querySelector<SVGGElement>(`#graph-hero-${id}`)
+        ?.transform.baseVal.consolidate()?.matrix.e;
+
+    return {
+      selectedX: selectedTransform.e,
+      incomingX: incoming.map(xFor).filter((x): x is number => typeof x === "number"),
+      outgoingX: outgoing.map(xFor).filter((x): x is number => typeof x === "number")
+    };
+  });
+
+  expect(directions).not.toBeNull();
+  expect(directions!.incomingX.length).toBeGreaterThan(0);
+  expect(directions!.outgoingX.length).toBeGreaterThan(0);
+
+  for (const x of directions!.incomingX) expect(x).toBeLessThan(directions!.selectedX);
+  for (const x of directions!.outgoingX) expect(x).toBeGreaterThan(directions!.selectedX);
+});
+
+test("desktop focus keeps hero names clear of the context card", async ({ page }) => {
+  await page.setViewportSize({ width: 1366, height: 768 });
+  await page.goto("/?hero=crystal-maiden");
+  await page.waitForTimeout(520);
+
+  const overlaps = await page.evaluate(() => {
+    const card = document.querySelector<HTMLElement>(".context-card");
+    if (!card) return ["missing context card"];
+    const cardRect = card.getBoundingClientRect();
+
+    return [...document.querySelectorAll<SVGGElement>(".hero-label-group")]
+      .filter((label) => {
+        const rect = label.getBoundingClientRect();
+        return (
+          rect.left < cardRect.right &&
+          rect.right > cardRect.left &&
+          rect.top < cardRect.bottom &&
+          rect.bottom > cardRect.top
+        );
+      })
+      .map((label) => label.dataset.heroLabel ?? "unknown");
+  });
+
+  expect(overlaps).toEqual([]);
+});
+
+test("focused hero names stay clear of active relationship lines", async ({ page }) => {
+  await page.goto("/?hero=crystal-maiden");
+  await page.waitForTimeout(520);
+
+  const intersections = await page.evaluate(() => {
+    const lines = [...document.querySelectorAll<SVGLineElement>(".edge-active")];
+
+    const transformPoint = (x: number, y: number, matrix: DOMMatrix) => ({
+      x: matrix.a * x + matrix.c * y + matrix.e,
+      y: matrix.b * x + matrix.d * y + matrix.f
+    });
+
+    const segmentIntersectsRect = (
+      start: { x: number; y: number },
+      end: { x: number; y: number },
+      rect: DOMRect
+    ) => {
+      const left = rect.left + 1;
+      const right = rect.right - 1;
+      const top = rect.top + 1;
+      const bottom = rect.bottom - 1;
+
+      const inside = (point: { x: number; y: number }) =>
+        point.x >= left && point.x <= right && point.y >= top && point.y <= bottom;
+      if (inside(start) || inside(end)) return true;
+
+      const edges = [
+        [{ x: left, y: top }, { x: right, y: top }],
+        [{ x: right, y: top }, { x: right, y: bottom }],
+        [{ x: right, y: bottom }, { x: left, y: bottom }],
+        [{ x: left, y: bottom }, { x: left, y: top }]
+      ] as const;
+
+      const cross = (
+        a: { x: number; y: number },
+        b: { x: number; y: number },
+        c: { x: number; y: number }
+      ) => (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
+
+      return edges.some(([a, b]) => {
+        const c1 = cross(start, end, a);
+        const c2 = cross(start, end, b);
+        const c3 = cross(a, b, start);
+        const c4 = cross(a, b, end);
+        return c1 * c2 <= 0 && c3 * c4 <= 0;
+      });
+    };
+
+    const result: string[] = [];
+    const labels = [...document.querySelectorAll<SVGGElement>(".hero-label-group")];
+
+    for (const line of lines) {
+      const matrix = line.getScreenCTM();
+      if (!matrix) continue;
+      const start = transformPoint(line.x1.baseVal.value, line.y1.baseVal.value, matrix);
+      const end = transformPoint(line.x2.baseVal.value, line.y2.baseVal.value, matrix);
+
+      for (const label of labels) {
+        const rect = label.getBoundingClientRect();
+        if (segmentIntersectsRect(start, end, rect)) {
+          result.push(`${line.dataset.sourceHero}->${line.dataset.targetHero} crosses ${label.dataset.heroLabel}`);
+        }
+      }
+    }
+
+    return result;
+  });
+
+  expect(intersections).toEqual([]);
+});
+
 test("focused win-rate labels stay source-anchored and do not overlap", async ({ page }) => {
   await page.goto("/?hero=viper");
 
@@ -592,7 +810,7 @@ test("selecting a distant hero moves and settles the camera", async ({ page }) =
   await expect(page).toHaveURL(/hero=underlord/);
 });
 
-test("focus camera keeps real-layout active counters visible", async ({ page }) => {
+test("focus camera reserves card space and keeps active counters visible", async ({ page }) => {
   await page.setViewportSize({ width: 1366, height: 768 });
   await page.goto("/?hero=spectre");
   await page.waitForTimeout(520);
@@ -609,7 +827,9 @@ test("focus camera keeps real-layout active counters visible", async ({ page }) 
   const selectedCenterX = selectedBox!.x + selectedBox!.width / 2;
   const selectedCenterY = selectedBox!.y + selectedBox!.height / 2;
 
-  expect(Math.abs(selectedCenterX - graphCenterX)).toBeLessThan(4);
+  const desktopFocusOffset = selectedCenterX - graphCenterX;
+  expect(desktopFocusOffset).toBeGreaterThan(140);
+  expect(desktopFocusOffset).toBeLessThan(190);
   expect(Math.abs(selectedCenterY - graphCenterY)).toBeLessThan(4);
 
   const transform = await page.locator(".graph-camera").getAttribute("transform");

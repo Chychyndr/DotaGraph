@@ -455,12 +455,22 @@ button:focus-visible, input:focus-visible, [role="button"]:focus-visible {
   pointer-events: none;
 }
 
+.hero-label-group {
+  pointer-events: none;
+}
+
+.hero-label-bg {
+  fill: var(--canvas);
+  fill-opacity: .96;
+  pointer-events: none;
+}
+
 .hero-label {
   fill: var(--text);
   font: 600 11px -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
   paint-order: stroke fill;
   stroke: var(--canvas);
-  stroke-width: 5px;
+  stroke-width: 2px;
   stroke-linejoin: round;
   pointer-events: none;
 }
@@ -489,10 +499,10 @@ button:focus-visible, input:focus-visible, [role="button"]:focus-visible {
   position: absolute;
   left: 16px;
   bottom: 16px;
-  width: min(300px, calc(100vw - 32px));
+  width: min(332px, calc(100vw - 32px));
   max-height: calc(100% - 32px);
   overflow: auto;
-  padding: 14px;
+  padding: 16px;
   color: var(--text);
   background: var(--panel);
   border: 1px solid var(--border);
@@ -502,28 +512,28 @@ button:focus-visible, input:focus-visible, [role="button"]:focus-visible {
 
 .card-hero {
   display: grid;
-  grid-template-columns: 38px 1fr auto;
+  grid-template-columns: 42px 1fr auto;
   align-items: center;
-  gap: 10px;
-  padding-bottom: 12px;
+  gap: 11px;
+  padding-bottom: 13px;
 }
 
 .card-hero .hero-portrait {
-  width: 38px;
-  height: 38px;
+  width: 42px;
+  height: 42px;
   border: 1px solid var(--border);
 }
 
 .card-hero h2 {
   margin: 0;
-  font-size: 15px;
+  font-size: 16px;
   letter-spacing: -.01em;
   font-weight: 600;
 }
 
 .overall-rate {
   color: var(--positive);
-  font-size: 12px;
+  font-size: 13px;
   font-variant-numeric: tabular-nums;
 }
 
@@ -542,7 +552,7 @@ button:focus-visible, input:focus-visible, [role="button"]:focus-visible {
   color: var(--secondary);
   text-transform: uppercase;
   letter-spacing: .06em;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 600;
 }
 
@@ -562,7 +572,7 @@ button:focus-visible, input:focus-visible, [role="button"]:focus-visible {
 
 .relation-row {
   width: 100%;
-  min-height: 34px;
+  min-height: 37px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -580,13 +590,13 @@ button:focus-visible, input:focus-visible, [role="button"]:focus-visible {
   min-width: 0;
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 11px;
+  gap: 9px;
+  font-size: 12px;
 }
 
 .relation-hero .hero-portrait {
-  width: 24px;
-  height: 24px;
+  width: 26px;
+  height: 26px;
 }
 
 .relation-hero span {
@@ -597,7 +607,7 @@ button:focus-visible, input:focus-visible, [role="button"]:focus-visible {
 
 .relation-row strong {
   color: var(--secondary);
-  font-size: 10px;
+  font-size: 11px;
   font-variant-numeric: tabular-nums;
 }
 
@@ -719,7 +729,7 @@ button:focus-visible, input:focus-visible, [role="button"]:focus-visible {
 
   .brand-block p { display: none; }
   .search-shell { width: 44vw; min-width: 180px; }
-  .context-card { width: 278px; }
+  .context-card { width: 300px; }
 }
 
 @media (max-width: 640px) {
