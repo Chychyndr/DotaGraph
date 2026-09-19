@@ -504,43 +504,55 @@ export function GraphView({
               matchupHeroId && isActive && !isMatchup ? "edge-deemphasized" : "",
               isMatchup ? "edge-matchup" : ""
             ].filter(Boolean).join(" ");
-
             const geometry = edgeGeometry(source, target);
-            const labelPlacement = edgeLabelPlacements.get(relationship.id);
 
             return (
-              <g key={relationship.id}>
-                <line
-                  className={edgeClass}
-                  x1={geometry.x1}
-                  y1={geometry.y1}
-                  x2={geometry.x2}
-                  y2={geometry.y2}
-                  markerEnd={isIncoming ? "url(#arrow-incoming)" : isOutgoing ? "url(#arrow-outgoing)" : undefined}
+              <line
+                key={relationship.id}
+                className={edgeClass}
+                x1={geometry.x1}
+                y1={geometry.y1}
+                x2={geometry.x2}
+                y2={geometry.y2}
+                markerEnd={isIncoming ? "url(#arrow-incoming)" : isOutgoing ? "url(#arrow-outgoing)" : undefined}
+              />
+            );
+          })}
+        </g>
+
+        <g className="edge-label-layer" aria-hidden="true">
+          {activeRelationships.map((relationship) => {
+            const labelPlacement = edgeLabelPlacements.get(relationship.id);
+            if (!labelPlacement) return null;
+
+            const isIncoming = selectedHeroId === relationship.targetHeroId;
+            const isOutgoing = selectedHeroId === relationship.sourceHeroId;
+            const isMatchup = Boolean(
+              matchupHeroId &&
+              (relationship.sourceHeroId === matchupHeroId || relationship.targetHeroId === matchupHeroId)
+            );
+
+            return (
+              <g
+                key={relationship.id}
+                className={[
+                  "edge-label",
+                  isIncoming ? "label-incoming" : isOutgoing ? "label-outgoing" : "",
+                  matchupHeroId && !isMatchup ? "edge-label-deemphasized" : ""
+                ].filter(Boolean).join(" ")}
+                transform={`translate(${labelPlacement.x} ${labelPlacement.y})`}
+                data-source-hero={relationship.sourceHeroId}
+                data-target-hero={relationship.targetHeroId}
+                data-label-t={labelPlacement.t.toFixed(3)}
+              >
+                <rect
+                  x={-EDGE_LABEL_WIDTH / 2}
+                  y={-EDGE_LABEL_HEIGHT / 2}
+                  width={EDGE_LABEL_WIDTH}
+                  height={EDGE_LABEL_HEIGHT}
+                  rx={EDGE_LABEL_HEIGHT / 2}
                 />
-                {isActive && labelPlacement && (
-                  <g
-                    className={[
-                      "edge-label",
-                      isIncoming ? "label-incoming" : "label-outgoing",
-                      matchupHeroId && !isMatchup ? "edge-label-deemphasized" : ""
-                    ].filter(Boolean).join(" ")}
-                    transform={`translate(${labelPlacement.x} ${labelPlacement.y})`}
-                    data-source-hero={relationship.sourceHeroId}
-                    data-target-hero={relationship.targetHeroId}
-                    data-label-t={labelPlacement.t.toFixed(3)}
-                    aria-hidden="true"
-                  >
-                    <rect
-                      x={-EDGE_LABEL_WIDTH / 2}
-                      y={-EDGE_LABEL_HEIGHT / 2}
-                      width={EDGE_LABEL_WIDTH}
-                      height={EDGE_LABEL_HEIGHT}
-                      rx={EDGE_LABEL_HEIGHT / 2}
-                    />
-                    <text textAnchor="middle" dominantBaseline="central">{formatPercent(relationship.sourceWinRate)}</text>
-                  </g>
-                )}
+                <text textAnchor="middle" dominantBaseline="central">{formatPercent(relationship.sourceWinRate)}</text>
               </g>
             );
           })}
