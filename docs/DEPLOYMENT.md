@@ -12,6 +12,19 @@ The repository should use:
 
 The custom workflow is `.github/workflows/pages.yml`.
 
+## Daily data refresh
+
+`.github/workflows/update-current-data.yml` runs every day at 03:17 UTC and can also be started manually.
+
+It:
+1. runs all Python/uv pipeline tests;
+2. queries the current-patch OpenDota scope with bounded retries and timeout splitting;
+3. writes `public/data/current-matchups.json`;
+4. uploads pipeline test/generation logs as a 14-day debug artifact;
+5. commits the JSON only when the generated snapshot changed.
+
+After merge, that generated commit lands on `main`, so the normal main CI runs automatically. A successful main CI then triggers the Pages workflow below. This makes a daily data refresh use the same validation and live-browser deployment gates as an ordinary code change.
+
 ## Deployment sequence
 
 1. A commit reaches `main`.
