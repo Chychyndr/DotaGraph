@@ -403,27 +403,44 @@ export function GraphView({
     y: HEIGHT / 2 + camera.panY + cameraScale * (y - camera.anchorY)
   });
 
-  const desktopLabelMinX = useMemo(() => {
-    if (!selectedHeroId || isCompactViewport) return undefined;
-
-    const outerScale = Math.min(
-      svgViewport.width / WIDTH,
-      svgViewport.height / HEIGHT
-    );
-    if (!Number.isFinite(outerScale) || outerScale <= 0) return undefined;
-
-    const outerOffsetX = (svgViewport.width - WIDTH * outerScale) / 2;
-    const cardWidth = svgViewport.width <= 820 ? 300 : 332;
-    const safeStageX = 16 + cardWidth + 12;
-    const safeViewBoxX = (safeStageX - outerOffsetX) / outerScale;
-
-    return (
+  const heroLabelBounds = useMemo(() => {
+    const graphXForViewBoxX = (viewBoxX: number) =>
       camera.anchorX +
-      (safeViewBoxX - WIDTH / 2 - camera.panX) / cameraScale
-    );
+      (viewBoxX - WIDTH / 2 - camera.panX) / cameraScale;
+    const graphYForViewBoxY = (viewBoxY: number) =>
+      camera.anchorY +
+      (viewBoxY - HEIGHT / 2 - camera.panY) / cameraScale;
+
+    let minViewBoxX = 0;
+
+    if (selectedHeroId && !isCompactViewport) {
+      const outerScale = Math.min(
+        svgViewport.width / WIDTH,
+        svgViewport.height / HEIGHT
+      );
+
+      if (Number.isFinite(outerScale) && outerScale > 0) {
+        const outerOffsetX = (svgViewport.width - WIDTH * outerScale) / 2;
+        const cardWidth = svgViewport.width <= 820 ? 300 : 332;
+        const safeStageX = 16 + cardWidth + 12;
+        minViewBoxX = Math.max(
+          0,
+          (safeStageX - outerOffsetX) / outerScale
+        );
+      }
+    }
+
+    return {
+      minX: graphXForViewBoxX(minViewBoxX),
+      maxX: graphXForViewBoxX(WIDTH),
+      minY: graphYForViewBoxY(0),
+      maxY: graphYForViewBoxY(HEIGHT)
+    };
   }, [
     camera.anchorX,
+    camera.anchorY,
     camera.panX,
+    camera.panY,
     cameraScale,
     isCompactViewport,
     selectedHeroId,
@@ -518,9 +535,7 @@ export function GraphView({
           }]
         : [];
     }),
-    desktopLabelMinX === undefined
-      ? undefined
-      : { minX: desktopLabelMinX }
+    heroLabelBounds
   );
 
   const edgeLabelPlacements = layoutSourceAnchoredEdgeLabels(
