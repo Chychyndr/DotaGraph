@@ -38,7 +38,7 @@ describe("layoutHeroLabels", () => {
       ]
     ).get("hero")!;
 
-    expect(placement.angle).not.toBeCloseTo(0, 2);
+    expect(placement.x - 35).toBeGreaterThan(179);
   });
 
   it("is deterministic", () => {
