@@ -300,7 +300,7 @@ def _normalize_pairs(
 def _select_layout_relationships(
     ranked: list[RankedRelationship],
     *,
-    neighbors_per_hero: int = 3,
+    neighbors_per_hero: int = 5,
 ) -> list[RankedRelationship]:
     incident: dict[str, list[RankedRelationship]] = {}
 
