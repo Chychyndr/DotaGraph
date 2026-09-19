@@ -8,6 +8,7 @@ export interface EdgeSegment {
 export interface EdgeLabelInput {
   id: string;
   segment: EdgeSegment;
+  preferredT?: number;
 }
 
 export interface EdgeLabelObstacle {
@@ -94,12 +95,13 @@ const candidateScore = (
   placement: EdgeLabelPlacement,
   placedRects: Rect[],
   obstacles: EdgeLabelObstacle[],
-  preferenceIndex: number
+  preferenceIndex: number,
+  preferredT: number
 ) => {
   const paddedRect = rectFor(placement.x, placement.y, LABEL_GAP);
 
   let score =
-    Math.abs(placement.t - PREFERRED_T) * 40 +
+    Math.abs(placement.t - preferredT) * 40 +
     preferenceIndex * 0.05 +
     Math.abs(placement.offset) * 0.25;
 
@@ -138,19 +140,20 @@ export function layoutSourceAnchoredEdgeLabels(
     const length = Math.hypot(segment.x2 - segment.x1, segment.y2 - segment.y1) || 1;
     const safeMinT = clamp(SAFE_END_MARGIN / length, MIN_T, 0.46);
     const safeMaxT = clamp(1 - SAFE_END_MARGIN / length, 0.54, MAX_T);
+    const preferredT = clamp(input.preferredT ?? PREFERRED_T, safeMinT, safeMaxT);
     const step = 0.04;
     const sampledTs: number[] = [];
 
     for (let t = safeMinT; t <= safeMaxT + 0.0001; t += step) {
       sampledTs.push(t);
     }
-    sampledTs.push(safeMinT, safeMaxT, clamp(PREFERRED_T, safeMinT, safeMaxT));
+    sampledTs.push(safeMinT, safeMaxT, preferredT);
 
     const uniqueTs = [...new Set(sampledTs.map((value) => value.toFixed(4)))]
       .map(Number)
       .sort(
         (a, b) =>
-          Math.abs(a - PREFERRED_T) - Math.abs(b - PREFERRED_T) ||
+          Math.abs(a - preferredT) - Math.abs(b - preferredT) ||
           a - b
       );
 
@@ -162,7 +165,7 @@ export function layoutSourceAnchoredEdgeLabels(
     let bestScore = Number.POSITIVE_INFINITY;
 
     candidates.forEach((candidate, index) => {
-      const score = candidateScore(candidate, placedRects, obstacles, index);
+      const score = candidateScore(candidate, placedRects, obstacles, index, preferredT);
       if (score < bestScore) {
         best = candidate;
         bestScore = score;
