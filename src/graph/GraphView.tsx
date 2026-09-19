@@ -219,10 +219,6 @@ export function GraphView({
         : presentationHeroes,
     [focusVisibleIds, presentationHeroes, selectedHeroId]
   );
-  const sceneById = useMemo(
-    () => new Map(navigationHeroes.map((hero) => [hero.id, hero])),
-    [navigationHeroes]
-  );
 
   const visibleGraphSpan = useMemo(
     () => visibleViewBoxForViewport(
@@ -265,7 +261,7 @@ export function GraphView({
   const [camera, setCameraState] = useState<CameraState>(initialCamera);
   const [isPanning, setIsPanning] = useState(false);
   const initialKeyboardHero = selectedHeroId
-    ? sceneById.get(selectedHeroId)
+    ? presentationById.get(selectedHeroId)
     : findNearestHeroToPoint(navigationHeroes, WIDTH / 2, HEIGHT / 2);
   const [keyboardHeroId, setKeyboardHeroId] = useState<string | null>(initialKeyboardHero?.id ?? null);
   const cameraRef = useRef(camera);
@@ -303,7 +299,7 @@ export function GraphView({
 
     cancelCameraAnimation();
 
-    const selected = selectedHeroId ? sceneById.get(selectedHeroId) : undefined;
+    const selected = selectedHeroId ? presentationById.get(selectedHeroId) : undefined;
     const target: CameraState = {
       anchorX: selected?.x ?? overviewCamera.anchorX,
       anchorY: selected?.y ?? overviewCamera.anchorY,
@@ -347,7 +343,7 @@ export function GraphView({
   }, [
     selectedHeroId,
     selectedHero,
-    sceneById,
+    presentationById,
     isCompactViewport,
     targetFocusScale,
     overviewCamera
@@ -479,8 +475,8 @@ export function GraphView({
 
   const edgeLabelPlacements = layoutSourceAnchoredEdgeLabels(
     activeRelationships.flatMap((relationship) => {
-      const source = sceneById.get(relationship.sourceHeroId);
-      const target = sceneById.get(relationship.targetHeroId);
+      const source = presentationById.get(relationship.sourceHeroId);
+      const target = presentationById.get(relationship.targetHeroId);
       if (!source || !target) return [];
 
       const geometry = edgeGeometry(source, target);
@@ -499,7 +495,7 @@ export function GraphView({
       }];
     }),
     [...activeIds].flatMap((heroId) => {
-      const hero = sceneById.get(heroId);
+      const hero = presentationById.get(heroId);
       if (!hero) return [];
 
       const point = projectGraphPoint(hero.x, hero.y);
