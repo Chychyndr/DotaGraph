@@ -580,8 +580,8 @@ export function GraphView({
       <g className="graph-camera" transform={cameraTransform}>
         <g className="edges">
           {visibleRelationships.map((relationship) => {
-            const source = byId.get(relationship.sourceHeroId);
-            const target = byId.get(relationship.targetHeroId);
+            const source = presentationById.get(relationship.sourceHeroId);
+            const target = presentationById.get(relationship.targetHeroId);
             if (!source || !target) return null;
 
             const isActive = activeRelationshipIds.has(relationship.id);
