@@ -1,4 +1,5 @@
 @font-face {
+  /* impeccable-disable-next-line overused-font: Owner explicitly selected Mona Sans */
   font-family: "Mona Sans";
   src: url("https://raw.githubusercontent.com/github/mona-sans/0f7dc66ddd766605eb0e75c3f47bf9d1dd38ceca/fonts/webfonts/variable/MonaSansVF%5Bopsz%2Cwght%5D.woff2") format("woff2");
   font-style: normal;
@@ -7,6 +8,7 @@
 }
 
 :root {
+  /* impeccable-disable-next-line overused-font: Owner explicitly selected Mona Sans */
   font-family: "Mona Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
   color: #f0f6fc;
   background: #0d1117;
