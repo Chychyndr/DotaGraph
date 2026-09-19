@@ -791,7 +791,7 @@ export function GraphView({
             let labelY = hero.y;
 
             if (hero.id === selectedHeroId) {
-              labelY -= radius + 18;
+              labelY -= radius + 72;
             } else if (selected) {
               const side = hero.x < selected.x ? -1 : 1;
               labelX += side * (radius + 10 + labelWidth / 2);
