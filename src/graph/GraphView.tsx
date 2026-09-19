@@ -414,7 +414,7 @@ export function GraphView({
       }];
     }),
     [...activeIds].flatMap((heroId) => {
-      const hero = byId.get(heroId);
+      const hero = presentationById.get(heroId);
       if (!hero) return [];
 
       const point = projectGraphPoint(hero.x, hero.y);
