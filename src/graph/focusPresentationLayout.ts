@@ -27,7 +27,7 @@ export function layoutFocusPresentation(
   {
     minSelectedDistance = 180,
     maxSelectedDistance = 310,
-    minActiveDistance = 112,
+    minActiveDistance = 120,
     iterations = 140
   }: FocusPresentationOptions = {}
 ): Map<string, FocusPosition> {
