@@ -264,17 +264,42 @@ test("graph exposes one keyboard tab stop and supports spatial arrow navigation"
 
   await tabbableHeroes.first().focus();
   const beforeId = await page.evaluate(() => document.activeElement?.id);
-  let afterId = beforeId;
-
-  for (const key of ["ArrowRight", "ArrowLeft", "ArrowDown", "ArrowUp"]) {
-    await page.keyboard.press(key);
-    afterId = await page.evaluate(() => document.activeElement?.id);
-    if (afterId !== beforeId) break;
-  }
-
   expect(beforeId).toMatch(/^graph-hero-/);
+
+  const direction = await page.evaluate((currentId) => {
+    const current = document.getElementById(currentId ?? "");
+    if (!current) return null;
+
+    const currentBox = current.getBoundingClientRect();
+    const currentX = currentBox.left + currentBox.width / 2;
+    const currentY = currentBox.top + currentBox.height / 2;
+    const candidates = [...document.querySelectorAll<SVGGElement>(".hero-node")]
+      .filter(node => node.id !== currentId)
+      .map(node => {
+        const box = node.getBoundingClientRect();
+        const dx = box.left + box.width / 2 - currentX;
+        const dy = box.top + box.height / 2 - currentY;
+        return { dx, dy, distance: Math.hypot(dx, dy) };
+      })
+      .sort((a, b) => a.distance - b.distance);
+
+    const nearest = candidates[0];
+    if (!nearest) return null;
+    if (Math.abs(nearest.dx) >= Math.abs(nearest.dy)) {
+      return nearest.dx >= 0 ? "ArrowRight" : "ArrowLeft";
+    }
+    return nearest.dy >= 0 ? "ArrowDown" : "ArrowUp";
+  }, beforeId);
+
+  expect(direction).not.toBeNull();
+  await page.keyboard.press(direction!);
+
+  await expect
+    .poll(() => page.evaluate(() => document.activeElement?.id))
+    .not.toBe(beforeId);
+
+  const afterId = await page.evaluate(() => document.activeElement?.id);
   expect(afterId).toMatch(/^graph-hero-/);
-  expect(afterId).not.toBe(beforeId);
   await expect(tabbableHeroes).toHaveCount(1);
 });
 
