@@ -1,24 +1,23 @@
 import type { Hero } from "../domain/types";
 import heroCatalog from "./heroCatalog.json";
-import layout741e from "./layout-7.41e.json";
 
 interface HeroSeed {
   slug: string;
   name: string;
 }
 
-interface HeroOverride {
-  id?: string;
-  aliases?: string[];
-  overallWinRate?: number;
-  sampleSize?: number;
+export interface GeneratedHeroStat {
+  overallWinRate: number;
+  pairObservationGames: number;
+  matchCount: number;
+}
+
+export interface GeneratedHeroInputs {
+  positions: Record<string, { x: number; y: number }>;
+  heroStats: Record<string, GeneratedHeroStat | null>;
 }
 
 const HERO_CATALOG: HeroSeed[] = heroCatalog;
-const REAL_LAYOUT_POSITIONS = layout741e.positions as Record<
-  string,
-  { x: number; y: number }
->;
 
 const ALIASES: Record<string, string[]> = {
   antimage: ["am"],
@@ -63,34 +62,6 @@ const ALIASES: Record<string, string[]> = {
   ringmaster: ["rm"]
 };
 
-const FIXTURE_OVERRIDES: Record<string, HeroOverride> = {
-  viper: { id:"viper", overallWinRate:0.513, sampleSize:124820 },
-  shadow_demon: { id:"shadow-demon", overallWinRate:0.502, sampleSize:76811 },
-  templar_assassin: { id:"templar-assassin", overallWinRate:0.518, sampleSize:91332 },
-  bristleback: { id:"bristleback", overallWinRate:0.507, sampleSize:103332 },
-  life_stealer: { id:"lifestealer", overallWinRate:0.521, sampleSize:126224 },
-  mars: { id:"mars", overallWinRate:0.498, sampleSize:111091 },
-  huskar: { id:"huskar", overallWinRate:0.496, sampleSize:72930 },
-  chaos_knight: { id:"chaos-knight", overallWinRate:0.505, sampleSize:107200 },
-  spectre: { id:"spectre", overallWinRate:0.501, sampleSize:99840 },
-  dragon_knight: { id:"dragon-knight", overallWinRate:0.511, sampleSize:118020 },
-  tidehunter: { id:"tidehunter", overallWinRate:0.493, sampleSize:84210 },
-  phantom_assassin: { id:"phantom-assassin", overallWinRate:0.509, sampleSize:144100 },
-  monkey_king: { id:"monkey-king", overallWinRate:0.497, sampleSize:137441 },
-  night_stalker: { id:"night-stalker", overallWinRate:0.506, sampleSize:80910 },
-  abyssal_underlord: { id:"underlord", overallWinRate:0.512, sampleSize:73122 },
-  centaur: { id:"centaur", overallWinRate:0.515, sampleSize:120901 },
-  windrunner: { id:"windranger", overallWinRate:0.504, sampleSize:132882 },
-  axe: { id:"axe", overallWinRate:0.508, sampleSize:151031 }
-};
-
-const slugifyName = (name: string) =>
-  name
-    .toLowerCase()
-    .replace(/[’']/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
-
 const DISPLAY_ID_OVERRIDES: Record<string, string> = {
   nevermore: "shadow-fiend",
   zuus: "zeus",
@@ -108,25 +79,36 @@ const DISPLAY_ID_OVERRIDES: Record<string, string> = {
   ringmaster: "ringmaster"
 };
 
-export const heroes: Hero[] = HERO_CATALOG.map((seed, spriteIndex) => {
-  const fixture = FIXTURE_OVERRIDES[seed.slug];
-  const point = REAL_LAYOUT_POSITIONS[seed.slug];
+const slugifyName = (name: string) =>
+  name
+    .toLowerCase()
+    .replace(/[’']/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
 
-  if (!point) {
-    throw new Error(`Missing patch 7.41e layout position for ${seed.slug}`);
-  }
+export const heroIdForSlug = (slug: string, name: string) =>
+  DISPLAY_ID_OVERRIDES[slug] ?? slugifyName(name);
 
-  return {
-    id: fixture?.id ?? DISPLAY_ID_OVERRIDES[seed.slug] ?? slugifyName(seed.name),
-    slug: seed.slug,
-    name: seed.name,
-    aliases: fixture?.aliases ?? ALIASES[seed.slug] ?? [],
-    spriteIndex,
-    x: point.x,
-    y: point.y,
-    overallWinRate: fixture?.overallWinRate,
-    sampleSize: fixture?.sampleSize
-  };
-});
+export function buildHeroes({ positions, heroStats }: GeneratedHeroInputs): Hero[] {
+  return HERO_CATALOG.map((seed, spriteIndex) => {
+    const point = positions[seed.slug];
+    if (!point) {
+      throw new Error(`Missing current layout position for ${seed.slug}`);
+    }
 
-export const heroById = new Map(heroes.map((hero) => [hero.id, hero]));
+    const stat = heroStats[seed.slug];
+    return {
+      id: heroIdForSlug(seed.slug, seed.name),
+      slug: seed.slug,
+      name: seed.name,
+      aliases: ALIASES[seed.slug] ?? [],
+      spriteIndex,
+      x: point.x,
+      y: point.y,
+      overallWinRate: stat?.overallWinRate,
+      sampleSize: stat?.matchCount
+    };
+  });
+}
+
+export const heroCatalogSize = HERO_CATALOG.length;
