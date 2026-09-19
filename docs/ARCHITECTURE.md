@@ -22,18 +22,24 @@ The production data pipeline lives under `pipeline/` and uses Python + `uv`.
 
 ## Stable data-driven layout
 
-Hero coordinates are generated offline from the same current-patch relationships used by the product and committed inside the daily production snapshot.
+Hero coordinates are generated offline from real current-patch matchup observations and committed inside the daily production snapshot. Geometry is deliberately separate from the stricter headline-counter publication gate.
 
 The layout build:
 - reads the canonical hero catalog;
-- derives weighted hero-pair affinities from approved real matchup evidence;
+- derives primary affinity candidates from current-patch OpenDota pair observations with the normal 500-match sample floor but without the one-sided 95% headline confidence penalty;
+- keeps up to five strongest real incident affinities per hero;
+- when a rare hero would otherwise have fewer than two geometry neighbors, may use geometry-only current-patch observations down to the explicit 100-match fallback floor;
+- never publishes those geometry-only fallback edges as counters or uses them to change displayed percentages;
 - runs a deterministic force-directed solver;
-- performs deterministic collision relaxation;
-- writes fixed coordinates and layout-quality/provenance metadata.
+- pulls low-degree heroes toward the centroid of their real affinity neighbors so they do not become detached hull islands;
+- performs deterministic collision relaxation with a 58 px minimum center distance;
+- writes fixed coordinates plus spacing, isolation, and edge-distance quality metrics.
 
 The browser never runs a force simulation. Overview, hover, and focus reuse the same stable coordinates, so graph topology does not jump between page loads.
 
-Layout uses confidence-qualified current-patch relationships, but geometry remains separate from relationship semantics. Changing layout parameters must not change what `A -> B` means or alter the user-visible win rate.
+The SVG renderer also keeps display density separate from the full production relationship corpus. Overview renders a sparse deterministic backbone, while Focus renders only the selected hero's real active relationships (up to five incoming and five outgoing). This avoids thousands of inactive SVG lines without changing counter semantics.
+
+Changing layout parameters must not change what `A -> B` means, alter the user-visible source win rate, or promote geometry-only evidence into the headline counter set.
 
 ## Static hosting
 
