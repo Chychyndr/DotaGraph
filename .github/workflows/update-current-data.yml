@@ -1,0 +1,121 @@
+name: Update current matchup data
+
+on:
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+  push:
+    branches:
+      - feature/real-7.41f-matchups
+    paths:
+      - .github/workflows/update-current-data.yml
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: dotagraph-current-data-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      - name: Run pipeline tests
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p artifacts/pipeline
+          uv run --project pipeline             python -m unittest discover -s pipeline/tests -v             2>&1 | tee artifacts/pipeline/pipeline-tests.log
+
+      - name: Generate current matchup bundle
+        shell: bash
+        env:
+          OPENDOTA_API_KEY: ${{ secrets.OPENDOTA_API_KEY }}
+        run: |
+          set -o pipefail
+          mkdir -p artifacts/pipeline
+          uv run --project pipeline             python -m dotagraph_pipeline.generate_current_bundle             --output public/data/current-matchups.json             --verbose             2>&1 | tee artifacts/pipeline/current-data.log
+
+      - name: Summarize generated data
+        shell: bash
+        run: |
+          uv run --project pipeline python - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import json
+          from pathlib import Path
+
+          data = json.loads(Path("public/data/current-matchups.json").read_text())
+          coverage = data["coverage"]
+          metrics = data["layoutMetrics"]
+
+          print("## DotaGraph current data")
+          print()
+          print(f"- Patch: **{data['patch']}**")
+          print(f"- Generated: **{data['generatedAt']}**")
+          print(f"- Heroes: **{coverage['mappedHeroCount']}/{coverage['catalogHeroCount']}**")
+          print(f"- Relationships: **{coverage['rankedRelationshipCount']}**")
+          print(f"- Qualifying pairs: **{coverage['qualifyingPairCount']}**")
+          print(f"- Layout relationships: **{coverage['layoutRelationshipCount']}**")
+          print(f"- Layout median distance: **{metrics['medianDistance']} px**")
+          print(f"- Layout p95 distance: **{metrics['p95Distance']} px**")
+          print(f"- Minimum node distance: **{metrics['minimumNodeDistance']} px**")
+          print(f"- Worst nearest-node gap: **{metrics['maxNearestNodeDistance']} px**")
+          print(f"- Isolated heroes: **{metrics['isolatedNodeCount']}**")
+          PY
+
+      - name: Upload pipeline debug log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: current-data-debug-${{ github.run_id }}
+          path: artifacts/pipeline/*.log
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Commit generated data
+        id: publish
+        shell: bash
+        run: |
+          if git ls-files --error-unmatch public/data/current-matchups.json >/dev/null 2>&1 \
+            && git diff --quiet -- public/data/current-matchups.json; then
+            echo "Current matchup bundle is unchanged."
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/data/current-matchups.json
+          git commit -m "data: refresh current 7.41f matchups"
+
+          BRANCH="${GITHUB_REF_NAME}"
+          git pull --rebase origin "$BRANCH"
+          git push origin "HEAD:$BRANCH"
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Dispatch CI for published data
+        if: steps.publish.outputs.changed == 'true'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          curl --fail-with-body --silent --show-error \
+            --request POST \
+            --header "Accept: application/vnd.github+json" \
+            --header "Authorization: Bearer $GH_TOKEN" \
+            --header "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/workflows/ci.yml/dispatches" \
+            --data "$(printf '{"ref":"%s"}' "$GITHUB_REF_NAME")"
