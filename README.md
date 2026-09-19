@@ -27,7 +27,7 @@ GitHub Pages deployment uses a compiled Vite artifact. See [docs/DEPLOYMENT.md](
 ## Product rules
 
 - `A -> B` always means A counters B.
-- Focus view shows 0–5 reliable incoming and 0–5 reliable outgoing relationships.
+- Selecting a hero highlights 0–5 reliable incoming and 0–5 reliable outgoing relationships on the same graph.
 - The displayed percentage is the source hero's matchup win rate.
 - The current product scope contains heroes and hero-vs-hero counter relationships only.
 - Headline scope is Ancient+ and the current patch supplied through data/configuration.

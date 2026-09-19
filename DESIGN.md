@@ -23,10 +23,13 @@ https://www.figma.com/design/rydgq1wV8C0hlVb5n7Ohws/DotaGraph-Design?node-id=1-2
 - restrained amber selected-hero ring;
 - Dota portrait art carries most of the color.
 
-Approximate initial node sizes:
+Approximate portrait sizes:
 - default: 28 px;
-- connected: 42 px;
-- selected: 72 px.
+- active relationship: 28 px;
+- selected: 28 px with a stronger gold ring;
+- hover may grow to about 36 px.
+
+Focus preserves the Overview portrait footprint so highlighting relationships never forces a second layout.
 
 ## Interaction
 
@@ -34,7 +37,7 @@ Overview keeps the whole graph as a weak spiderweb.
 
 Hover reveals only local context and never relayouts the graph.
 
-Focus keeps the selected hero as the camera anchor and shows only that hero plus its active relationship heroes. Incoming counters are arranged on the left and outgoing counters on the right in a deterministic balanced arc, so the focused graph reads as one clean structure rather than a second graph over the Overview. On desktop the focused composition reserves space for the left-side HeroCard; the camera may zoom out just enough to keep the active set visible.
+Focus preserves the exact Overview graph layout. All heroes remain at their committed positions; unrelated heroes become subdued, while incoming and outgoing relationships and their endpoint heroes are emphasized in place. Focus must never construct or overlay a second arrangement of the same heroes. On desktop the Overview camera keeps the same scale and anchor when a hero is selected; the graph may translate slightly to make room for the HeroCard. Compact viewports may reframe the same graph only when needed to keep the selected hero usable with the context card.
 
 Selecting or leaving a hero moves the camera with a short eased transition. Manual drag or wheel input immediately takes control and cancels that camera animation.
 
@@ -46,7 +49,7 @@ Matchup keeps the graph visible, emphasizes one pair, and changes the compact ca
 
 The percentage belongs to the source hero of the arrow.
 
-The accepted current behavior is source-anchored, collision-aware placement on the active edge itself. Labels normally stay on the source half of the edge; when the selected hero is the source, the badge may sit farther down that half so dense outgoing fans remain readable. Hero names are placed outside their relationship paths and rendered on an opaque canvas backing so arrows and lines never visually cut through text. Percentage labels must avoid hero portraits and other active percentage labels while keeping relationship direction obvious.
+The accepted current behavior is source-anchored, collision-aware placement on the active edge itself. Labels normally stay on the source half of the edge; when the selected hero is the source, the badge may sit farther down that half so dense outgoing fans remain readable. On short fixed-layout edges, the badge may scale down to stay on the line without covering a portrait. If the gap is still physically too short, the full badge moves onto a short source-side continuation of that same line, preserving its visual attachment to the relationship without moving either hero. Hero names use collision-aware placement outside active relationship paths and render on an opaque canvas backing.
 
 ## Product chrome decisions
 

@@ -168,101 +168,133 @@ test("overview renders a sparse relationship backbone", async ({ page }) => {
   expect(edgeCount).toBeLessThanOrEqual(127);
 });
 
-test("focus renders only the selected hero relationships", async ({ page }) => {
-  await page.goto("/?hero=viper");
-  await expect(page.getByLabel("Viper counter summary")).toBeVisible();
+test("hover reveals local relationships without moving or replacing the overview graph", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.locator(".hero-node")).toHaveCount(127);
 
-  const edgeCount = await page.locator(".edges .edge").count();
-  expect(edgeCount).toBeGreaterThan(0);
-  expect(edgeCount).toBeLessThanOrEqual(10);
+  const before = await page.locator(".hero-node").evaluateAll(nodes =>
+    nodes
+      .map(node => [node.id, node.getAttribute("transform") ?? ""] as const)
+      .sort(([a], [b]) => a.localeCompare(b))
+  );
+
+  await page.locator("#graph-hero-viper").hover();
+  await page.waitForTimeout(180);
+
+  const after = await page.locator(".hero-node").evaluateAll(nodes =>
+    nodes
+      .map(node => [node.id, node.getAttribute("transform") ?? ""] as const)
+      .sort(([a], [b]) => a.localeCompare(b))
+  );
+
+  expect(after).toEqual(before);
+  expect(await page.locator(".edge-hover").count()).toBeGreaterThan(0);
+  expect(await page.locator(".edge-hover").count()).toBeLessThanOrEqual(5);
+  await expect(page.locator(".context-card")).toHaveCount(0);
+  await expect(page.locator('[data-hero-label="viper"]')).toBeVisible();
 });
 
-test("focus shows only the selected hero and its real relationship heroes", async ({ page }) => {
-  await page.goto("/?hero=terrorblade");
+test("focus keeps the same graph and only highlights selected relationships", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.locator(".hero-node")).toHaveCount(127);
+
+  const overviewState = await page.evaluate(() => ({
+    nodes: [...document.querySelectorAll<SVGGElement>(".hero-node")]
+      .map((node) => [node.id, node.getAttribute("transform") ?? ""] as const)
+      .sort(([a], [b]) => a.localeCompare(b)),
+    edges: [...document.querySelectorAll<SVGLineElement>(".edges .edge")]
+      .map((edge) => `${edge.dataset.sourceHero}->${edge.dataset.targetHero}`)
+      .sort()
+  }));
+
+  const search = page.getByRole("combobox", { name: "Search for a hero" });
+  await search.fill("terrorblade");
+  await page.getByRole("option", { name: /Terrorblade/ }).click();
   await expect(page.getByLabel("Terrorblade counter summary")).toBeVisible();
   await page.waitForTimeout(520);
 
-  const graphState = await page.evaluate(() => {
-    const nodeIds = [...document.querySelectorAll<SVGGElement>(".hero-node")]
-      .map((node) => node.id.replace(/^graph-hero-/, ""));
-    const edgeHeroIds = new Set<string>();
+  const focusState = await page.evaluate(() => ({
+    nodes: [...document.querySelectorAll<SVGGElement>(".hero-node")]
+      .map((node) => [node.id, node.getAttribute("transform") ?? ""] as const)
+      .sort(([a], [b]) => a.localeCompare(b)),
+    edges: [...document.querySelectorAll<SVGLineElement>(".edges .edge")]
+      .map((edge) => `${edge.dataset.sourceHero}->${edge.dataset.targetHero}`)
+      .sort(),
+    activeEdges: document.querySelectorAll(".edge-active").length,
+    activeHeroes: document.querySelectorAll(".hero-active").length,
+    dimmedHeroes: document.querySelectorAll(".hero-dimmed").length
+  }));
 
-    for (const edge of document.querySelectorAll<SVGLineElement>(".edges .edge")) {
-      const source = edge.dataset.sourceHero;
-      const target = edge.dataset.targetHero;
-      if (source) edgeHeroIds.add(source);
-      if (target) edgeHeroIds.add(target);
-    }
+  expect(focusState.nodes).toEqual(overviewState.nodes);
+  expect(focusState.nodes).toHaveLength(127);
+  for (const edge of overviewState.edges) expect(focusState.edges).toContain(edge);
+  expect(focusState.activeEdges).toBeGreaterThan(0);
+  expect(focusState.activeEdges).toBeLessThanOrEqual(10);
+  expect(focusState.activeHeroes).toBeGreaterThan(0);
+  expect(focusState.activeHeroes).toBeLessThanOrEqual(10);
+  expect(focusState.dimmedHeroes).toBeGreaterThan(0);
 
-    return {
-      nodeIds: [...nodeIds].sort(),
-      edgeHeroIds: [...edgeHeroIds].sort()
-    };
-  });
-
-  expect(graphState.nodeIds).toEqual(graphState.edgeHeroIds);
   await expect(page.getByLabel("Terrorblade counter summary")).not.toContainText(/\/5/);
 });
 
-test("focus places incoming heroes left and outgoing heroes right", async ({ page }) => {
-  await page.goto("/?hero=terrorblade");
-  await page.waitForTimeout(520);
-
-  const directions = await page.evaluate(() => {
-    const selected = document.querySelector<SVGGElement>(".hero-selected");
-    const selectedTransform = selected?.transform.baseVal.consolidate()?.matrix;
-    if (!selectedTransform) return null;
-
-    const incoming = [...document.querySelectorAll<SVGLineElement>(".edge-incoming")]
-      .map((edge) => edge.dataset.sourceHero)
-      .filter((id): id is string => Boolean(id));
-    const outgoing = [...document.querySelectorAll<SVGLineElement>(".edge-outgoing")]
-      .map((edge) => edge.dataset.targetHero)
-      .filter((id): id is string => Boolean(id));
-
-    const xFor = (id: string) =>
-      document.querySelector<SVGGElement>(`#graph-hero-${id}`)
-        ?.transform.baseVal.consolidate()?.matrix.e;
-
-    return {
-      selectedX: selectedTransform.e,
-      incomingX: incoming.map(xFor).filter((x): x is number => typeof x === "number"),
-      outgoingX: outgoing.map(xFor).filter((x): x is number => typeof x === "number")
-    };
-  });
-
-  expect(directions).not.toBeNull();
-  expect(directions!.incomingX.length).toBeGreaterThan(0);
-  expect(directions!.outgoingX.length).toBeGreaterThan(0);
-
-  for (const x of directions!.incomingX) expect(x).toBeLessThan(directions!.selectedX);
-  for (const x of directions!.outgoingX) expect(x).toBeGreaterThan(directions!.selectedX);
-});
-
-test("desktop focus keeps hero names clear of the context card", async ({ page }) => {
+test("desktop focus keeps hero names clear of the card and viewport edges", async ({ page }) => {
   await page.setViewportSize({ width: 1366, height: 768 });
-  await page.goto("/?hero=crystal-maiden");
-  await page.waitForTimeout(520);
 
-  const overlaps = await page.evaluate(() => {
-    const card = document.querySelector<HTMLElement>(".context-card");
-    if (!card) return ["missing context card"];
-    const cardRect = card.getBoundingClientRect();
+  for (const heroId of [
+    "crystal-maiden",
+    "dragon-knight",
+    "rubick",
+    "terrorblade",
+    "dark-willow",
+    "spectre"
+  ]) {
+    await page.goto(`/?hero=${heroId}`);
+    await page.waitForTimeout(520);
 
-    return [...document.querySelectorAll<SVGGElement>(".hero-label-group")]
-      .filter((label) => {
-        const rect = label.getBoundingClientRect();
-        return (
-          rect.left < cardRect.right &&
-          rect.right > cardRect.left &&
-          rect.top < cardRect.bottom &&
-          rect.bottom > cardRect.top
-        );
-      })
-      .map((label) => label.dataset.heroLabel ?? "unknown");
-  });
+    const geometry = await page.evaluate(() => {
+      const card = document.querySelector<HTMLElement>(".context-card");
+      const graph = document.querySelector<SVGSVGElement>(".graph");
+      if (!card || !graph) {
+        return {
+          cardOverlaps: ["missing card or graph"],
+          outsideViewport: ["missing card or graph"]
+        };
+      }
 
-  expect(overlaps).toEqual([]);
+      const cardRect = card.getBoundingClientRect();
+      const graphRect = graph.getBoundingClientRect();
+      const labels = [...document.querySelectorAll<SVGGElement>(".hero-label-group")];
+
+      const cardOverlaps = labels
+        .filter((label) => {
+          const rect = label.getBoundingClientRect();
+          return (
+            rect.left < cardRect.right &&
+            rect.right > cardRect.left &&
+            rect.top < cardRect.bottom &&
+            rect.bottom > cardRect.top
+          );
+        })
+        .map((label) => label.dataset.heroLabel ?? "unknown");
+
+      const outsideViewport = labels
+        .filter((label) => {
+          const rect = label.getBoundingClientRect();
+          return (
+            rect.left < graphRect.left - 1 ||
+            rect.right > graphRect.right + 1 ||
+            rect.top < graphRect.top - 1 ||
+            rect.bottom > graphRect.bottom + 1
+          );
+        })
+        .map((label) => label.dataset.heroLabel ?? "unknown");
+
+      return { cardOverlaps, outsideViewport };
+    });
+
+    expect(geometry.cardOverlaps, heroId).toEqual([]);
+    expect(geometry.outsideViewport, heroId).toEqual([]);
+  }
 });
 
 test("focused hero names stay clear of active relationship lines", async ({ page }) => {
@@ -349,8 +381,13 @@ test("focused win-rate labels stay source-anchored and do not overlap", async ({
   for (let index = 0; index < labelCount; index += 1) {
     const label = labels.nth(index);
     const t = Number(await label.getAttribute("data-label-t"));
-    expect(t).toBeGreaterThanOrEqual(0.12);
-    expect(t).toBeLessThanOrEqual(0.88);
+    const external = await label.getAttribute("data-label-external");
+    if (external === "true") {
+      expect(t).toBeLessThan(0);
+    } else {
+      expect(t).toBeGreaterThanOrEqual(0.12);
+      expect(t).toBeLessThanOrEqual(0.88);
+    }
 
     const box = await label.boundingBox();
     expect(box).not.toBeNull();
@@ -399,28 +436,20 @@ test("dense focus keeps win-rate badges on their own lines and clear of portrait
         y: matrix.b * x + matrix.d * y + matrix.f
       });
 
-      const pointToSegmentDistance = (
+      const pointToLineDistance = (
         point: { x: number; y: number },
         start: { x: number; y: number },
         end: { x: number; y: number }
       ) => {
         const dx = end.x - start.x;
         const dy = end.y - start.y;
-        const lengthSquared = dx * dx + dy * dy;
-        if (lengthSquared <= 1e-9) return Math.hypot(point.x - start.x, point.y - start.y);
+        const length = Math.hypot(dx, dy);
+        if (length <= 1e-9) return Math.hypot(point.x - start.x, point.y - start.y);
 
-        const t = Math.max(
-          0,
-          Math.min(
-            1,
-            ((point.x - start.x) * dx + (point.y - start.y) * dy) /
-              lengthSquared
-          )
-        );
-        return Math.hypot(
-          point.x - (start.x + dx * t),
-          point.y - (start.y + dy * t)
-        );
+        return Math.abs(
+          dx * (start.y - point.y) -
+          (start.x - point.x) * dy
+        ) / length;
       };
 
       const rows = labels.map(label => {
@@ -448,54 +477,31 @@ test("dense focus keeps win-rate badges on their own lines and clear of portrait
           );
         });
 
+        const external = label.dataset.labelExternal === "true";
+        const leaderExists = Boolean(
+          label.closest(".edge-label-entry")?.querySelector(".edge-label-leader")
+        );
+
         return {
           source,
           target,
           offset: Number(label.dataset.labelOffset),
-          distanceToLine: pointToSegmentDistance(center, start, end),
+          external,
+          leaderExists,
+          distanceToLine: pointToLineDistance(center, start, end),
           overlapsPortrait
         };
       }).filter((row): row is NonNullable<typeof row> => row !== null);
 
-      const selected = document.querySelector<SVGGElement>(".hero-selected");
-      const active = [...document.querySelectorAll<SVGGElement>(".hero-active")];
-      const selectedMatrix = selected?.transform.baseVal.consolidate()?.matrix;
-
-      const activeDistances = selectedMatrix
-        ? active.map(node => {
-            const matrix = node.transform.baseVal.consolidate()?.matrix;
-            return matrix
-              ? Math.hypot(matrix.e - selectedMatrix.e, matrix.f - selectedMatrix.f)
-              : 0;
-          })
-        : [];
-
-      const activePairDistances: number[] = [];
-      for (let left = 0; left < active.length; left += 1) {
-        const a = active[left].transform.baseVal.consolidate()?.matrix;
-        if (!a) continue;
-        for (let right = left + 1; right < active.length; right += 1) {
-          const b = active[right].transform.baseVal.consolidate()?.matrix;
-          if (!b) continue;
-          activePairDistances.push(Math.hypot(b.e - a.e, b.f - a.f));
-        }
-      }
-
-      return { rows, activeDistances, activePairDistances };
+      return { rows };
     });
 
     expect(geometry.rows.length).toBeGreaterThan(0);
     for (const row of geometry.rows) {
       expect(row.offset).toBe(0);
       expect(row.distanceToLine).toBeLessThan(1.25);
+      if (row.external) expect(row.leaderExists).toBe(true);
       expect(row.overlapsPortrait).toBe(false);
-    }
-
-    for (const distance of geometry.activeDistances) {
-      expect(distance).toBeGreaterThanOrEqual(209);
-    }
-    for (const distance of geometry.activePairDistances) {
-      expect(distance).toBeGreaterThanOrEqual(139);
     }
   }
 });
@@ -729,72 +735,51 @@ test("mouse wheel zooms the graph", async ({ page }) => {
     .not.toBe(before);
 });
 
-test("selecting a distant hero moves and settles the camera", async ({ page }) => {
+test("desktop hero selection only pans the existing overview camera for the card", async ({ page }) => {
+  await page.setViewportSize({ width: 1366, height: 768 });
   await page.goto("/");
+
   const camera = page.locator(".graph-camera");
   const search = page.getByRole("combobox", { name: "Search for a hero" });
   const before = await camera.getAttribute("transform");
 
   await search.fill("underlord");
   await page.getByRole("option", { name: /Underlord/ }).click();
-
-  await expect
-    .poll(() => camera.getAttribute("transform"))
-    .not.toBe(before);
-
   await page.waitForTimeout(520);
-  const settled = await camera.getAttribute("transform");
-  expect(settled).not.toBe(before);
 
-  await page.waitForTimeout(120);
-  expect(await camera.getAttribute("transform")).toBe(settled);
+  const after = await camera.getAttribute("transform");
+  expect(before).not.toBeNull();
+  expect(after).not.toBeNull();
+
+  const parseCamera = (transform: string) => {
+    const match = transform.match(
+      /translate\(([-\d.]+) ([-\d.]+)\) scale\(([-\d.]+)\) translate\(([-\d.]+) ([-\d.]+)\)/
+    );
+    if (!match) return null;
+    return match.slice(1).map(Number);
+  };
+
+  const beforeParts = parseCamera(before!);
+  const afterParts = parseCamera(after!);
+  expect(beforeParts).not.toBeNull();
+  expect(afterParts).not.toBeNull();
+
+  expect(afterParts![0] - beforeParts![0]).toBeCloseTo(180, 1);
+  expect(afterParts![1]).toBeCloseTo(beforeParts![1], 4);
+  expect(afterParts![2]).toBeCloseTo(beforeParts![2], 4);
+  expect(afterParts![3]).toBeCloseTo(beforeParts![3], 4);
+  expect(afterParts![4]).toBeCloseTo(beforeParts![4], 4);
   await expect(page).toHaveURL(/hero=underlord/);
-});
-
-test("focus camera reserves card space and keeps active counters visible", async ({ page }) => {
-  await page.setViewportSize({ width: 1366, height: 768 });
-  await page.goto("/?hero=spectre");
-  await page.waitForTimeout(520);
-
-  const graph = page.getByRole("group", { name: "Dota 2 hero counter relationships" });
-  const graphBox = await graph.boundingBox();
-  expect(graphBox).not.toBeNull();
-
-  const selectedBox = await page.locator("#graph-hero-spectre").boundingBox();
-  expect(selectedBox).not.toBeNull();
-
-  const graphCenterX = graphBox!.x + graphBox!.width / 2;
-  const graphCenterY = graphBox!.y + graphBox!.height / 2;
-  const selectedCenterX = selectedBox!.x + selectedBox!.width / 2;
-  const selectedCenterY = selectedBox!.y + selectedBox!.height / 2;
-
-  const desktopFocusOffset = selectedCenterX - graphCenterX;
-  expect(desktopFocusOffset).toBeGreaterThan(140);
-  expect(desktopFocusOffset).toBeLessThan(190);
-  expect(Math.abs(selectedCenterY - graphCenterY)).toBeLessThan(4);
-
-  const transform = await page.locator(".graph-camera").getAttribute("transform");
-  const scaleMatch = transform?.match(/scale\(([^)]+)\)/);
-  expect(scaleMatch).not.toBeNull();
-  expect(Number(scaleMatch![1])).toBeGreaterThan(0);
 
   const activeHeroes = page.locator(".hero-active");
   const activeCount = await activeHeroes.count();
   expect(activeCount).toBeGreaterThan(0);
   expect(activeCount).toBeLessThanOrEqual(10);
-
-  for (let index = 0; index < activeCount; index += 1) {
-    const box = await activeHeroes.nth(index).boundingBox();
-    expect(box).not.toBeNull();
-    expect(box!.x).toBeGreaterThanOrEqual(graphBox!.x);
-    expect(box!.y).toBeGreaterThanOrEqual(graphBox!.y);
-    expect(box!.x + box!.width).toBeLessThanOrEqual(graphBox!.x + graphBox!.width);
-    expect(box!.y + box!.height).toBeLessThanOrEqual(graphBox!.y + graphBox!.height);
-  }
 });
 
-test("reduced-motion preference skips the focus camera animation", async ({ page }) => {
+test("reduced-motion desktop selection applies only the card pan immediately", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.setViewportSize({ width: 1366, height: 768 });
   await page.goto("/");
 
   const camera = page.locator(".graph-camera");
@@ -806,11 +791,9 @@ test("reduced-motion preference skips the focus camera animation", async ({ page
   await page.waitForTimeout(30);
 
   const afterSelection = await camera.getAttribute("transform");
-  await page.waitForTimeout(520);
-  const afterWait = await camera.getAttribute("transform");
-
+  await page.waitForTimeout(120);
   expect(afterSelection).not.toBe(before);
-  expect(afterWait).toBe(afterSelection);
+  expect(await camera.getAttribute("transform")).toBe(afterSelection);
 });
 
 test("site exposes the DotaGraph logo as favicon and header brand", async ({ page }) => {

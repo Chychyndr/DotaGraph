@@ -19,7 +19,7 @@ Completed:
 - source-anchored, collision-aware win-rate labels;
 - full 127-hero density validation;
 - responsive viewport and accessibility hardening;
-- adaptive focus framing;
+- stable single-graph focus framing with desktop card-space translation and compact reframe;
 - single local hero portrait atlas with explicit failure fallback;
 - loading, stale, malformed-data, and unavailable-data states;
 - CI, Playwright, Impeccable, and GitHub Pages verification.

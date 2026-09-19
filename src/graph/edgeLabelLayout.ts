@@ -9,6 +9,7 @@ export interface EdgeLabelInput {
   id: string;
   segment: EdgeSegment;
   preferredT?: number;
+  source?: EdgeLabelObstacle;
 }
 
 export interface EdgeLabelObstacle {
@@ -22,20 +23,32 @@ export interface EdgeLabelPlacement {
   y: number;
   t: number;
   offset: number;
+  scale: number;
+  leader?: EdgeSegment;
 }
 
 export const EDGE_LABEL_WIDTH = 46;
 export const EDGE_LABEL_HEIGHT = 18;
 
-const LABEL_GAP = 5;
+const LABEL_GAP = 2;
 const MIN_T = 0.12;
 const MAX_T = 0.88;
 const PREFERRED_T = 0.34;
 const NORMAL_OFFSETS = [0];
-const SAFE_END_MARGIN = Math.hypot(
-  EDGE_LABEL_WIDTH / 2 + LABEL_GAP,
-  EDGE_LABEL_HEIGHT / 2 + LABEL_GAP
-);
+const MIN_LABEL_SCALE = 0.8;
+
+const safeEndMargin = (scale: number) =>
+  Math.hypot(
+    EDGE_LABEL_WIDTH * scale / 2 + LABEL_GAP,
+    EDGE_LABEL_HEIGHT * scale / 2 + LABEL_GAP
+  );
+
+const scaleForLength = (length: number) => {
+  for (let scale = 1; scale >= MIN_LABEL_SCALE; scale -= 0.05) {
+    if (safeEndMargin(scale) * 2 <= length) return scale;
+  }
+  return MIN_LABEL_SCALE;
+};
 
 interface Rect {
   left: number;
@@ -47,11 +60,11 @@ interface Rect {
 const clamp = (value: number, min: number, max: number) =>
   Math.min(max, Math.max(min, value));
 
-const rectFor = (x: number, y: number, gap = 0): Rect => ({
-  left: x - EDGE_LABEL_WIDTH / 2 - gap,
-  right: x + EDGE_LABEL_WIDTH / 2 + gap,
-  top: y - EDGE_LABEL_HEIGHT / 2 - gap,
-  bottom: y + EDGE_LABEL_HEIGHT / 2 + gap
+const rectFor = (x: number, y: number, scale = 1, gap = 0): Rect => ({
+  left: x - EDGE_LABEL_WIDTH * scale / 2 - gap,
+  right: x + EDGE_LABEL_WIDTH * scale / 2 + gap,
+  top: y - EDGE_LABEL_HEIGHT * scale / 2 - gap,
+  bottom: y + EDGE_LABEL_HEIGHT * scale / 2 + gap
 });
 
 const rectanglesOverlap = (a: Rect, b: Rect) =>
@@ -75,7 +88,8 @@ const circleTouchesRect = (obstacle: EdgeLabelObstacle, rect: Rect) => {
 const candidateFor = (
   segment: EdgeSegment,
   t: number,
-  normalOffset: number
+  normalOffset: number,
+  scale: number
 ): EdgeLabelPlacement => {
   const dx = segment.x2 - segment.x1;
   const dy = segment.y2 - segment.y1;
@@ -87,7 +101,8 @@ const candidateFor = (
     x: segment.x1 + dx * t + nx * normalOffset,
     y: segment.y1 + dy * t + ny * normalOffset,
     t,
-    offset: normalOffset
+    offset: normalOffset,
+    scale
   };
 };
 
@@ -98,7 +113,12 @@ const candidateScore = (
   preferenceIndex: number,
   preferredT: number
 ) => {
-  const paddedRect = rectFor(placement.x, placement.y, LABEL_GAP);
+  const paddedRect = rectFor(
+    placement.x,
+    placement.y,
+    placement.scale,
+    LABEL_GAP
+  );
 
   let score =
     Math.abs(placement.t - preferredT) * 40 +
@@ -138,8 +158,10 @@ export function layoutSourceAnchoredEdgeLabels(
   for (const input of orderedInputs) {
     const { segment } = input;
     const length = Math.hypot(segment.x2 - segment.x1, segment.y2 - segment.y1) || 1;
-    const safeMinT = clamp(SAFE_END_MARGIN / length, MIN_T, 0.46);
-    const safeMaxT = clamp(1 - SAFE_END_MARGIN / length, 0.54, MAX_T);
+    const scale = scaleForLength(length);
+    const margin = safeEndMargin(scale);
+    const safeMinT = clamp(margin / length, MIN_T, 0.46);
+    const safeMaxT = clamp(1 - margin / length, 0.54, MAX_T);
     const preferredT = clamp(input.preferredT ?? PREFERRED_T, safeMinT, safeMaxT);
     const step = 0.04;
     const sampledTs: number[] = [];
@@ -158,7 +180,7 @@ export function layoutSourceAnchoredEdgeLabels(
       );
 
     const candidates = uniqueTs.flatMap((t) =>
-      NORMAL_OFFSETS.map((offset) => candidateFor(segment, t, offset))
+      NORMAL_OFFSETS.map((offset) => candidateFor(segment, t, offset, scale))
     );
 
     let best = candidates[0];
@@ -172,8 +194,59 @@ export function layoutSourceAnchoredEdgeLabels(
       }
     });
 
+    if (bestScore >= 5_000 && input.source) {
+      const dx = segment.x2 - segment.x1;
+      const dy = segment.y2 - segment.y1;
+      const segmentLength = Math.hypot(dx, dy) || 1;
+      const ux = dx / segmentLength;
+      const uy = dy / segmentLength;
+      const externalScale = 1;
+      const support =
+        Math.abs(ux) * EDGE_LABEL_WIDTH * externalScale / 2 +
+        Math.abs(uy) * EDGE_LABEL_HEIGHT * externalScale / 2;
+      const sourceEdge = {
+        x: input.source.x - ux * (input.source.radius + LABEL_GAP),
+        y: input.source.y - uy * (input.source.radius + LABEL_GAP)
+      };
+
+      for (const extraDistance of [0, 18, 36, 54, 72]) {
+        const distance = support + LABEL_GAP + extraDistance;
+        const x = sourceEdge.x - ux * distance;
+        const y = sourceEdge.y - uy * distance;
+        const t =
+          ((x - segment.x1) * dx + (y - segment.y1) * dy) /
+          (segmentLength * segmentLength);
+        const candidate: EdgeLabelPlacement = {
+          x,
+          y,
+          t,
+          offset: 0,
+          scale: externalScale,
+          leader: {
+            x1: sourceEdge.x,
+            y1: sourceEdge.y,
+            x2: x + ux * (support + 1),
+            y2: y + uy * (support + 1)
+          }
+        };
+        const score =
+          candidateScore(
+            candidate,
+            placedRects,
+            obstacles,
+            candidates.length + extraDistance,
+            t
+          ) + 150;
+
+        if (score < bestScore) {
+          best = candidate;
+          bestScore = score;
+        }
+      }
+    }
+
     placements.set(input.id, best);
-    placedRects.push(rectFor(best.x, best.y, LABEL_GAP));
+    placedRects.push(rectFor(best.x, best.y, best.scale, LABEL_GAP));
   }
 
   return placements;
@@ -184,7 +257,7 @@ export function edgeLabelRectsOverlap(
   b: EdgeLabelPlacement
 ) {
   return rectanglesOverlap(
-    rectFor(a.x, a.y, LABEL_GAP),
-    rectFor(b.x, b.y, LABEL_GAP)
+    rectFor(a.x, a.y, a.scale, LABEL_GAP),
+    rectFor(b.x, b.y, b.scale, LABEL_GAP)
   );
 }

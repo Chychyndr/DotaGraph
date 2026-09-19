@@ -16,24 +16,26 @@
 
 - Hovered node grows slightly.
 - Hero name appears in a dedicated top label layer so nearby portrait nodes cannot cover it.
-- Local edges gain contrast.
-- Unrelated graph dims.
+- Local edges gain contrast while the sparse Overview backbone stays low-contrast.
+- Hero coordinates and the rest of the Overview graph stay in place.
 - No large panel opens.
 - No relayout.
 
 ## Focus
 
-- Selected hero remains the camera anchor. On desktop the focused composition shifts slightly right so the left-side HeroCard never covers active hero names.
-- Focus scale adapts to the active relationship spread: close matchups keep the normal scale, while distant counters trigger only as much zoom-out as needed to fit the active set with padding.
-- Compact focus keeps its upward offset for the context card and uses the cropped visible graph span when calculating scale.
+- Desktop Focus keeps the Overview camera scale and anchor; selecting a hero may translate the same graph slightly to make room for HeroCard, but does not recenter or rezoom it.
+- Compact Focus may reframe the same committed graph coordinates to keep the selected hero usable above the context card.
+- No viewport mode creates a second focus topology.
 - Gold ring.
-- Focus renders only the selected hero and heroes participating in its active relationships; unrelated Overview nodes are removed from the focused scene.
-- Up to five incoming relationships in coral, with their source heroes arranged on the left.
-- Up to five outgoing relationships in cyan, with their target heroes arranged on the right.
-- Hero names sit outside their relationship paths and have an opaque canvas backing so edges cannot visually cut through the text.
+- The same Overview hero nodes remain visible at the same committed coordinates.
+- Unrelated heroes are dimmed in place; active relationship heroes are emphasized where they already live in the graph.
+- The sparse Overview backbone remains as low-contrast context.
+- Up to five incoming relationships in coral.
+- Up to five outgoing relationships in cyan.
+- Hero names sit outside active relationship paths, stay clear of the desktop HeroCard, and have an opaque canvas backing so edges cannot visually cut through the text.
 - Tiny arrowheads clarify direction.
-- Win-rate pills stay centered on their own relationship lines and remain source-side; selected-source pills can sit farther down the source half to keep dense fans legible.
-- Active hero portraits use a deterministic balanced two-sided presentation layout so portraits, names, and percentage pills have clear breathing room.
+- Win-rate pills remain source-associated and on the relationship line whenever the fixed geometry has enough room. A cramped edge may use a smaller pill or a short source-side continuation of the same line so the badge never covers a portrait.
+- Focus never creates a second node arrangement or moves heroes into a separate ring/arc layout.
 - The HeroCard section headings do not show “x/5” counters.
 - HeroCard appears.
 - Clicking another background node refocuses.

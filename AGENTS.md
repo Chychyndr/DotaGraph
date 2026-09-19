@@ -55,7 +55,7 @@ The approved normal-candidate minimum is 500 qualifying matches per source obser
 
 One sample means one distinct completed match for the hero pair inside one source/patch/rank/match-population/observation-window scope. Never add counts from separate providers to cross the 500-match threshold.
 
-If a hero has many meaningful counters, show the best up to five in the focused graph. The full dataset may contain far more relationships.
+If a hero has many meaningful counters, highlight the best up to five per direction on the existing graph when that hero is selected. The full dataset may contain far more relationships.
 
 If there are no reliable relationships in a direction, show an intentional empty state.
 
@@ -146,11 +146,11 @@ Core states:
 
 ### Focus
 - selected hero prominent;
-- only the selected hero and its active relationship heroes remain visible;
-- incoming relationship heroes are arranged on the left;
-- outgoing relationship heroes are arranged on the right;
-- 0–5 incoming relationships;
-- 0–5 outgoing relationships;
+- the same Overview graph and committed hero coordinates remain in place;
+- unrelated heroes stay visible but dimmed;
+- 0–5 incoming relationships are highlighted;
+- 0–5 outgoing relationships are highlighted;
+- active relationship heroes are emphasized at their existing graph positions;
 - hero names stay outside relationship paths;
 - compact HeroCard.
 
@@ -184,8 +184,9 @@ Win-rate label:
 - do not cover portraits or arrowheads.
 
 Background graph:
-- remains visible in Overview and Hover as context;
-- Focus removes unrelated nodes and edges so the active subgraph is unambiguous;
+- remains visible in Overview, Hover, and Focus as the same graph context;
+- Focus highlights active relationships and dims unrelated heroes without replacing or relayouting the graph;
+- background edges stay low-contrast while active relationships become prominent;
 - do not render hundreds of prominent arrows or labels at once.
 
 No continuous drift or breathing animation.
@@ -292,7 +293,7 @@ The overview must not randomly reorganize on every page load.
 
 Prefer deterministic/precomputed positions, seeded layout, or cached stable positions generated as part of the data build.
 
-Hover must not relayout the graph. Focus may use a deterministic presentation layout for only the selected hero and its active neighbors; Overview coordinates remain unchanged and return exactly when Focus ends.
+Hover and Focus must not relayout the graph. Hero coordinates are the committed Overview coordinates in every interaction state. On desktop, hero selection keeps the Overview camera scale and anchor; a small translation may make room for the HeroCard, but selection must not recenter or rezoom around a new focus layout. Compact viewports may reframe the same graph when needed for the card.
 
 ## URL state
 

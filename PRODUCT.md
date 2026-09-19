@@ -29,7 +29,7 @@ A rank selector is intentionally excluded from the current product. The owner ma
 
 Planning patch at kickoff: 7.41e. Patch must remain configuration/data, never a structural hardcode.
 
-The focused graph shows up to five reliable incoming and up to five reliable outgoing relationships. Zero is valid.
+Selecting a hero highlights up to five reliable incoming and up to five reliable outgoing relationships on the same graph. Zero is valid.
 
 ## Product constraint
 
