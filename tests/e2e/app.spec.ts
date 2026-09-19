@@ -321,8 +321,13 @@ test("focused win-rate labels stay source-anchored and do not overlap", async ({
   for (let index = 0; index < labelCount; index += 1) {
     const label = labels.nth(index);
     const t = Number(await label.getAttribute("data-label-t"));
-    expect(t).toBeGreaterThanOrEqual(0.12);
-    expect(t).toBeLessThanOrEqual(0.88);
+    const external = await label.getAttribute("data-label-external");
+    if (external === "true") {
+      expect(t).toBeLessThan(0);
+    } else {
+      expect(t).toBeGreaterThanOrEqual(0.12);
+      expect(t).toBeLessThanOrEqual(0.88);
+    }
 
     const box = await label.boundingBox();
     expect(box).not.toBeNull();
@@ -371,28 +376,20 @@ test("dense focus keeps win-rate badges on their own lines and clear of portrait
         y: matrix.b * x + matrix.d * y + matrix.f
       });
 
-      const pointToSegmentDistance = (
+      const pointToLineDistance = (
         point: { x: number; y: number },
         start: { x: number; y: number },
         end: { x: number; y: number }
       ) => {
         const dx = end.x - start.x;
         const dy = end.y - start.y;
-        const lengthSquared = dx * dx + dy * dy;
-        if (lengthSquared <= 1e-9) return Math.hypot(point.x - start.x, point.y - start.y);
+        const length = Math.hypot(dx, dy);
+        if (length <= 1e-9) return Math.hypot(point.x - start.x, point.y - start.y);
 
-        const t = Math.max(
-          0,
-          Math.min(
-            1,
-            ((point.x - start.x) * dx + (point.y - start.y) * dy) /
-              lengthSquared
-          )
-        );
-        return Math.hypot(
-          point.x - (start.x + dx * t),
-          point.y - (start.y + dy * t)
-        );
+        return Math.abs(
+          dx * (start.y - point.y) -
+          (start.x - point.x) * dy
+        ) / length;
       };
 
       const rows = labels.map(label => {
@@ -420,11 +417,18 @@ test("dense focus keeps win-rate badges on their own lines and clear of portrait
           );
         });
 
+        const external = label.dataset.labelExternal === "true";
+        const leaderExists = Boolean(
+          label.closest(".edge-label-entry")?.querySelector(".edge-label-leader")
+        );
+
         return {
           source,
           target,
           offset: Number(label.dataset.labelOffset),
-          distanceToLine: pointToSegmentDistance(center, start, end),
+          external,
+          leaderExists,
+          distanceToLine: pointToLineDistance(center, start, end),
           overlapsPortrait
         };
       }).filter((row): row is NonNullable<typeof row> => row !== null);
@@ -436,6 +440,7 @@ test("dense focus keeps win-rate badges on their own lines and clear of portrait
     for (const row of geometry.rows) {
       expect(row.offset).toBe(0);
       expect(row.distanceToLine).toBeLessThan(1.25);
+      if (row.external) expect(row.leaderExists).toBe(true);
       expect(row.overlapsPortrait).toBe(false);
     }
   }
