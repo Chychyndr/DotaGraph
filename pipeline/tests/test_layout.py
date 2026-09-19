@@ -64,6 +64,9 @@ class LayoutTests(unittest.TestCase):
         self.assertEqual(metrics["edgeCount"], len(self.edges))
         self.assertGreater(metrics["medianDistance"], 0)
         self.assertGreaterEqual(metrics["p95Distance"], metrics["medianDistance"])
+        self.assertGreaterEqual(metrics["minimumNodeDistance"], 57.8)
+        self.assertEqual(metrics["isolatedNodeCount"], 0)
+        self.assertEqual(metrics["coveredNodeCount"], len(self.nodes))
 
 
 if __name__ == "__main__":
