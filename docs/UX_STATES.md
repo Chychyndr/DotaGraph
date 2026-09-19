@@ -2,7 +2,7 @@
 
 ## Overview
 
-- Full fixture graph visible.
+- Full validated current-patch hero graph visible.
 - Weak relationship spiderweb.
 - No win-rate labels.
 - Search remains visible.
@@ -41,7 +41,7 @@
 - Selected relationship becomes dominant.
 - Other active relationships dim.
 - HeroCard becomes MatchupCard in the same region.
-- Card shows A -> B, source win rate, sample, explanation, and a future Details entry point.
+- Card shows A -> B, raw source win rate, sample size, patch/rank scope, source provenance, and baseline-adjusted matchup advantage; reviewed explanation appears only when available.
 - Graph remains visible.
 
 ## Reset
@@ -92,9 +92,9 @@
 
 ### Stale data
 
-- A validated bundle marked `stale` remains usable.
-- A compact warning stays above the graph and includes the upstream reason.
-- The frontend does not invent its own age threshold yet; the stale/current decision comes from validated dataset metadata.
+- A validated bundle older than 36 hours is marked `stale` by the production snapshot adapter and remains usable.
+- A compact warning stays above the graph and includes the calculated age reason.
+- Daily GitHub Actions generation normally refreshes the snapshot well before the 36-hour threshold.
 
 ### Malformed data
 
