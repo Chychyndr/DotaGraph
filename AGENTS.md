@@ -362,6 +362,7 @@ Python rule: use uv, never pip.
 Pipeline responsibilities:
 - source adapters;
 - bounded retries and rate limiting;
+- structured debug logging;
 - normalization;
 - aggregation;
 - ranking;
@@ -369,6 +370,8 @@ Pipeline responsibilities:
 - output generation;
 - provenance;
 - current-patch update.
+
+Current production data is regenerated daily through GitHub Actions. Generation logs must remain downloadable as workflow artifacts, and ordinary frontend runtime must not depend on live provider availability.
 
 Do not write one monolithic scraper. Keep source adapters isolated and tested.
 
@@ -415,18 +418,21 @@ Large cross-source disagreement must be visible in detailed data/flags.
 
 ## Counter detection/ranking
 
-Raw win rate alone is insufficient to define a specific counter.
+Raw win rate alone is insufficient to rank a specific counter.
 
-A future methodology may compare actual matchup performance against an expected win rate derived from each hero's baseline strength.
+Approved current methodology:
+- user-visible statistic = raw source-hero matchup win rate;
+- direct pair must have at least 500 qualifying current-patch matches;
+- each hero baseline excludes the direct pair;
+- expected matchup = `0.5 + (sourceBaseline - targetBaseline) / 2`;
+- `delta = observed - expected`;
+- sampling uncertainty includes pair and both baseline terms;
+- internal `rankingScore = delta - 1.645 * standardError`;
+- relationship is eligible only when `rankingScore > 0`;
+- sort by rankingScore, then delta, sample size, stable IDs;
+- never expose rankingScore as a fake percentage.
 
-Before implementing a formula:
-- document it in docs/METHODOLOGY.md;
-- define units and scope;
-- add worked examples;
-- add tests;
-- review edge cases.
-
-The user-facing graph should remain simple even if the ranking method is sophisticated.
+See `docs/METHODOLOGY.md` for the complete formula and units.
 
 ## Generated statistics are immutable by hand
 
