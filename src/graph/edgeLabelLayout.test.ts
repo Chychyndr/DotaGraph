@@ -29,6 +29,17 @@ describe("layoutSourceAnchoredEdgeLabels", () => {
     expect(placement.y).toBeCloseTo(160, 6);
   });
 
+  it("shrinks a badge when a stable graph edge is too short for the normal pill", () => {
+    const placement = layoutSourceAnchoredEdgeLabels([
+      { id: "short", segment: { x1: 100, y1: 100, x2: 140, y2: 100 } }
+    ], []).get("short")!;
+
+    expect(placement.scale).toBeLessThan(1);
+    expect(placement.scale).toBeGreaterThanOrEqual(0.6);
+    expect(placement.offset).toBe(0);
+    expect(placement.y).toBeCloseTo(100, 6);
+  });
+
   it("keeps every badge center on its own relationship segment", () => {
     const inputs = [
       { id: "horizontal", segment: { x1: 80, y1: 120, x2: 420, y2: 120 } },
