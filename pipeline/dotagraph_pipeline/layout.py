@@ -39,8 +39,8 @@ def compute_layout(
     width: float = 1200.0,
     height: float = 760.0,
     margin: float = 52.0,
-    min_distance: float = 46.0,
-    fill_ratio: float = 0.76,
+    min_distance: float = 58.0,
+    fill_ratio: float = 0.90,
     iterations: int = 900,
 ) -> dict[str, tuple[float, float]]:
     """Return deterministic force-directed coordinates.
@@ -73,9 +73,9 @@ def compute_layout(
             math.sin(angle) * fraction * 0.72,
         ])
 
-    repulsion_strength = 0.0065
-    attraction_strength = 0.075
-    gravity_strength = 0.0025
+    repulsion_strength = 0.0085
+    attraction_strength = 0.058
+    gravity_strength = 0.0035
     max_step = 0.045
 
     for iteration in range(iterations):
@@ -158,7 +158,7 @@ def compute_layout(
 
     # Deterministic collision relaxation. It only prevents portrait overlap;
     # graph attraction has already determined the topology.
-    for _ in range(140):
+    for _ in range(220):
         moved = False
         for left in range(count):
             x1, y1 = pixel_positions[left]
