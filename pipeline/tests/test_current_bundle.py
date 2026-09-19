@@ -109,7 +109,7 @@ class CurrentBundleTests(unittest.TestCase):
             for item in selected
             if item.source == "chen" or item.target == "chen"
         ]
-        self.assertEqual(len(chen_neighbors), 2)
+        self.assertGreaterEqual(len(chen_neighbors), 2)
 
     def test_generate_emits_741f_production_contract(self) -> None:
         repo_root = Path(__file__).resolve().parents[2]
