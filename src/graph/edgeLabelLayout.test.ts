@@ -40,6 +40,27 @@ describe("layoutSourceAnchoredEdgeLabels", () => {
     expect(placement.y).toBeCloseTo(100, 6);
   });
 
+  it("moves an impossible short-edge badge onto a source-side line extension", () => {
+    const source = { x: 100, y: 100, radius: 18 };
+    const placement = layoutSourceAnchoredEdgeLabels(
+      [{
+        id: "cramped",
+        segment: { x1: 120, y1: 100, x2: 136, y2: 100 },
+        source
+      }],
+      [
+        source,
+        { x: 154, y: 100, radius: 18 }
+      ]
+    ).get("cramped")!;
+
+    expect(placement.leader).toBeDefined();
+    expect(placement.t).toBeLessThan(0);
+    expect(placement.offset).toBe(0);
+    expect(placement.scale).toBe(1);
+    expect(placement.y).toBeCloseTo(100, 6);
+  });
+
   it("keeps every badge center on its own relationship segment", () => {
     const inputs = [
       { id: "horizontal", segment: { x1: 80, y1: 120, x2: 420, y2: 120 } },
