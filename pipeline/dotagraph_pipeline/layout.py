@@ -39,8 +39,8 @@ def compute_layout(
     width: float = 1200.0,
     height: float = 760.0,
     margin: float = 52.0,
-    min_distance: float = 46.0,
-    fill_ratio: float = 0.76,
+    min_distance: float = 58.0,
+    fill_ratio: float = 0.90,
     iterations: int = 900,
 ) -> dict[str, tuple[float, float]]:
     """Return deterministic force-directed coordinates.
@@ -73,9 +73,9 @@ def compute_layout(
             math.sin(angle) * fraction * 0.72,
         ])
 
-    repulsion_strength = 0.0065
-    attraction_strength = 0.075
-    gravity_strength = 0.0025
+    repulsion_strength = 0.0085
+    attraction_strength = 0.058
+    gravity_strength = 0.0035
     max_step = 0.045
 
     for iteration in range(iterations):
@@ -156,9 +156,54 @@ def compute_layout(
         for point in positions
     ]
 
+    degrees = [0 for _ in nodes]
+    neighbors: list[list[int]] = [[] for _ in nodes]
+    for edge in valid_edges:
+        source_index = index[edge.source]
+        target_index = index[edge.target]
+        degrees[source_index] += 1
+        degrees[target_index] += 1
+        neighbors[source_index].append(target_index)
+        neighbors[target_index].append(source_index)
+
+    # Rare heroes with only a couple of real affinity edges can be pushed onto the
+    # outer hull by pairwise repulsion. Pull only those low-degree nodes toward the
+    # centroid of their real layout neighbors before collision relaxation.
+    for _ in range(40):
+        moved = False
+        for node_index, degree in enumerate(degrees):
+            if degree == 0 or degree > 2:
+                continue
+
+            neighbor_indices = neighbors[node_index]
+            target_x = sum(pixel_positions[i][0] for i in neighbor_indices) / len(
+                neighbor_indices
+            )
+            target_y = sum(pixel_positions[i][1] for i in neighbor_indices) / len(
+                neighbor_indices
+            )
+            x, y = pixel_positions[node_index]
+            distance = math.hypot(target_x - x, target_y - y)
+            if distance <= 150.0:
+                continue
+
+            step = min(8.0, (distance - 150.0) * 0.18)
+            pixel_positions[node_index][0] += (target_x - x) / distance * step
+            pixel_positions[node_index][1] += (target_y - y) / distance * step
+            pixel_positions[node_index][0] = _clamp(
+                pixel_positions[node_index][0], layout_left, layout_right
+            )
+            pixel_positions[node_index][1] = _clamp(
+                pixel_positions[node_index][1], layout_top, layout_bottom
+            )
+            moved = True
+
+        if not moved:
+            break
+
     # Deterministic collision relaxation. It only prevents portrait overlap;
     # graph attraction has already determined the topology.
-    for _ in range(140):
+    for _ in range(220):
         moved = False
         for left in range(count):
             x1, y1 = pixel_positions[left]
@@ -204,10 +249,12 @@ def layout_metrics(
     positions: dict[str, tuple[float, float]],
     edges: Iterable[WeightedEdge],
 ) -> dict[str, float | int]:
+    edge_list = list(edges)
     distances = []
     weighted_distances = []
+    degrees = {node_id: 0 for node_id in positions}
 
-    for edge in edges:
+    for edge in edge_list:
         source = positions.get(edge.source)
         target = positions.get(edge.target)
         if source is None or target is None:
@@ -216,6 +263,35 @@ def layout_metrics(
         distance = math.hypot(target[0] - source[0], target[1] - source[1])
         distances.append(distance)
         weighted_distances.append(distance * (0.35 + _clamp(edge.weight, 0.0, 1.0)))
+        degrees[edge.source] = degrees.get(edge.source, 0) + 1
+        degrees[edge.target] = degrees.get(edge.target, 0) + 1
+
+    nearest_distances = []
+    position_items = list(positions.items())
+    for index, (_, first) in enumerate(position_items):
+        nearest = min(
+            (
+                math.hypot(second[0] - first[0], second[1] - first[1])
+                for other_index, (_, second) in enumerate(position_items)
+                if other_index != index
+            ),
+            default=0.0,
+        )
+        nearest_distances.append(nearest)
+
+    spacing_metrics = {
+        "minimumNodeDistance": round(min(nearest_distances), 2)
+        if nearest_distances
+        else 0.0,
+        "medianNearestNodeDistance": round(median(nearest_distances), 2)
+        if nearest_distances
+        else 0.0,
+        "maxNearestNodeDistance": round(max(nearest_distances), 2)
+        if nearest_distances
+        else 0.0,
+        "coveredNodeCount": sum(1 for degree in degrees.values() if degree > 0),
+        "isolatedNodeCount": sum(1 for degree in degrees.values() if degree == 0),
+    }
 
     if not distances:
         return {
@@ -225,6 +301,7 @@ def layout_metrics(
             "p95Distance": 0.0,
             "maxDistance": 0.0,
             "weightedMeanDistance": 0.0,
+            **spacing_metrics,
         }
 
     return {
@@ -234,4 +311,5 @@ def layout_metrics(
         "p95Distance": round(_percentile(distances, 0.95), 2),
         "maxDistance": round(max(distances), 2),
         "weightedMeanDistance": round(sum(weighted_distances) / len(weighted_distances), 2),
+        **spacing_metrics,
     }

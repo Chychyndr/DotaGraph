@@ -2,12 +2,13 @@
 
 ## Overview
 
-- Full validated current-patch hero graph visible.
-- Weak relationship spiderweb.
+- All validated current-patch heroes are visible.
+- A sparse deterministic relationship backbone gives graph structure without rendering the full production relationship corpus.
+- The initial camera fits and centers the actual hero bounds instead of assuming the fixed canvas center.
 - No win-rate labels.
 - Search remains visible.
 - Most hero names stay hidden until hover/focus.
-- Layout is deterministic.
+- Layout is deterministic and generated offline from real current-patch matchup affinity.
 - Dragging empty graph space pans the viewport.
 - The mouse wheel zooms around the pointer.
 
@@ -26,6 +27,7 @@
 - Focus scale adapts to the active relationship spread: close matchups keep the normal scale, while distant counters trigger only as much zoom-out as needed to fit the active set with padding.
 - Compact focus keeps its upward offset for the context card and uses the cropped visible graph span when calculating scale.
 - Gold ring.
+- Only the selected hero's active relationships are rendered in Focus.
 - Up to five incoming relationships in coral.
 - Up to five outgoing relationships in cyan.
 - Hero names render above portrait nodes.

@@ -129,6 +129,54 @@ test("win-rate badges keep native screen scale after camera zoom", async ({ page
   expect(Math.abs(scales!.labelScale - scales!.graphScale)).toBeLessThan(0.01);
 });
 
+test("initial overview centers the actual hero bounds", async ({ page }) => {
+  await page.setViewportSize({ width: 1366, height: 768 });
+  await page.goto("/");
+  const graph = page.getByRole("group", { name: "Dota 2 hero counter relationships" });
+  await expect(graph).toBeVisible();
+
+  const graphBox = await graph.boundingBox();
+  expect(graphBox).not.toBeNull();
+
+  const heroBounds = await page.locator(".hero-node").evaluateAll(nodes => {
+    const boxes = nodes.map(node => (node as SVGGraphicsElement).getBoundingClientRect());
+    return {
+      left: Math.min(...boxes.map(box => box.left)),
+      right: Math.max(...boxes.map(box => box.right)),
+      top: Math.min(...boxes.map(box => box.top)),
+      bottom: Math.max(...boxes.map(box => box.bottom))
+    };
+  });
+
+  const graphCenterX = graphBox!.x + graphBox!.width / 2;
+  const graphCenterY = graphBox!.y + graphBox!.height / 2;
+  const heroesCenterX = (heroBounds.left + heroBounds.right) / 2;
+  const heroesCenterY = (heroBounds.top + heroBounds.bottom) / 2;
+
+  expect(Math.abs(heroesCenterX - graphCenterX)).toBeLessThan(8);
+  expect(Math.abs(heroesCenterY - graphCenterY)).toBeLessThan(8);
+});
+
+test("overview renders a sparse relationship backbone", async ({ page }) => {
+  await page.goto("/");
+  await expect(
+    page.getByRole("group", { name: "Dota 2 hero counter relationships" })
+  ).toBeVisible();
+
+  const edgeCount = await page.locator(".edges .edge").count();
+  expect(edgeCount).toBeGreaterThan(0);
+  expect(edgeCount).toBeLessThanOrEqual(127);
+});
+
+test("focus renders only the selected hero relationships", async ({ page }) => {
+  await page.goto("/?hero=viper");
+  await expect(page.getByLabel("Viper counter summary")).toBeVisible();
+
+  const edgeCount = await page.locator(".edges .edge").count();
+  expect(edgeCount).toBeGreaterThan(0);
+  expect(edgeCount).toBeLessThanOrEqual(10);
+});
+
 test("focused win-rate labels stay source-anchored and do not overlap", async ({ page }) => {
   await page.goto("/?hero=viper");
 
@@ -216,17 +264,42 @@ test("graph exposes one keyboard tab stop and supports spatial arrow navigation"
 
   await tabbableHeroes.first().focus();
   const beforeId = await page.evaluate(() => document.activeElement?.id);
-  let afterId = beforeId;
-
-  for (const key of ["ArrowRight", "ArrowLeft", "ArrowDown", "ArrowUp"]) {
-    await page.keyboard.press(key);
-    afterId = await page.evaluate(() => document.activeElement?.id);
-    if (afterId !== beforeId) break;
-  }
-
   expect(beforeId).toMatch(/^graph-hero-/);
+
+  const direction = await page.evaluate((currentId) => {
+    const current = document.getElementById(currentId ?? "");
+    if (!current) return null;
+
+    const currentBox = current.getBoundingClientRect();
+    const currentX = currentBox.left + currentBox.width / 2;
+    const currentY = currentBox.top + currentBox.height / 2;
+    const candidates = [...document.querySelectorAll<SVGGElement>(".hero-node")]
+      .filter(node => node.id !== currentId)
+      .map(node => {
+        const box = node.getBoundingClientRect();
+        const dx = box.left + box.width / 2 - currentX;
+        const dy = box.top + box.height / 2 - currentY;
+        return { dx, dy, distance: Math.hypot(dx, dy) };
+      })
+      .sort((a, b) => a.distance - b.distance);
+
+    const nearest = candidates[0];
+    if (!nearest) return null;
+    if (Math.abs(nearest.dx) >= Math.abs(nearest.dy)) {
+      return nearest.dx >= 0 ? "ArrowRight" : "ArrowLeft";
+    }
+    return nearest.dy >= 0 ? "ArrowDown" : "ArrowUp";
+  }, beforeId);
+
+  expect(direction).not.toBeNull();
+  await page.keyboard.press(direction!);
+
+  await expect
+    .poll(() => page.evaluate(() => document.activeElement?.id))
+    .not.toBe(beforeId);
+
+  const afterId = await page.evaluate(() => document.activeElement?.id);
   expect(afterId).toMatch(/^graph-hero-/);
-  expect(afterId).not.toBe(beforeId);
   await expect(tabbableHeroes).toHaveCount(1);
 });
 
@@ -316,17 +389,43 @@ test("dragging pans the graph without clearing the selected hero", async ({ page
   await page.goto("/?hero=viper");
   const graph = page.getByRole("group", { name: "Dota 2 hero counter relationships" });
   const camera = page.locator(".graph-camera");
+  await page.waitForTimeout(520);
+
   const box = await graph.boundingBox();
   expect(box).not.toBeNull();
 
+  const start = await page.evaluate(({ left, top, width, height }) => {
+    const candidates = [
+      [0.08, 0.08],
+      [0.92, 0.08],
+      [0.92, 0.92],
+      [0.08, 0.92]
+    ];
+
+    for (const [xRatio, yRatio] of candidates) {
+      const x = left + width * xRatio;
+      const y = top + height * yRatio;
+      const element = document.elementFromPoint(x, y);
+      if (!element?.closest(".hero-node")) return { x, y };
+    }
+
+    return { x: left + 24, y: top + 24 };
+  }, {
+    left: box!.x,
+    top: box!.y,
+    width: box!.width,
+    height: box!.height
+  });
+
   const before = await camera.getAttribute("transform");
-  await page.mouse.move(box!.x + box!.width * 0.82, box!.y + box!.height * 0.25);
+  await page.mouse.move(start.x, start.y);
   await page.mouse.down();
-  await page.mouse.move(box!.x + box!.width * 0.72, box!.y + box!.height * 0.34, { steps: 6 });
+  await page.mouse.move(start.x - 90, start.y + 70, { steps: 6 });
   await page.mouse.up();
 
-  const after = await camera.getAttribute("transform");
-  expect(after).not.toBe(before);
+  await expect
+    .poll(() => camera.getAttribute("transform"))
+    .not.toBe(before);
   await expect(page).toHaveURL(/hero=viper/);
 });
 

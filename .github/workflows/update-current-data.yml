@@ -71,6 +71,9 @@ jobs:
           print(f"- Layout relationships: **{coverage['layoutRelationshipCount']}**")
           print(f"- Layout median distance: **{metrics['medianDistance']} px**")
           print(f"- Layout p95 distance: **{metrics['p95Distance']} px**")
+          print(f"- Minimum node distance: **{metrics['minimumNodeDistance']} px**")
+          print(f"- Worst nearest-node gap: **{metrics['maxNearestNodeDistance']} px**")
+          print(f"- Isolated heroes: **{metrics['isolatedNodeCount']}**")
           PY
 
       - name: Upload pipeline debug log

@@ -8,6 +8,19 @@ export interface VisibleViewBox {
   height: number;
 }
 
+export interface OverviewCamera {
+  anchorX: number;
+  anchorY: number;
+  scale: number;
+}
+
+export interface OverviewCameraOptions extends VisibleViewBox {
+  paddingX?: number;
+  paddingY?: number;
+  minScale?: number;
+  maxScale?: number;
+}
+
 export interface FocusScaleOptions extends VisibleViewBox {
   offsetX?: number;
   offsetY?: number;
@@ -48,6 +61,47 @@ export function visibleViewBoxForViewport(
   return {
     width: viewportWidth / outerScale,
     height: viewportHeight / outerScale
+  };
+}
+
+export function calculateOverviewCamera(
+  points: GraphPoint[],
+  {
+    width,
+    height,
+    paddingX = 72,
+    paddingY = 60,
+    minScale = 0.7,
+    maxScale = 1
+  }: OverviewCameraOptions
+): OverviewCamera {
+  if (points.length === 0) {
+    return {
+      anchorX: width / 2,
+      anchorY: height / 2,
+      scale: 1
+    };
+  }
+
+  const xs = points.map(point => point.x);
+  const ys = points.map(point => point.y);
+  const minX = Math.min(...xs);
+  const maxX = Math.max(...xs);
+  const minY = Math.min(...ys);
+  const maxY = Math.max(...ys);
+  const spanX = Math.max(1, maxX - minX);
+  const spanY = Math.max(1, maxY - minY);
+  const usableWidth = Math.max(1, width - paddingX * 2);
+  const usableHeight = Math.max(1, height - paddingY * 2);
+
+  return {
+    anchorX: (minX + maxX) / 2,
+    anchorY: (minY + maxY) / 2,
+    scale: clamp(
+      Math.min(usableWidth / spanX, usableHeight / spanY, maxScale),
+      minScale,
+      maxScale
+    )
   };
 }
 

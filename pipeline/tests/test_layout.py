@@ -46,6 +46,44 @@ class LayoutTests(unittest.TestCase):
                     45.8,
                 )
 
+    def test_default_spacing_keeps_portraits_separated(self) -> None:
+        positions = compute_layout(self.nodes, self.edges, iterations=180)
+        values = list(positions.values())
+
+        for index, first in enumerate(values):
+            for second in values[index + 1 :]:
+                self.assertGreaterEqual(
+                    math.hypot(second[0] - first[0], second[1] - first[1]),
+                    57.8,
+                )
+
+    def test_low_degree_hero_stays_near_real_affinity_neighbors(self) -> None:
+        nodes = ["chen", "axe", "viper", "huskar", "lich", "pugna", "spectre"]
+        edges = [
+            WeightedEdge("chen", "axe", 0.7),
+            WeightedEdge("chen", "viper", 0.65),
+            WeightedEdge("axe", "viper", 0.9),
+            WeightedEdge("axe", "huskar", 0.8),
+            WeightedEdge("viper", "lich", 0.75),
+            WeightedEdge("huskar", "pugna", 0.7),
+            WeightedEdge("lich", "spectre", 0.7),
+            WeightedEdge("pugna", "spectre", 0.65),
+        ]
+
+        positions = compute_layout(nodes, edges, iterations=240)
+        chen = positions["chen"]
+        axe = positions["axe"]
+        viper = positions["viper"]
+        neighbor_centroid = ((axe[0] + viper[0]) / 2, (axe[1] + viper[1]) / 2)
+
+        self.assertLessEqual(
+            math.hypot(
+                chen[0] - neighbor_centroid[0],
+                chen[1] - neighbor_centroid[1],
+            ),
+            180.0,
+        )
+
     def test_metrics_cover_layout_edges(self) -> None:
         positions = compute_layout(self.nodes, self.edges, iterations=180)
         metrics = layout_metrics(positions, self.edges)
@@ -53,6 +91,9 @@ class LayoutTests(unittest.TestCase):
         self.assertEqual(metrics["edgeCount"], len(self.edges))
         self.assertGreater(metrics["medianDistance"], 0)
         self.assertGreaterEqual(metrics["p95Distance"], metrics["medianDistance"])
+        self.assertGreaterEqual(metrics["minimumNodeDistance"], 57.8)
+        self.assertEqual(metrics["isolatedNodeCount"], 0)
+        self.assertEqual(metrics["coveredNodeCount"], len(self.nodes))
 
 
 if __name__ == "__main__":

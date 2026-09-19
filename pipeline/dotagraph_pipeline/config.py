@@ -14,6 +14,7 @@ class PatchScope:
     game_mode: int = 22
     lobby_type: int = 7
     minimum_sample: int = 500
+    layout_fallback_minimum_sample: int = 100
     max_visible_per_direction: int = 5
 
 
