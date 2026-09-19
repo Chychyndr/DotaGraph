@@ -34,7 +34,7 @@ Overview keeps the whole graph as a weak spiderweb.
 
 Hover reveals only local context and never relayouts the graph.
 
-Focus keeps the selected hero as the camera anchor and shows only that hero plus its active relationship heroes. Incoming counters are arranged on the left and outgoing counters on the right in a deterministic balanced arc, so the focused graph reads as one clean structure rather than a second graph over the Overview. The camera may zoom out just enough to keep the active set visible while preserving the selected hero's focus.
+Focus keeps the selected hero as the camera anchor and shows only that hero plus its active relationship heroes. Incoming counters are arranged on the left and outgoing counters on the right in a deterministic balanced arc, so the focused graph reads as one clean structure rather than a second graph over the Overview. On desktop the focused composition reserves space for the left-side HeroCard; the camera may zoom out just enough to keep the active set visible.
 
 Selecting or leaving a hero moves the camera with a short eased transition. Manual drag or wheel input immediately takes control and cancels that camera animation.
 
