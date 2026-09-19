@@ -12,6 +12,7 @@ on:
 
 permissions:
   contents: write
+  actions: write
 
 concurrency:
   group: dotagraph-current-data-${{ github.ref }}
@@ -82,10 +83,13 @@ jobs:
           retention-days: 14
 
       - name: Commit generated data
+        id: publish
         shell: bash
         run: |
-          if git ls-files --error-unmatch public/data/current-matchups.json >/dev/null 2>&1             && git diff --quiet -- public/data/current-matchups.json; then
+          if git ls-files --error-unmatch public/data/current-matchups.json >/dev/null 2>&1 \
+            && git diff --quiet -- public/data/current-matchups.json; then
             echo "Current matchup bundle is unchanged."
+            echo "changed=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
@@ -97,3 +101,18 @@ jobs:
           BRANCH="${GITHUB_REF_NAME}"
           git pull --rebase origin "$BRANCH"
           git push origin "HEAD:$BRANCH"
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Dispatch CI for published data
+        if: steps.publish.outputs.changed == 'true'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          curl --fail-with-body --silent --show-error \
+            --request POST \
+            --header "Accept: application/vnd.github+json" \
+            --header "Authorization: Bearer $GH_TOKEN" \
+            --header "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/workflows/ci.yml/dispatches" \
+            --data "{"ref":"${GITHUB_REF_NAME}"}"
