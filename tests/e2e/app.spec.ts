@@ -704,7 +704,7 @@ test("desktop hero selection only pans the existing overview camera for the card
   expect(beforeParts).not.toBeNull();
   expect(afterParts).not.toBeNull();
 
-  expect(afterParts![0] - beforeParts![0]).toBeCloseTo(100, 1);
+  expect(afterParts![0] - beforeParts![0]).toBeCloseTo(150, 1);
   expect(afterParts![1]).toBeCloseTo(beforeParts![1], 4);
   expect(afterParts![2]).toBeCloseTo(beforeParts![2], 4);
   expect(afterParts![3]).toBeCloseTo(beforeParts![3], 4);
