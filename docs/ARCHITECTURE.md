@@ -4,7 +4,7 @@
 
 The current implementation uses React + TypeScript + Vite with a deterministic SVG graph renderer.
 
-SVG is deliberately used for the current graph/frontend work because the fixture graph is small and custom portrait nodes, arrowheads, edge labels, keyboard focus, and DOM accessibility are straightforward.
+SVG is deliberately used because the 127-hero graph remains small enough for deterministic DOM rendering while custom portrait nodes, arrowheads, edge labels, keyboard focus, and accessibility remain straightforward.
 
 The domain model and relationship selection logic are independent from the renderer. A Sigma.js + Graphology spike was completed and the project chose to keep the deterministic SVG renderer for the current graph because it is smaller and better aligned with source-owned label layout, DOM accessibility, and deterministic testing. A future renderer change remains possible if graph scale materially changes.
 
@@ -13,16 +13,16 @@ See `docs/adr/0001-graph-renderer.md`.
 ## Boundaries
 
 - `src/domain/`: semantic types and pure relationship logic.
-- `src/data/`: fixture data, scope metadata, dataset validation, and the asynchronous frontend loading boundary.
+- `src/data/`: hero identity metadata, production snapshot conversion, runtime validation, and the asynchronous frontend loading boundary.
 - `src/components/`: Search, contextual cards, and shared portrait-asset state.
 - `src/graph/`: renderer/layout only.
 - `src/styles/`: design tokens and app styling.
 
-Future production pipeline should live under `pipeline/` and use Python + `uv`.
+The production data pipeline lives under `pipeline/` and uses Python + `uv`.
 
 ## Stable data-driven layout
 
-Hero coordinates are generated offline and committed as a patch-scoped snapshot.
+Hero coordinates are generated offline from the same current-patch relationships used by the product and committed inside the daily production snapshot.
 
 The layout build:
 - reads the canonical hero catalog;
@@ -33,7 +33,7 @@ The layout build:
 
 The browser never runs a force simulation. Overview, hover, and focus reuse the same stable coordinates, so graph topology does not jump between page loads.
 
-Real-data layout affinity is separate from the public counter-ranking contract. Changing how the graph is arranged must not silently change what `A -> B` means or promote a relationship into the product.
+Layout uses confidence-qualified current-patch relationships, but geometry remains separate from relationship semantics. Changing layout parameters must not change what `A -> B` means or alter the user-visible win rate.
 
 ## Static hosting
 
@@ -45,7 +45,7 @@ Examples:
 
 ## Data boundary
 
-The frontend does not render raw imported data directly. `loadDataset` assembles the local published bundle and passes it through runtime validation before React receives it.
+The frontend does not render provider responses directly. GitHub Actions publishes `public/data/current-matchups.json`; `loadDataset` fetches it as a static asset, converts stable internal hero slugs to UI hero IDs, and passes the complete result through runtime validation before React receives it.
 
 Loading and validation are intentionally explicit:
 - while the bundle is pending, the graph is not presented as ready;
@@ -53,9 +53,9 @@ Loading and validation are intentionally explicit:
 - a validated stale bundle remains usable with a visible warning;
 - load failures expose a retry state.
 
-Production observations must retain explicit direction, source win rate, sample size, patch, rank scope, provenance, and generation metadata.
+Production observations retain explicit direction, raw source win rate, sample size, baseline-adjusted delta, internal ranking score, patch, rank scope, provenance, observation window, and generation metadata.
 
-Real source ingestion is outside the current frontend work and requires source and methodology approval.
+The current OpenDota pipeline runs daily in GitHub Actions. Structured test/generation logs are retained as workflow artifacts. Provider availability is therefore a build-time concern; the published static frontend never depends on a live OpenDota request.
 
 ## Portrait asset boundary
 
