@@ -621,7 +621,7 @@ export function GraphView({
         </g>
 
         <g className="nodes">
-          {heroes.map((hero) => {
+          {presentationHeroes.map((hero) => {
             const isSelected = hero.id === selectedHeroId;
             const isActive = activeIds.has(hero.id) && !isSelected;
             const isHovered = hero.id === hoveredHeroId;
