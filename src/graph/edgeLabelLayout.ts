@@ -27,11 +27,14 @@ export const EDGE_LABEL_WIDTH = 46;
 export const EDGE_LABEL_HEIGHT = 18;
 
 const LABEL_GAP = 5;
-const MIN_T = 0.2;
-const MAX_T = 0.62;
-const SOURCE_DISTANCES = [56, 84, 112, 140, 168, 196, 224, 252, 280, 308];
-const SOURCE_T_FALLBACKS = [0.2, 0.27, 0.34, 0.41, 0.48, 0.55, 0.62];
+const MIN_T = 0.12;
+const MAX_T = 0.88;
+const PREFERRED_T = 0.34;
 const NORMAL_OFFSETS = [0];
+const SAFE_END_MARGIN = Math.hypot(
+  EDGE_LABEL_WIDTH / 2 + LABEL_GAP,
+  EDGE_LABEL_HEIGHT / 2 + LABEL_GAP
+);
 
 interface Rect {
   left: number;
@@ -95,7 +98,10 @@ const candidateScore = (
 ) => {
   const paddedRect = rectFor(placement.x, placement.y, LABEL_GAP);
 
-  let score = preferenceIndex * 2 + Math.abs(placement.offset) * 0.25;
+  let score =
+    Math.abs(placement.t - PREFERRED_T) * 40 +
+    preferenceIndex * 0.05 +
+    Math.abs(placement.offset) * 0.25;
 
   for (const placed of placedRects) {
     if (!rectanglesOverlap(paddedRect, placed)) continue;
@@ -130,14 +136,23 @@ export function layoutSourceAnchoredEdgeLabels(
   for (const input of orderedInputs) {
     const { segment } = input;
     const length = Math.hypot(segment.x2 - segment.x1, segment.y2 - segment.y1) || 1;
-    const sourceTs = [
-      ...SOURCE_DISTANCES.map((distance) =>
-        clamp(distance / length, MIN_T, MAX_T)
-      ),
-      ...SOURCE_T_FALLBACKS
-    ];
-    const uniqueTs = [...new Set(sourceTs.map((value) => value.toFixed(4)))]
-      .map(Number);
+    const safeMinT = clamp(SAFE_END_MARGIN / length, MIN_T, 0.46);
+    const safeMaxT = clamp(1 - SAFE_END_MARGIN / length, 0.54, MAX_T);
+    const step = 0.04;
+    const sampledTs: number[] = [];
+
+    for (let t = safeMinT; t <= safeMaxT + 0.0001; t += step) {
+      sampledTs.push(t);
+    }
+    sampledTs.push(safeMinT, safeMaxT, clamp(PREFERRED_T, safeMinT, safeMaxT));
+
+    const uniqueTs = [...new Set(sampledTs.map((value) => value.toFixed(4)))]
+      .map(Number)
+      .sort(
+        (a, b) =>
+          Math.abs(a - PREFERRED_T) - Math.abs(b - PREFERRED_T) ||
+          a - b
+      );
 
     const candidates = uniqueTs.flatMap((t) =>
       NORMAL_OFFSETS.map((offset) => candidateFor(segment, t, offset))
