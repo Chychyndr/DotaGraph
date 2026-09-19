@@ -111,6 +111,20 @@ class CurrentBundleTests(unittest.TestCase):
         ]
         self.assertGreaterEqual(len(chen_neighbors), 2)
 
+    def test_committed_snapshot_layout_quality(self) -> None:
+        repo_root = Path(__file__).resolve().parents[2]
+        payload = __import__("json").loads(
+            (repo_root / "public" / "data" / "current-matchups.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        metrics = payload["layoutMetrics"]
+
+        self.assertEqual(metrics["coveredNodeCount"], 127)
+        self.assertEqual(metrics["isolatedNodeCount"], 0)
+        self.assertGreaterEqual(metrics["minimumNodeDistance"], 57.8)
+        self.assertLessEqual(metrics["maxNearestNodeDistance"], 90.0)
+
     def test_generate_emits_741f_production_contract(self) -> None:
         repo_root = Path(__file__).resolve().parents[2]
         now = datetime(2026, 9, 19, 8, 0, tzinfo=timezone.utc)
