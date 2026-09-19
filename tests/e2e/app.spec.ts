@@ -64,6 +64,29 @@ test("hovered hero label renders above every portrait node", async ({ page }) =>
   expect(layerOrder!.labels).toBeGreaterThan(layerOrder!.nodes);
 });
 
+test("win-rate badges render above every edge line", async ({ page }) => {
+  await page.goto("/?hero=viper");
+
+  const order = await page.evaluate(() => {
+    const camera = document.querySelector(".graph-camera");
+    const edges = camera?.querySelector(".edges");
+    const labels = camera?.querySelector(".edge-label-layer");
+    const nodes = camera?.querySelector(".nodes");
+    if (!camera || !edges || !labels || !nodes) return null;
+
+    const children = Array.from(camera.children);
+    return {
+      edges: children.indexOf(edges),
+      labels: children.indexOf(labels),
+      nodes: children.indexOf(nodes)
+    };
+  });
+
+  expect(order).not.toBeNull();
+  expect(order!.labels).toBeGreaterThan(order!.edges);
+  expect(order!.labels).toBeLessThan(order!.nodes);
+});
+
 test("focused win-rate labels stay source-anchored and do not overlap", async ({ page }) => {
   await page.goto("/?hero=viper");
 
