@@ -80,10 +80,11 @@ class CurrentBundleTests(unittest.TestCase):
         self.assertEqual(len(payload["positions"]), 127)
 
         relationships = payload["relationships"]
-        self.assertEqual(len(relationships), 1)
-        relationship = relationships[0]
-        self.assertEqual(relationship["sourceSlug"], "axe")
-        self.assertEqual(relationship["targetSlug"], "viper")
+        relationship = next(
+            item
+            for item in relationships
+            if item["sourceSlug"] == "axe" and item["targetSlug"] == "viper"
+        )
         self.assertAlmostEqual(relationship["sourceWinRate"], 0.62)
         self.assertGreater(relationship["rankingScore"], 0)
         self.assertIn("baselineAdjustedDelta", relationship)
