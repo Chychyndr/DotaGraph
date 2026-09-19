@@ -75,6 +75,24 @@ describe("layoutFocusPresentation", () => {
     expect(layout.get("rank-2")!.y).toBeLessThan(layout.get("rank-3")!.y);
   });
 
+  it("keeps sparse sides compact instead of stretching heroes to arc extremes", () => {
+    const selected = hero("selected", 400, 300);
+    const incoming = [
+      hero("rank-1", 100, 100),
+      hero("rank-2", 100, 500)
+    ];
+    const layout = layoutFocusPresentation(selected, { incoming, outgoing: [] });
+
+    const first = layout.get("rank-1")!;
+    const second = layout.get("rank-2")!;
+    const firstAngle = Math.atan2(first.y - selected.y, first.x - selected.x);
+    const secondAngle = Math.atan2(second.y - selected.y, second.x - selected.x);
+    const separation = Math.abs(firstAngle - secondAngle);
+
+    expect(separation).toBeGreaterThan(Math.PI / 8);
+    expect(separation).toBeLessThan(Math.PI / 5);
+  });
+
   it("keeps a five-hero side evenly separated", () => {
     const selected = hero("selected", 400, 300);
     const incoming = Array.from({ length: 5 }, (_, index) =>
