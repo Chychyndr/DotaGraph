@@ -9,6 +9,7 @@ export interface EdgeLabelInput {
   id: string;
   segment: EdgeSegment;
   preferredT?: number;
+  source?: EdgeLabelObstacle;
 }
 
 export interface EdgeLabelObstacle {
@@ -23,6 +24,7 @@ export interface EdgeLabelPlacement {
   t: number;
   offset: number;
   scale: number;
+  leader?: EdgeSegment;
 }
 
 export const EDGE_LABEL_WIDTH = 46;
@@ -191,6 +193,57 @@ export function layoutSourceAnchoredEdgeLabels(
         bestScore = score;
       }
     });
+
+    if (bestScore >= 5_000 && input.source) {
+      const dx = segment.x2 - segment.x1;
+      const dy = segment.y2 - segment.y1;
+      const segmentLength = Math.hypot(dx, dy) || 1;
+      const ux = dx / segmentLength;
+      const uy = dy / segmentLength;
+      const externalScale = 1;
+      const support =
+        Math.abs(ux) * EDGE_LABEL_WIDTH * externalScale / 2 +
+        Math.abs(uy) * EDGE_LABEL_HEIGHT * externalScale / 2;
+      const sourceEdge = {
+        x: input.source.x - ux * (input.source.radius + LABEL_GAP),
+        y: input.source.y - uy * (input.source.radius + LABEL_GAP)
+      };
+
+      for (const extraDistance of [0, 18, 36, 54, 72]) {
+        const distance = support + LABEL_GAP + extraDistance;
+        const x = sourceEdge.x - ux * distance;
+        const y = sourceEdge.y - uy * distance;
+        const t =
+          ((x - segment.x1) * dx + (y - segment.y1) * dy) /
+          (segmentLength * segmentLength);
+        const candidate: EdgeLabelPlacement = {
+          x,
+          y,
+          t,
+          offset: 0,
+          scale: externalScale,
+          leader: {
+            x1: sourceEdge.x,
+            y1: sourceEdge.y,
+            x2: x + ux * (support + 1),
+            y2: y + uy * (support + 1)
+          }
+        };
+        const score =
+          candidateScore(
+            candidate,
+            placedRects,
+            obstacles,
+            candidates.length + extraDistance,
+            t
+          ) + 150;
+
+        if (score < bestScore) {
+          best = candidate;
+          bestScore = score;
+        }
+      }
+    }
 
     placements.set(input.id, best);
     placedRects.push(rectFor(best.x, best.y, best.scale, LABEL_GAP));
