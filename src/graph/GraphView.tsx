@@ -120,12 +120,18 @@ export function GraphView({
   const focusPositions = useMemo(
     () =>
       selectedHero
-        ? layoutFocusPresentation(selectedHero, {
-            incoming: incomingHeroes,
-            outgoing: outgoingHeroes
-          })
+        ? layoutFocusPresentation(
+            selectedHero,
+            {
+              incoming: incomingHeroes,
+              outgoing: outgoingHeroes
+            },
+            {
+              radius: isCompactViewport ? 250 : 330
+            }
+          )
         : new Map<string, { x: number; y: number }>(),
-    [incomingHeroes, outgoingHeroes, selectedHero]
+    [incomingHeroes, isCompactViewport, outgoingHeroes, selectedHero]
   );
   const presentationHeroes = useMemo(
     () =>
