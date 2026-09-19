@@ -336,6 +336,65 @@ def _select_layout_relationships(
     )
 
 
+def _ensure_layout_neighbors(
+    selected: list[RankedRelationship],
+    fallback_candidates: list[RankedRelationship],
+    hero_slugs: set[str],
+    *,
+    minimum_neighbors: int = 2,
+) -> list[RankedRelationship]:
+    selected_by_pair = {
+        tuple(sorted((relationship.source, relationship.target))): relationship
+        for relationship in selected
+    }
+    degrees = {slug: 0 for slug in hero_slugs}
+
+    for relationship in selected_by_pair.values():
+        degrees[relationship.source] = degrees.get(relationship.source, 0) + 1
+        degrees[relationship.target] = degrees.get(relationship.target, 0) + 1
+
+    incident: dict[str, list[RankedRelationship]] = {}
+    for relationship in fallback_candidates:
+        incident.setdefault(relationship.source, []).append(relationship)
+        incident.setdefault(relationship.target, []).append(relationship)
+
+    for hero_slug in sorted(hero_slugs):
+        if degrees.get(hero_slug, 0) >= minimum_neighbors:
+            continue
+
+        candidates = sorted(
+            incident.get(hero_slug, []),
+            key=lambda item: (
+                -item.baseline_adjusted_delta,
+                -item.sample_size,
+                item.source,
+                item.target,
+            ),
+        )
+
+        for relationship in candidates:
+            pair_key = tuple(sorted((relationship.source, relationship.target)))
+            if pair_key in selected_by_pair:
+                continue
+
+            selected_by_pair[pair_key] = relationship
+            degrees[relationship.source] = degrees.get(relationship.source, 0) + 1
+            degrees[relationship.target] = degrees.get(relationship.target, 0) + 1
+
+            if degrees.get(hero_slug, 0) >= minimum_neighbors:
+                break
+
+    return sorted(
+        selected_by_pair.values(),
+        key=lambda item: (
+            -item.baseline_adjusted_delta,
+            -item.sample_size,
+            item.source,
+            item.target,
+        ),
+    )
+
+
 def _layout_edges(
     relationships: list[RankedRelationship],
 ) -> list[WeightedEdge]:
@@ -386,6 +445,7 @@ def generate(
         windowEnd=_iso_from_epoch(end_epoch),
         rankScope=CURRENT_SCOPE.rank_scope,
         minimumSample=CURRENT_SCOPE.minimum_sample,
+        layoutFallbackMinimumSample=CURRENT_SCOPE.layout_fallback_minimum_sample,
     )
 
     catalog_slugs = _load_catalog(repo_root)
@@ -403,6 +463,16 @@ def generate(
         confidence_z=0.0,
     )
     layout_relationships = _select_layout_relationships(layout_candidates)
+    layout_fallback_candidates = rank_relationships(
+        pairs,
+        minimum_sample=CURRENT_SCOPE.layout_fallback_minimum_sample,
+        confidence_z=0.0,
+    )
+    layout_relationships = _ensure_layout_neighbors(
+        layout_relationships,
+        layout_fallback_candidates,
+        catalog_slugs,
+    )
     weighted_edges = _layout_edges(layout_relationships)
     positions = compute_layout(catalog_slugs, weighted_edges)
     metrics = layout_metrics(positions, weighted_edges)
