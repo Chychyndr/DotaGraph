@@ -34,6 +34,8 @@
 - Tiny arrowheads clarify direction.
 - Win-rate pills stay centered on their own relationship lines and remain source-side; selected-source pills can sit farther down the source half to keep dense fans legible.
 - Active hero portraits use a deterministic balanced two-sided presentation layout so portraits, names, and percentage pills have clear breathing room.
+- Within each side, graph order follows the same ranked relationship order shown in HeroCard from top to bottom.
+- Focus is a single isolated scene: every visible focus node must belong to one visible active relationship or be the selected hero.
 - The HeroCard section headings do not show “x/5” counters.
 - HeroCard appears.
 - Clicking another background node refocuses.
