@@ -670,72 +670,30 @@ test("mouse wheel zooms the graph", async ({ page }) => {
     .not.toBe(before);
 });
 
-test("selecting a distant hero moves and settles the camera", async ({ page }) => {
+test("desktop hero selection keeps the overview camera stable", async ({ page }) => {
+  await page.setViewportSize({ width: 1366, height: 768 });
   await page.goto("/");
+
   const camera = page.locator(".graph-camera");
   const search = page.getByRole("combobox", { name: "Search for a hero" });
   const before = await camera.getAttribute("transform");
 
   await search.fill("underlord");
   await page.getByRole("option", { name: /Underlord/ }).click();
-
-  await expect
-    .poll(() => camera.getAttribute("transform"))
-    .not.toBe(before);
-
   await page.waitForTimeout(520);
-  const settled = await camera.getAttribute("transform");
-  expect(settled).not.toBe(before);
 
-  await page.waitForTimeout(120);
-  expect(await camera.getAttribute("transform")).toBe(settled);
+  expect(await camera.getAttribute("transform")).toBe(before);
   await expect(page).toHaveURL(/hero=underlord/);
-});
-
-test("focus camera reserves card space and keeps active counters visible", async ({ page }) => {
-  await page.setViewportSize({ width: 1366, height: 768 });
-  await page.goto("/?hero=spectre");
-  await page.waitForTimeout(520);
-
-  const graph = page.getByRole("group", { name: "Dota 2 hero counter relationships" });
-  const graphBox = await graph.boundingBox();
-  expect(graphBox).not.toBeNull();
-
-  const selectedBox = await page.locator("#graph-hero-spectre").boundingBox();
-  expect(selectedBox).not.toBeNull();
-
-  const graphCenterX = graphBox!.x + graphBox!.width / 2;
-  const graphCenterY = graphBox!.y + graphBox!.height / 2;
-  const selectedCenterX = selectedBox!.x + selectedBox!.width / 2;
-  const selectedCenterY = selectedBox!.y + selectedBox!.height / 2;
-
-  const desktopFocusOffset = selectedCenterX - graphCenterX;
-  expect(desktopFocusOffset).toBeGreaterThan(140);
-  expect(desktopFocusOffset).toBeLessThan(190);
-  expect(Math.abs(selectedCenterY - graphCenterY)).toBeLessThan(4);
-
-  const transform = await page.locator(".graph-camera").getAttribute("transform");
-  const scaleMatch = transform?.match(/scale\(([^)]+)\)/);
-  expect(scaleMatch).not.toBeNull();
-  expect(Number(scaleMatch![1])).toBeGreaterThan(0);
 
   const activeHeroes = page.locator(".hero-active");
   const activeCount = await activeHeroes.count();
   expect(activeCount).toBeGreaterThan(0);
   expect(activeCount).toBeLessThanOrEqual(10);
-
-  for (let index = 0; index < activeCount; index += 1) {
-    const box = await activeHeroes.nth(index).boundingBox();
-    expect(box).not.toBeNull();
-    expect(box!.x).toBeGreaterThanOrEqual(graphBox!.x);
-    expect(box!.y).toBeGreaterThanOrEqual(graphBox!.y);
-    expect(box!.x + box!.width).toBeLessThanOrEqual(graphBox!.x + graphBox!.width);
-    expect(box!.y + box!.height).toBeLessThanOrEqual(graphBox!.y + graphBox!.height);
-  }
 });
 
-test("reduced-motion preference skips the focus camera animation", async ({ page }) => {
+test("reduced-motion desktop selection also keeps the same camera", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.setViewportSize({ width: 1366, height: 768 });
   await page.goto("/");
 
   const camera = page.locator(".graph-camera");
@@ -746,12 +704,7 @@ test("reduced-motion preference skips the focus camera animation", async ({ page
   await page.keyboard.press("Enter");
   await page.waitForTimeout(30);
 
-  const afterSelection = await camera.getAttribute("transform");
-  await page.waitForTimeout(520);
-  const afterWait = await camera.getAttribute("transform");
-
-  expect(afterSelection).not.toBe(before);
-  expect(afterWait).toBe(afterSelection);
+  expect(await camera.getAttribute("transform")).toBe(before);
 });
 
 test("site exposes the DotaGraph logo as favicon and header brand", async ({ page }) => {
