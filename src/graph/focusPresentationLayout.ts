@@ -9,6 +9,7 @@ export interface FocusPresentationOptions {
   minSelectedDistance?: number;
   maxSelectedDistance?: number;
   minActiveDistance?: number;
+  minAngularSeparation?: number;
   iterations?: number;
 }
 
@@ -28,7 +29,8 @@ export function layoutFocusPresentation(
     minSelectedDistance = 180,
     maxSelectedDistance = 310,
     minActiveDistance = 120,
-    iterations = 140
+    minAngularSeparation = Math.PI / 9,
+    iterations = 180
   }: FocusPresentationOptions = {}
 ): Map<string, FocusPosition> {
   const ordered = [...related]
@@ -92,6 +94,41 @@ export function layoutFocusPresentation(
     }
 
     let moved = false;
+
+    for (let left = 0; left < points.length; left += 1) {
+      for (let right = left + 1; right < points.length; right += 1) {
+        const a = points[left];
+        const b = points[right];
+        const radiusA = Math.hypot(a.x - selected.x, a.y - selected.y);
+        const radiusB = Math.hypot(b.x - selected.x, b.y - selected.y);
+        const angleA = Math.atan2(a.y - selected.y, a.x - selected.x);
+        const angleB = Math.atan2(b.y - selected.y, b.x - selected.x);
+        let difference = angleB - angleA;
+
+        while (difference > Math.PI) difference -= Math.PI * 2;
+        while (difference < -Math.PI) difference += Math.PI * 2;
+
+        if (Math.abs(difference) >= minAngularSeparation) continue;
+
+        const sign =
+          Math.abs(difference) < 1e-6
+            ? a.id.localeCompare(b.id) <= 0
+              ? 1
+              : -1
+            : Math.sign(difference);
+        const adjustment =
+          (minAngularSeparation - Math.abs(difference)) / 2 + 0.001;
+
+        const nextAngleA = angleA - sign * adjustment;
+        const nextAngleB = angleB + sign * adjustment;
+
+        a.x = selected.x + Math.cos(nextAngleA) * radiusA;
+        a.y = selected.y + Math.sin(nextAngleA) * radiusA;
+        b.x = selected.x + Math.cos(nextAngleB) * radiusB;
+        b.y = selected.y + Math.sin(nextAngleB) * radiusB;
+        moved = true;
+      }
+    }
 
     for (let left = 0; left < points.length; left += 1) {
       for (let right = left + 1; right < points.length; right += 1) {
