@@ -35,7 +35,7 @@ describe("layoutSourceAnchoredEdgeLabels", () => {
     ], []).get("short")!;
 
     expect(placement.scale).toBeLessThan(1);
-    expect(placement.scale).toBeGreaterThanOrEqual(0.6);
+    expect(placement.scale).toBeGreaterThanOrEqual(0.8);
     expect(placement.offset).toBe(0);
     expect(placement.y).toBeCloseTo(100, 6);
   });
