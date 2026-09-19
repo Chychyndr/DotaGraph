@@ -237,30 +237,64 @@ test("focus keeps the same graph and only highlights selected relationships", as
   await expect(page.getByLabel("Terrorblade counter summary")).not.toContainText(/\/5/);
 });
 
-test("desktop focus keeps hero names clear of the context card", async ({ page }) => {
+test("desktop focus keeps hero names clear of the card and viewport edges", async ({ page }) => {
   await page.setViewportSize({ width: 1366, height: 768 });
-  await page.goto("/?hero=crystal-maiden");
-  await page.waitForTimeout(520);
 
-  const overlaps = await page.evaluate(() => {
-    const card = document.querySelector<HTMLElement>(".context-card");
-    if (!card) return ["missing context card"];
-    const cardRect = card.getBoundingClientRect();
+  for (const heroId of [
+    "crystal-maiden",
+    "dragon-knight",
+    "rubick",
+    "terrorblade",
+    "dark-willow",
+    "spectre"
+  ]) {
+    await page.goto(`/?hero=${heroId}`);
+    await page.waitForTimeout(520);
 
-    return [...document.querySelectorAll<SVGGElement>(".hero-label-group")]
-      .filter((label) => {
-        const rect = label.getBoundingClientRect();
-        return (
-          rect.left < cardRect.right &&
-          rect.right > cardRect.left &&
-          rect.top < cardRect.bottom &&
-          rect.bottom > cardRect.top
-        );
-      })
-      .map((label) => label.dataset.heroLabel ?? "unknown");
-  });
+    const geometry = await page.evaluate(() => {
+      const card = document.querySelector<HTMLElement>(".context-card");
+      const graph = document.querySelector<SVGSVGElement>(".graph");
+      if (!card || !graph) {
+        return {
+          cardOverlaps: ["missing card or graph"],
+          outsideViewport: ["missing card or graph"]
+        };
+      }
 
-  expect(overlaps).toEqual([]);
+      const cardRect = card.getBoundingClientRect();
+      const graphRect = graph.getBoundingClientRect();
+      const labels = [...document.querySelectorAll<SVGGElement>(".hero-label-group")];
+
+      const cardOverlaps = labels
+        .filter((label) => {
+          const rect = label.getBoundingClientRect();
+          return (
+            rect.left < cardRect.right &&
+            rect.right > cardRect.left &&
+            rect.top < cardRect.bottom &&
+            rect.bottom > cardRect.top
+          );
+        })
+        .map((label) => label.dataset.heroLabel ?? "unknown");
+
+      const outsideViewport = labels
+        .filter((label) => {
+          const rect = label.getBoundingClientRect();
+          return (
+            rect.left < graphRect.left - 1 ||
+            rect.right > graphRect.right + 1 ||
+            rect.top < graphRect.top - 1 ||
+            rect.bottom > graphRect.bottom + 1
+          );
+        })
+        .map((label) => label.dataset.heroLabel ?? "unknown");
+
+      return { cardOverlaps, outsideViewport };
+    });
+
+    expect(geometry.cardOverlaps, heroId).toEqual([]);
+    expect(geometry.outsideViewport, heroId).toEqual([]);
+  }
 });
 
 test("focused hero names stay clear of active relationship lines", async ({ page }) => {
