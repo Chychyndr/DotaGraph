@@ -41,6 +41,27 @@ describe("layoutHeroLabels", () => {
     expect(placement.x - 35).toBeGreaterThan(179);
   });
 
+  it("keeps a focus label outside a hard left-side card boundary", () => {
+    const width = 70;
+    const minX = 80;
+    const placement = layoutHeroLabels(
+      [{
+        id: "hero",
+        x: 100,
+        y: 100,
+        radius: 20,
+        width,
+        height: 20,
+        preferredAngle: Math.PI
+      }],
+      [],
+      [{ id: "hero", x: 100, y: 100, radius: 23 }],
+      { minX }
+    ).get("hero")!;
+
+    expect(placement.x - width / 2).toBeGreaterThanOrEqual(minX);
+  });
+
   it("is deterministic", () => {
     const inputs = [
       {
