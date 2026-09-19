@@ -16,8 +16,8 @@
 
 - Hovered node grows slightly.
 - Hero name appears in a dedicated top label layer so nearby portrait nodes cannot cover it.
-- Local edges gain contrast.
-- Unrelated graph dims.
+- Local edges gain contrast while the sparse Overview backbone stays low-contrast.
+- Hero coordinates and the rest of the Overview graph stay in place.
 - No large panel opens.
 - No relayout.
 
@@ -32,9 +32,9 @@
 - The sparse Overview backbone remains as low-contrast context.
 - Up to five incoming relationships in coral.
 - Up to five outgoing relationships in cyan.
-- Hero names sit outside their relationship paths and have an opaque canvas backing so edges cannot visually cut through the text.
+- Hero names sit outside active relationship paths, stay clear of the desktop HeroCard, and have an opaque canvas backing so edges cannot visually cut through the text.
 - Tiny arrowheads clarify direction.
-- Win-rate pills stay centered on their own relationship lines and remain source-side; selected-source pills can sit farther down that half when needed.
+- Win-rate pills remain source-associated and on the relationship line whenever the fixed geometry has enough room. A cramped edge may use a smaller pill or a short source-side continuation of the same line so the badge never covers a portrait.
 - Focus never creates a second node arrangement or moves heroes into a separate ring/arc layout.
 - The HeroCard section headings do not show “x/5” counters.
 - HeroCard appears.
