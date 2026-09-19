@@ -16,7 +16,7 @@ test("capture Overview, Focus and Matchup states", async ({ page }) => {
   await search.fill("viper");
   await page.getByRole("option", { name: /Viper/ }).click();
   await expect(page.getByLabel("Viper counter summary")).toBeVisible();
-  await page.waitForTimeout(250);
+  await page.waitForTimeout(520);
   await page.screenshot({ path: `${output}/focus-viper.png`, fullPage: true });
 
   const firstRelationship = page.locator(".relation-row").first();
