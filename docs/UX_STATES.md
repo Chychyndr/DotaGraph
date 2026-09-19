@@ -27,13 +27,15 @@
 - Focus scale adapts to the active relationship spread: close matchups keep the normal scale, while distant counters trigger only as much zoom-out as needed to fit the active set with padding.
 - Compact focus keeps its upward offset for the context card and uses the cropped visible graph span when calculating scale.
 - Gold ring.
-- Focus renders only the selected hero and heroes participating in its active relationships; unrelated Overview nodes are removed from the focused scene.
-- Up to five incoming relationships in coral, with their source heroes arranged on the left.
-- Up to five outgoing relationships in cyan, with their target heroes arranged on the right.
+- The same Overview hero nodes remain visible at the same committed coordinates.
+- Unrelated heroes are dimmed in place; active relationship heroes are emphasized where they already live in the graph.
+- The sparse Overview backbone remains as low-contrast context.
+- Up to five incoming relationships in coral.
+- Up to five outgoing relationships in cyan.
 - Hero names sit outside their relationship paths and have an opaque canvas backing so edges cannot visually cut through the text.
 - Tiny arrowheads clarify direction.
-- Win-rate pills stay centered on their own relationship lines and remain source-side; selected-source pills can sit farther down the source half to keep dense fans legible.
-- Active hero portraits use a deterministic balanced two-sided presentation layout so portraits, names, and percentage pills have clear breathing room.
+- Win-rate pills stay centered on their own relationship lines and remain source-side; selected-source pills can sit farther down that half when needed.
+- Focus never creates a second node arrangement or moves heroes into a separate ring/arc layout.
 - The HeroCard section headings do not show “x/5” counters.
 - HeroCard appears.
 - Clicking another background node refocuses.
