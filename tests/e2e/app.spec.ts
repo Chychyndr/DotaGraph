@@ -751,7 +751,7 @@ test("selecting a distant hero moves and settles the camera", async ({ page }) =
   await expect(page).toHaveURL(/hero=underlord/);
 });
 
-test("focus camera keeps real-layout active counters visible", async ({ page }) => {
+test("focus camera reserves card space and keeps active counters visible", async ({ page }) => {
   await page.setViewportSize({ width: 1366, height: 768 });
   await page.goto("/?hero=spectre");
   await page.waitForTimeout(520);
@@ -768,7 +768,9 @@ test("focus camera keeps real-layout active counters visible", async ({ page }) 
   const selectedCenterX = selectedBox!.x + selectedBox!.width / 2;
   const selectedCenterY = selectedBox!.y + selectedBox!.height / 2;
 
-  expect(Math.abs(selectedCenterX - graphCenterX)).toBeLessThan(4);
+  const desktopFocusOffset = selectedCenterX - graphCenterX;
+  expect(desktopFocusOffset).toBeGreaterThan(140);
+  expect(desktopFocusOffset).toBeLessThan(190);
   expect(Math.abs(selectedCenterY - graphCenterY)).toBeLessThan(4);
 
   const transform = await page.locator(".graph-camera").getAttribute("transform");
