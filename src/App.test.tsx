@@ -59,6 +59,25 @@ describe("App data states", () => {
     expect(screen.queryByRole("group", { name: "Dota 2 hero counter relationships" })).not.toBeInTheDocument();
   });
 
+  it("shows explicit empty states when a selected hero has no reliable relationships", async () => {
+    window.history.replaceState({}, "", "/?hero=viper");
+
+    const datasetLoader = async (): Promise<DatasetLoadResult> => ({
+      status: "ready",
+      data: {
+        heroes,
+        relationships: [],
+        scope,
+        metadata: fixtureMetadata
+      }
+    });
+
+    render(<App datasetLoader={datasetLoader} />);
+
+    await screen.findByLabelText("Viper counter summary");
+    expect(screen.getAllByText("No reliable relationships.")).toHaveLength(2);
+  });
+
   it("keeps stale data usable while showing the upstream reason", async () => {
     const datasetLoader = async (): Promise<DatasetLoadResult> => ({
       status: "ready",
