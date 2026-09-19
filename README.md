@@ -4,7 +4,7 @@ DotaGraph is an open-source, graph-first Dota 2 matchup project.
 
 DotaGraph is built for ordinary players who want to answer two questions quickly during a draft: who counters this hero, and whom does this hero counter?
 
-The current frontend uses development fixture statistics for interface work. They must not be treated as real Dota statistics.
+The public graph uses generated current-patch matchup statistics. The headline percentage is the real source hero win rate for the published OpenDota Ancient+ scope.
 
 ## Run locally
 
@@ -31,7 +31,7 @@ GitHub Pages deployment uses a compiled Vite artifact. See [docs/DEPLOYMENT.md](
 - The displayed percentage is the source hero's matchup win rate.
 - The current product scope contains heroes and hero-vs-hero counter relationships only.
 - Headline scope is Ancient+ and the current patch supplied through data/configuration.
-- Production data ingestion has not started.
+- Current matchup data is regenerated daily by GitHub Actions and published as static JSON.
 
 Read [AGENTS.md](./AGENTS.md) before contributing.
 
@@ -47,14 +47,24 @@ The Claude artifact is an interaction reference only. DotaGraph has its own visu
 
 ## Status
 
-The graph/frontend foundation and the first full source/licensing review are complete.
+DotaGraph now has a real current-patch data path.
 
-Hero **geometry** is now generated from real patch 7.41e OpenDota matchup evidence: related counter/countered heroes influence a deterministic offline layout, then the frontend uses the committed coordinates without a runtime force simulation.
+For patch **7.41f**:
+- headline data comes from OpenDota `public_matches`;
+- observation window begins at `2026-09-16T00:00:00Z`;
+- headline scope is Ancient+ using `avg_rank_tier >= 60`, ranked all-draft matches;
+- a hero pair needs at least 500 qualifying matches;
+- the displayed percentage is the raw source-hero matchup win rate;
+- counter ordering uses the documented baseline-adjusted one-sided 95% lower confidence bound;
+- the same eligible relationships drive deterministic offline graph geometry;
+- generated data is refreshed daily through GitHub Actions;
+- pipeline test/generation logs are uploaded as workflow artifacts;
+- a successful data commit triggers normal CI, GitHub Pages deployment, and live Chromium verification.
 
-The currently displayed matchup percentages/relationship fixtures are still development fixtures. The real-data layout does not turn its internal geometric affinity into a public counter score.
+The frontend fetches `public/data/current-matchups.json` at runtime and validates it before rendering. A snapshot older than 36 hours is still usable but is visibly marked stale.
 
-Canonical sample-size semantics are documented: one distinct completed match per source observation, with a 500-match normal-candidate minimum and no cross-provider count summing.
+Canonical sample-size semantics and counter-ranking methodology are documented in [docs/METHODOLOGY.md](./docs/METHODOLOGY.md).
 
-Owner-approved direct Dota data sources are **OpenDota, STRATZ, DOTABUFF, and Dota2ProTracker**. Official APIs are preferred where available; direct-source approval does not override provider authentication, rate limits, or anti-scraping restrictions.
+Owner-approved direct Dota data sources are **OpenDota, STRATZ, DOTABUFF, and Dota2ProTracker**. OpenDota is currently the reproducible headline numeric source; the other sources remain available for compatible detailed/cross-source evidence under their documented access constraints.
 
-The next statistical methodology task is counter-ranking methodology, followed by aggregation/disagreement rules and freshness handling. Production headline matchup statistics remain blocked by those methodology decisions; the allowed direct-source set itself is now approved.
+Cross-source aggregation/disagreement rules and richer detailed provenance are the next data-methodology work.
