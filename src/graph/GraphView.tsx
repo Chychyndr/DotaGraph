@@ -906,28 +906,43 @@ export function GraphView({
             );
 
             return (
-              <g
-                key={relationship.id}
-                className={[
-                  "edge-label",
-                  isIncoming ? "label-incoming" : isOutgoing ? "label-outgoing" : "",
-                  matchupHeroId && !isMatchup ? "edge-label-deemphasized" : ""
-                ].filter(Boolean).join(" ")}
-                transform={`translate(${labelPlacement.x} ${labelPlacement.y}) scale(${labelPlacement.scale})`}
-                data-source-hero={relationship.sourceHeroId}
-                data-target-hero={relationship.targetHeroId}
-                data-label-t={labelPlacement.t.toFixed(3)}
-                data-label-offset={labelPlacement.offset.toFixed(1)}
-                data-label-scale={labelPlacement.scale.toFixed(2)}
-              >
-                <rect
-                  x={-EDGE_LABEL_WIDTH / 2}
-                  y={-EDGE_LABEL_HEIGHT / 2}
-                  width={EDGE_LABEL_WIDTH}
-                  height={EDGE_LABEL_HEIGHT}
-                  rx={EDGE_LABEL_HEIGHT / 2}
-                />
-                <text textAnchor="middle" dominantBaseline="central">{formatPercent(relationship.sourceWinRate)}</text>
+              <g key={relationship.id} className="edge-label-entry">
+                {labelPlacement.leader && (
+                  <line
+                    className={[
+                      "edge-label-leader",
+                      isIncoming ? "edge-incoming" : isOutgoing ? "edge-outgoing" : "",
+                      matchupHeroId && !isMatchup ? "edge-deemphasized" : ""
+                    ].filter(Boolean).join(" ")}
+                    x1={labelPlacement.leader.x1}
+                    y1={labelPlacement.leader.y1}
+                    x2={labelPlacement.leader.x2}
+                    y2={labelPlacement.leader.y2}
+                  />
+                )}
+                <g
+                  className={[
+                    "edge-label",
+                    isIncoming ? "label-incoming" : isOutgoing ? "label-outgoing" : "",
+                    matchupHeroId && !isMatchup ? "edge-label-deemphasized" : ""
+                  ].filter(Boolean).join(" ")}
+                  transform={`translate(${labelPlacement.x} ${labelPlacement.y}) scale(${labelPlacement.scale})`}
+                  data-source-hero={relationship.sourceHeroId}
+                  data-target-hero={relationship.targetHeroId}
+                  data-label-t={labelPlacement.t.toFixed(3)}
+                  data-label-offset={labelPlacement.offset.toFixed(1)}
+                  data-label-scale={labelPlacement.scale.toFixed(2)}
+                  data-label-external={labelPlacement.leader ? "true" : "false"}
+                >
+                  <rect
+                    x={-EDGE_LABEL_WIDTH / 2}
+                    y={-EDGE_LABEL_HEIGHT / 2}
+                    width={EDGE_LABEL_WIDTH}
+                    height={EDGE_LABEL_HEIGHT}
+                    rx={EDGE_LABEL_HEIGHT / 2}
+                  />
+                  <text textAnchor="middle" dominantBaseline="central">{formatPercent(relationship.sourceWinRate)}</text>
+                </g>
               </g>
             );
           })}
