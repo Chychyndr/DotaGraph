@@ -390,6 +390,13 @@ button:focus-visible, input:focus-visible, [role="button"]:focus-visible {
   transition: opacity 140ms ease;
 }
 
+.edge-label-leader {
+  stroke-width: 1.2;
+  opacity: .9;
+  vector-effect: non-scaling-stroke;
+  pointer-events: none;
+}
+
 .edge-label rect {
   fill: rgba(1, 4, 9, .96);
   stroke-width: 1;
