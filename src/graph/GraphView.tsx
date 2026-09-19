@@ -16,7 +16,11 @@ import {
   EDGE_LABEL_WIDTH,
   layoutSourceAnchoredEdgeLabels
 } from "./edgeLabelLayout";
-import { calculateFocusScale, visibleViewBoxForViewport } from "./focusCamera";
+import {
+  calculateFocusScale,
+  calculateOverviewCamera,
+  visibleViewBoxForViewport
+} from "./focusCamera";
 import {
   mergeVisibleRelationships,
   selectHoverRelationships,
@@ -124,14 +128,22 @@ export function GraphView({
         paddingY: isCompactViewport ? 54 : 68
       })
     : 1;
+  const overviewCamera = useMemo(
+    () =>
+      calculateOverviewCamera(heroes, {
+        width: WIDTH,
+        height: HEIGHT
+      }),
+    [heroes]
+  );
 
   const initialCamera: CameraState = {
-    anchorX: selectedHero?.x ?? WIDTH / 2,
-    anchorY: selectedHero?.y ?? HEIGHT / 2,
+    anchorX: selectedHero?.x ?? overviewCamera.anchorX,
+    anchorY: selectedHero?.y ?? overviewCamera.anchorY,
     panX: 0,
     panY: selectedHero && initialCompactViewport ? COMPACT_FOCUS_OFFSET_Y : 0,
     zoom: 1,
-    focusScale: selectedHero ? targetFocusScale : 1
+    focusScale: selectedHero ? targetFocusScale : overviewCamera.scale
   };
 
   const [camera, setCameraState] = useState<CameraState>(initialCamera);
@@ -143,7 +155,11 @@ export function GraphView({
   const cameraRef = useRef(camera);
   const svgRef = useRef<SVGSVGElement>(null);
   const animationFrameRef = useRef<number | null>(null);
-  const previousCameraTargetRef = useRef(`${selectedHeroId ?? ""}:${initialCompactViewport}:${targetFocusScale.toFixed(4)}`);
+  const previousCameraTargetRef = useRef(
+    `${selectedHeroId ?? ""}:${initialCompactViewport}:${
+      selectedHero ? targetFocusScale.toFixed(4) : overviewCamera.scale.toFixed(4)
+    }:${overviewCamera.anchorX.toFixed(2)}:${overviewCamera.anchorY.toFixed(2)}`
+  );
   const previousKeyboardSelectionRef = useRef(selectedHeroId);
   const dragRef = useRef<DragState | null>(null);
 
@@ -163,7 +179,9 @@ export function GraphView({
   };
 
   useEffect(() => {
-    const cameraTargetKey = `${selectedHeroId ?? ""}:${isCompactViewport}:${targetFocusScale.toFixed(4)}`;
+    const cameraTargetKey = `${selectedHeroId ?? ""}:${isCompactViewport}:${
+      selectedHero ? targetFocusScale.toFixed(4) : overviewCamera.scale.toFixed(4)
+    }:${overviewCamera.anchorX.toFixed(2)}:${overviewCamera.anchorY.toFixed(2)}`;
     if (previousCameraTargetRef.current === cameraTargetKey) return;
     previousCameraTargetRef.current = cameraTargetKey;
 
@@ -171,12 +189,12 @@ export function GraphView({
 
     const selected = selectedHeroId ? byId.get(selectedHeroId) : undefined;
     const target: CameraState = {
-      anchorX: selected?.x ?? WIDTH / 2,
-      anchorY: selected?.y ?? HEIGHT / 2,
+      anchorX: selected?.x ?? overviewCamera.anchorX,
+      anchorY: selected?.y ?? overviewCamera.anchorY,
       panX: 0,
       panY: selected && isCompactViewport ? COMPACT_FOCUS_OFFSET_Y : 0,
       zoom: 1,
-      focusScale: selected ? targetFocusScale : 1
+      focusScale: selected ? targetFocusScale : overviewCamera.scale
     };
 
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
@@ -210,7 +228,14 @@ export function GraphView({
     animationFrameRef.current = window.requestAnimationFrame(tick);
 
     return cancelCameraAnimation;
-  }, [selectedHeroId, byId, isCompactViewport, targetFocusScale]);
+  }, [
+    selectedHeroId,
+    selectedHero,
+    byId,
+    isCompactViewport,
+    targetFocusScale,
+    overviewCamera
+  ]);
 
   useEffect(() => cancelCameraAnimation, []);
 
