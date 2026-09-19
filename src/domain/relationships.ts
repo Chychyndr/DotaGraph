@@ -1,7 +1,10 @@
 import type { Hero, MatchupRelationship, ScopeConfig, SelectedRelations } from "./types";
 
 const stableSort = (a: MatchupRelationship, b: MatchupRelationship) =>
-  b.sourceWinRate - a.sourceWinRate ||
+  (b.rankingScore ?? Number.NEGATIVE_INFINITY) -
+    (a.rankingScore ?? Number.NEGATIVE_INFINITY) ||
+  (b.baselineAdjustedDelta ?? Number.NEGATIVE_INFINITY) -
+    (a.baselineAdjustedDelta ?? Number.NEGATIVE_INFINITY) ||
   b.sampleSize - a.sampleSize ||
   a.sourceHeroId.localeCompare(b.sourceHeroId) ||
   a.targetHeroId.localeCompare(b.targetHeroId);
