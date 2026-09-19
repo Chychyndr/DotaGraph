@@ -64,27 +64,53 @@ test("hovered hero label renders above every portrait node", async ({ page }) =>
   expect(layerOrder!.labels).toBeGreaterThan(layerOrder!.nodes);
 });
 
-test("win-rate badges render above every edge line", async ({ page }) => {
+test("win-rate badges render above every camera edge", async ({ page }) => {
   await page.goto("/?hero=viper");
 
   const order = await page.evaluate(() => {
-    const camera = document.querySelector(".graph-camera");
-    const edges = camera?.querySelector(".edges");
-    const labels = camera?.querySelector(".edge-label-layer");
-    const nodes = camera?.querySelector(".nodes");
-    if (!camera || !edges || !labels || !nodes) return null;
+    const graph = document.querySelector("svg.graph");
+    const camera = graph?.querySelector(":scope > .graph-camera");
+    const labels = graph?.querySelector(":scope > .edge-label-layer");
+    if (!graph || !camera || !labels) return null;
 
-    const children = Array.from(camera.children);
+    const children = Array.from(graph.children);
     return {
-      edges: children.indexOf(edges),
-      labels: children.indexOf(labels),
-      nodes: children.indexOf(nodes)
+      camera: children.indexOf(camera),
+      labels: children.indexOf(labels)
     };
   });
 
   expect(order).not.toBeNull();
-  expect(order!.labels).toBeGreaterThan(order!.edges);
-  expect(order!.labels).toBeLessThan(order!.nodes);
+  expect(order!.labels).toBeGreaterThan(order!.camera);
+});
+
+test("win-rate badges keep native screen scale after focus zoom", async ({ page }) => {
+  await page.setViewportSize({ width: 1366, height: 768 });
+  await page.goto("/?hero=spectre");
+  await page.waitForTimeout(520);
+
+  const scales = await page.evaluate(() => {
+    const graph = document.querySelector("svg.graph") as SVGSVGElement | null;
+    const camera = document.querySelector(".graph-camera") as SVGGElement | null;
+    const label = document.querySelector(".edge-label") as SVGGElement | null;
+    if (!graph || !camera || !label) return null;
+
+    const graphCtm = graph.getScreenCTM();
+    const labelCtm = label.getScreenCTM();
+    const cameraTransform = camera.getAttribute("transform") ?? "";
+    const cameraScaleMatch = cameraTransform.match(/scale\(([^)]+)\)/);
+    if (!graphCtm || !labelCtm || !cameraScaleMatch) return null;
+
+    return {
+      graphScale: Math.hypot(graphCtm.a, graphCtm.b),
+      labelScale: Math.hypot(labelCtm.a, labelCtm.b),
+      cameraScale: Number(cameraScaleMatch[1])
+    };
+  });
+
+  expect(scales).not.toBeNull();
+  expect(scales!.cameraScale).toBeLessThan(1);
+  expect(Math.abs(scales!.labelScale - scales!.graphScale)).toBeLessThan(0.01);
 });
 
 test("focused win-rate labels stay source-anchored and do not overlap", async ({ page }) => {
