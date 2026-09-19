@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import type { Hero } from "../domain/types";
+import { layoutFocusPresentation } from "./focusPresentationLayout";
 import {
   edgeLabelRectsOverlap,
   layoutSourceAnchoredEdgeLabels
@@ -53,37 +55,80 @@ describe("layoutSourceAnchoredEdgeLabels", () => {
     expect(edgeLabelRectsOverlap(b, c)).toBe(false);
   });
 
-  it("separates a dense ten-edge current-data focus fan", () => {
-    const placements = layoutSourceAnchoredEdgeLabels(
-      [
-        { id: "phantom-lancer--viper", segment: { x1: 870.31, y1: 413.58, x2: 706.51, y2: 246.33 } },
-        { id: "dark-seer--viper", segment: { x1: 657.24, y1: 212.88, x2: 633.85, y2: 209.54 } },
-        { id: "invoker--viper", segment: { x1: 723.47, y1: 183.48, x2: 711.93, y2: 191.36 } },
-        { id: "juggernaut--viper", segment: { x1: 848.14, y1: 515.8, x2: 697.77, y2: 252.93 } },
-        { id: "pudge--viper", segment: { x1: 667.95, y1: 241.63, x2: 663.11, y2: 256.5 } },
-        { id: "viper--huskar", segment: { x1: 716.25, y1: 211.97, x2: 737.7, y2: 210.02 } },
-        { id: "viper--bristleback", segment: { x1: 691.56, y1: 252.64, x2: 714.58, y2: 308.95 } },
-        { id: "viper--dragon-knight", segment: { x1: 707.23, y1: 241.12, x2: 828.62, y2: 341.66 } },
-        { id: "viper--shadow-fiend", segment: { x1: 676.04, y1: 255.61, x2: 674.62, y2: 404.79 } },
-        { id: "viper--silencer", segment: { x1: 714.53, y1: 227.75, x2: 766.65, y2: 244.36 } }
-      ],
-      [
-        { x: 676.42, y: 215.61, radius: 43 },
-        { x: 887.8, y: 431.44, radius: 28 },
-        { x: 632.49, y: 209.35, radius: 28 },
-        { x: 744.12, y: 169.38, radius: 28 },
-        { x: 860.55, y: 537.5, radius: 28 },
-        { x: 660.21, y: 265.4, radius: 28 },
-        { x: 765.58, y: 207.47, radius: 28 },
-        { x: 725.17, y: 334.87, radius: 28 },
-        { x: 850.18, y: 359.52, radius: 28 },
-        { x: 674.35, y: 432.79, radius: 28 },
-        { x: 793.33, y: 252.86, radius: 28 }
-      ]
-    );
+  it("separates a dense ten-edge fan after focus presentation spacing", () => {
+    const makeHero = (id: string, x: number, y: number): Hero => ({
+      id,
+      slug: id,
+      name: id,
+      aliases: [],
+      spriteIndex: 0,
+      x,
+      y
+    });
 
+    const selected = makeHero("selected", 600, 380);
+    const related = [
+      makeHero("a", 632, 366),
+      makeHero("b", 645, 382),
+      makeHero("c", 620, 405),
+      makeHero("d", 655, 410),
+      makeHero("e", 590, 430),
+      makeHero("f", 560, 402),
+      makeHero("g", 548, 376),
+      makeHero("h", 565, 350),
+      makeHero("i", 610, 340),
+      makeHero("j", 640, 345)
+    ];
+
+    const focus = layoutFocusPresentation(selected, related);
+    const point = (hero: Hero) => focus.get(hero.id) ?? hero;
+
+    const edgeSegment = (
+      source: Hero,
+      target: Hero,
+      sourceSelected: boolean,
+      targetSelected: boolean
+    ) => {
+      const from = point(source);
+      const to = point(target);
+      const dx = to.x - from.x;
+      const dy = to.y - from.y;
+      const length = Math.hypot(dx, dy) || 1;
+      const ux = dx / length;
+      const uy = dy / length;
+      const sourcePadding = sourceSelected ? 40 : 25;
+      const targetPadding = targetSelected ? 43 : 28;
+
+      return {
+        x1: from.x + ux * sourcePadding,
+        y1: from.y + uy * sourcePadding,
+        x2: to.x - ux * targetPadding,
+        y2: to.y - uy * targetPadding
+      };
+    };
+
+    const inputs = related.map((hero, index) => {
+      const incoming = index < 5;
+      return {
+        id: hero.id,
+        segment: incoming
+          ? edgeSegment(hero, selected, false, true)
+          : edgeSegment(selected, hero, true, false)
+      };
+    });
+
+    const obstacles = [
+      { ...point(selected), radius: 43 },
+      ...related.map(hero => ({ ...point(hero), radius: 28 }))
+    ];
+
+    const placements = layoutSourceAnchoredEdgeLabels(inputs, obstacles);
     const values = [...placements.values()];
     expect(values).toHaveLength(10);
+
+    for (const value of values) {
+      expect(value.offset).toBe(0);
+    }
 
     for (let left = 0; left < values.length; left += 1) {
       for (let right = left + 1; right < values.length; right += 1) {
