@@ -49,7 +49,7 @@ Matchup keeps the graph visible, emphasizes one pair, and changes the compact ca
 
 The percentage belongs to the source hero of the arrow.
 
-The accepted current behavior is source-anchored, collision-aware placement on the active edge itself. Labels normally stay on the source half of the edge; when the selected hero is the source, the badge may sit farther down that half so dense outgoing fans remain readable. On unusually short fixed-layout edges, the badge may scale down enough to stay on the line without covering a portrait. Hero names use collision-aware placement outside active relationship paths and render on an opaque canvas backing.
+The accepted current behavior is source-anchored, collision-aware placement on the active edge itself. Labels normally stay on the source half of the edge; when the selected hero is the source, the badge may sit farther down that half so dense outgoing fans remain readable. On short fixed-layout edges, the badge may scale down to stay on the line without covering a portrait. If the gap is still physically too short, the full badge moves onto a short source-side continuation of that same line, preserving its visual attachment to the relationship without moving either hero. Hero names use collision-aware placement outside active relationship paths and render on an opaque canvas backing.
 
 ## Product chrome decisions
 
