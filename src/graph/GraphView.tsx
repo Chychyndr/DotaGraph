@@ -403,6 +403,34 @@ export function GraphView({
     y: HEIGHT / 2 + camera.panY + cameraScale * (y - camera.anchorY)
   });
 
+  const desktopLabelMinX = useMemo(() => {
+    if (!selectedHeroId || isCompactViewport) return undefined;
+
+    const outerScale = Math.min(
+      svgViewport.width / WIDTH,
+      svgViewport.height / HEIGHT
+    );
+    if (!Number.isFinite(outerScale) || outerScale <= 0) return undefined;
+
+    const outerOffsetX = (svgViewport.width - WIDTH * outerScale) / 2;
+    const cardWidth = svgViewport.width <= 820 ? 300 : 332;
+    const safeStageX = 16 + cardWidth + 12;
+    const safeViewBoxX = (safeStageX - outerOffsetX) / outerScale;
+
+    return (
+      camera.anchorX +
+      (safeViewBoxX - WIDTH / 2 - camera.panX) / cameraScale
+    );
+  }, [
+    camera.anchorX,
+    camera.panX,
+    cameraScale,
+    isCompactViewport,
+    selectedHeroId,
+    svgViewport.height,
+    svgViewport.width
+  ]);
+
   const hoverRelationshipIds = new Set(
     hoverRelationships.map((relationship) => relationship.id)
   );
@@ -489,7 +517,10 @@ export function GraphView({
             radius: radiusFor(hero.id) + 3
           }]
         : [];
-    })
+    }),
+    desktopLabelMinX === undefined
+      ? undefined
+      : { minX: desktopLabelMinX }
   );
 
   const edgeLabelPlacements = layoutSourceAnchoredEdgeLabels(
