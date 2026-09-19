@@ -67,6 +67,7 @@ const DRAG_THRESHOLD = 5;
 const CAMERA_DURATION = 460;
 const COMPACT_VIEWPORT_QUERY = "(max-width: 640px)";
 const COMPACT_FOCUS_OFFSET_Y = -120;
+const DESKTOP_FOCUS_OFFSET_X = 140;
 const DESKTOP_FOCUS_OFFSET_X = 180;
 
 const clamp = (value: number, min: number, max: number) =>
@@ -234,6 +235,7 @@ export function GraphView({
   const targetFocusScale = presentationSelectedHero
     ? calculateFocusScale(presentationSelectedHero, presentationRelatedHeroes, {
         ...visibleGraphSpan,
+        offsetX: isCompactViewport ? 0 : DESKTOP_FOCUS_OFFSET_X,
         offsetY: isCompactViewport ? COMPACT_FOCUS_OFFSET_Y : 0,
         paddingX: isCompactViewport ? 60 : 84,
         paddingY: isCompactViewport ? 54 : 68
