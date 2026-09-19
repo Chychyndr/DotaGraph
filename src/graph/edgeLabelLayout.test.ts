@@ -17,6 +17,26 @@ describe("layoutSourceAnchoredEdgeLabels", () => {
     expect(placements.get("b")?.t).toBeLessThanOrEqual(0.62);
   });
 
+  it("keeps every badge center on its own relationship segment", () => {
+    const inputs = [
+      { id: "horizontal", segment: { x1: 80, y1: 120, x2: 420, y2: 120 } },
+      { id: "diagonal", segment: { x1: 90, y1: 180, x2: 390, y2: 360 } }
+    ];
+
+    const placements = layoutSourceAnchoredEdgeLabels(inputs, []);
+
+    for (const input of inputs) {
+      const placement = placements.get(input.id)!;
+      const { x1, y1, x2, y2 } = input.segment;
+      const expectedX = x1 + (x2 - x1) * placement.t;
+      const expectedY = y1 + (y2 - y1) * placement.t;
+
+      expect(placement.offset).toBe(0);
+      expect(placement.x).toBeCloseTo(expectedX, 6);
+      expect(placement.y).toBeCloseTo(expectedY, 6);
+    }
+  });
+
   it("separates near-parallel labels from the same source", () => {
     const placements = layoutSourceAnchoredEdgeLabels([
       { id: "a", segment: { x1: 40, y1: 100, x2: 380, y2: 100 } },
