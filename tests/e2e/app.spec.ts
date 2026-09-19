@@ -275,10 +275,10 @@ test("mouse wheel zooms the graph", async ({ page }) => {
   const before = await camera.getAttribute("transform");
   await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2);
   await page.mouse.wheel(0, -320);
-  await page.waitForTimeout(40);
 
-  const after = await camera.getAttribute("transform");
-  expect(after).not.toBe(before);
+  await expect
+    .poll(() => camera.getAttribute("transform"))
+    .not.toBe(before);
 });
 
 test("selecting a distant hero moves the camera progressively", async ({ page }) => {
