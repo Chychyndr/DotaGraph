@@ -34,7 +34,7 @@ Overview keeps the whole graph as a weak spiderweb.
 
 Hover reveals only local context and never relayouts the graph.
 
-Focus keeps the selected hero as the camera anchor, strongly dims unrelated graph context, reveals 0–5 relationships per direction, adds tiny arrowheads, and shows win-rate labels. The camera may zoom out just enough to keep distant active relationships visible while preserving the selected hero's focus.
+Focus keeps the selected hero as the camera anchor and shows only that hero plus its active relationship heroes. Incoming counters are arranged on the left and outgoing counters on the right in a deterministic balanced arc, so the focused graph reads as one clean structure rather than a second graph over the Overview. The camera may zoom out just enough to keep the active set visible while preserving the selected hero's focus.
 
 Selecting or leaving a hero moves the camera with a short eased transition. Manual drag or wheel input immediately takes control and cancels that camera animation.
 
@@ -46,13 +46,14 @@ Matchup keeps the graph visible, emphasizes one pair, and changes the compact ca
 
 The percentage belongs to the source hero of the arrow.
 
-The accepted current behavior is source-anchored, collision-aware placement on the active edge itself. Labels normally stay on the source half of the edge; when the selected hero is the source, the badge may sit farther down that half so dense outgoing fans remain readable. Labels must avoid hero portraits and other active percentage labels while keeping relationship direction obvious.
+The accepted current behavior is source-anchored, collision-aware placement on the active edge itself. Labels normally stay on the source half of the edge; when the selected hero is the source, the badge may sit farther down that half so dense outgoing fans remain readable. Hero names are placed outside their relationship paths and rendered on an opaque canvas backing so arrows and lines never visually cut through text. Percentage labels must avoid hero portraits and other active percentage labels while keeping relationship direction obvious.
 
 ## Product chrome decisions
 
 - Use the transparent network/shield DotaGraph mark as both favicon and header logo.
 - Keep internal/debug labels such as “Fixture data”, “Hero counters”, and direction-debug copy out of the normal product UI.
-- Keep HeroCard compact; do not repeat the global rank/patch line inside the selected-hero card.
+- Keep HeroCard compact but comfortably readable; do not repeat the global rank/patch line inside the selected-hero card.
+- Do not show “x/5” counters beside the Countered by / Counters section headings.
 
 ## Avoid
 
