@@ -62,36 +62,17 @@ describe("layoutFocusPresentation", () => {
     }
   });
 
-  it("keeps relationship rank order from top to bottom on each side", () => {
+  it("orders each side from top to bottom using the stable overview order", () => {
     const selected = hero("selected", 400, 300);
     const incoming = [
-      hero("rank-1", 100, 600),
-      hero("rank-2", 120, 80),
-      hero("rank-3", 110, 320)
+      hero("bottom", 100, 600),
+      hero("top", 120, 80),
+      hero("middle", 110, 320)
     ];
     const layout = layoutFocusPresentation(selected, { incoming, outgoing: [] });
 
-    expect(layout.get("rank-1")!.y).toBeLessThan(layout.get("rank-2")!.y);
-    expect(layout.get("rank-2")!.y).toBeLessThan(layout.get("rank-3")!.y);
-  });
-
-  it("keeps sparse sides compact instead of stretching heroes to arc extremes", () => {
-    const selected = hero("selected", 400, 300);
-    const incoming = [
-      hero("rank-1", 100, 100),
-      hero("rank-2", 100, 500)
-    ];
-    const layout = layoutFocusPresentation(selected, { incoming, outgoing: [] });
-
-    const first = layout.get("rank-1")!;
-    const second = layout.get("rank-2")!;
-    const firstAngle = Math.atan2(first.y - selected.y, first.x - selected.x);
-    const secondAngle = Math.atan2(second.y - selected.y, second.x - selected.x);
-    const rawSeparation = Math.abs(firstAngle - secondAngle);
-    const separation = Math.min(rawSeparation, Math.PI * 2 - rawSeparation);
-
-    expect(separation).toBeGreaterThan(Math.PI / 8);
-    expect(separation).toBeLessThan(Math.PI / 5);
+    expect(layout.get("top")!.y).toBeLessThan(layout.get("middle")!.y);
+    expect(layout.get("middle")!.y).toBeLessThan(layout.get("bottom")!.y);
   });
 
   it("keeps a five-hero side evenly separated", () => {

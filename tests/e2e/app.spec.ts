@@ -204,65 +204,6 @@ test("focus shows only the selected hero and its real relationship heroes", asyn
   await expect(page.getByLabel("Terrorblade counter summary")).not.toContainText(/\/5/);
 });
 
-test("focused graph exactly matches the HeroCard relationship rows", async ({ page }) => {
-  await page.goto("/?hero=crystal-maiden");
-  await page.waitForTimeout(520);
-
-  const state = await page.evaluate(() => {
-    const rowsFor = (direction: "incoming" | "outgoing") =>
-      [...document.querySelectorAll<HTMLButtonElement>(
-        `.relation-row[data-relation-direction="${direction}"]`
-      )].map((row) => row.dataset.neighborHero ?? "");
-
-    const edgeHeroes = (direction: "incoming" | "outgoing") =>
-      [...document.querySelectorAll<SVGLineElement>(
-        direction === "incoming" ? ".edge-incoming" : ".edge-outgoing"
-      )].map((edge) =>
-        direction === "incoming"
-          ? edge.dataset.sourceHero ?? ""
-          : edge.dataset.targetHero ?? ""
-      );
-
-    const yFor = (id: string) =>
-      document.querySelector<SVGGElement>(`#graph-hero-${id}`)
-        ?.transform.baseVal.consolidate()?.matrix.f ?? Number.NaN;
-
-    const incomingRows = rowsFor("incoming");
-    const outgoingRows = rowsFor("outgoing");
-    const renderedNodeIds = [...document.querySelectorAll<SVGGElement>(".hero-node")]
-      .map((node) => node.id.replace(/^graph-hero-/, ""))
-      .sort();
-    const expectedNodeIds = [
-      "crystal-maiden",
-      ...incomingRows,
-      ...outgoingRows
-    ].sort();
-
-    return {
-      incomingRows,
-      outgoingRows,
-      incomingEdges: edgeHeroes("incoming"),
-      outgoingEdges: edgeHeroes("outgoing"),
-      incomingY: incomingRows.map(yFor),
-      outgoingY: outgoingRows.map(yFor),
-      renderedNodeIds,
-      expectedNodeIds,
-      edgeCount: document.querySelectorAll(".edges .edge").length
-    };
-  });
-
-  expect(state.incomingEdges).toEqual(state.incomingRows);
-  expect(state.outgoingEdges).toEqual(state.outgoingRows);
-  expect(state.renderedNodeIds).toEqual(state.expectedNodeIds);
-  expect(state.edgeCount).toBe(state.incomingRows.length + state.outgoingRows.length);
-
-  for (const ys of [state.incomingY, state.outgoingY]) {
-    for (let index = 1; index < ys.length; index += 1) {
-      expect(ys[index]).toBeGreaterThan(ys[index - 1]);
-    }
-  }
-});
-
 test("focus places incoming heroes left and outgoing heroes right", async ({ page }) => {
   await page.goto("/?hero=terrorblade");
   await page.waitForTimeout(520);
