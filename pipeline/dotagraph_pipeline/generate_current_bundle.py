@@ -299,29 +299,35 @@ def _normalize_pairs(
 
 def _select_layout_relationships(
     ranked: list[RankedRelationship],
+    *,
+    neighbors_per_hero: int = 3,
 ) -> list[RankedRelationship]:
-    outgoing: dict[str, list[RankedRelationship]] = {}
-    incoming: dict[str, list[RankedRelationship]] = {}
+    incident: dict[str, list[RankedRelationship]] = {}
 
     for relationship in ranked:
-        outgoing.setdefault(relationship.source, []).append(relationship)
-        incoming.setdefault(relationship.target, []).append(relationship)
+        incident.setdefault(relationship.source, []).append(relationship)
+        incident.setdefault(relationship.target, []).append(relationship)
 
     selected: dict[tuple[str, str], RankedRelationship] = {}
-    limit = CURRENT_SCOPE.max_visible_per_direction
+    limit = max(1, neighbors_per_hero)
 
-    for relationships in outgoing.values():
+    for hero_slug in sorted(incident):
+        relationships = sorted(
+            incident[hero_slug],
+            key=lambda item: (
+                -item.baseline_adjusted_delta,
+                -item.sample_size,
+                item.source,
+                item.target,
+            ),
+        )
         for relationship in relationships[:limit]:
-            selected[(relationship.source, relationship.target)] = relationship
-
-    for relationships in incoming.values():
-        for relationship in relationships[:limit]:
-            selected[(relationship.source, relationship.target)] = relationship
+            pair_key = tuple(sorted((relationship.source, relationship.target)))
+            selected[pair_key] = relationship
 
     return sorted(
         selected.values(),
         key=lambda item: (
-            -item.ranking_score,
             -item.baseline_adjusted_delta,
             -item.sample_size,
             item.source,
@@ -391,7 +397,12 @@ def generate(
         pairs,
         minimum_sample=CURRENT_SCOPE.minimum_sample,
     )
-    layout_relationships = _select_layout_relationships(ranked)
+    layout_candidates = rank_relationships(
+        pairs,
+        minimum_sample=CURRENT_SCOPE.minimum_sample,
+        confidence_z=0.0,
+    )
+    layout_relationships = _select_layout_relationships(layout_candidates)
     weighted_edges = _layout_edges(layout_relationships)
     positions = compute_layout(catalog_slugs, weighted_edges)
     metrics = layout_metrics(positions, weighted_edges)
