@@ -177,6 +177,139 @@ test("focus renders only the selected hero relationships", async ({ page }) => {
   expect(edgeCount).toBeLessThanOrEqual(10);
 });
 
+test("focus shows only the selected hero and its real relationship heroes", async ({ page }) => {
+  await page.goto("/?hero=terrorblade");
+  await expect(page.getByLabel("Terrorblade counter summary")).toBeVisible();
+  await page.waitForTimeout(520);
+
+  const graphState = await page.evaluate(() => {
+    const nodeIds = [...document.querySelectorAll<SVGGElement>(".hero-node")]
+      .map((node) => node.id.replace(/^graph-hero-/, ""));
+    const edgeHeroIds = new Set<string>();
+
+    for (const edge of document.querySelectorAll<SVGLineElement>(".edges .edge")) {
+      const source = edge.dataset.sourceHero;
+      const target = edge.dataset.targetHero;
+      if (source) edgeHeroIds.add(source);
+      if (target) edgeHeroIds.add(target);
+    }
+
+    return {
+      nodeIds: [...nodeIds].sort(),
+      edgeHeroIds: [...edgeHeroIds].sort()
+    };
+  });
+
+  expect(graphState.nodeIds).toEqual(graphState.edgeHeroIds);
+  await expect(page.getByLabel("Terrorblade counter summary")).not.toContainText(/\/5/);
+});
+
+test("focus places incoming heroes left and outgoing heroes right", async ({ page }) => {
+  await page.goto("/?hero=terrorblade");
+  await page.waitForTimeout(520);
+
+  const directions = await page.evaluate(() => {
+    const selected = document.querySelector<SVGGElement>(".hero-selected");
+    const selectedTransform = selected?.transform.baseVal.consolidate()?.matrix;
+    if (!selectedTransform) return null;
+
+    const incoming = [...document.querySelectorAll<SVGLineElement>(".edge-incoming")]
+      .map((edge) => edge.dataset.sourceHero)
+      .filter((id): id is string => Boolean(id));
+    const outgoing = [...document.querySelectorAll<SVGLineElement>(".edge-outgoing")]
+      .map((edge) => edge.dataset.targetHero)
+      .filter((id): id is string => Boolean(id));
+
+    const xFor = (id: string) =>
+      document.querySelector<SVGGElement>(`#graph-hero-${id}`)
+        ?.transform.baseVal.consolidate()?.matrix.e;
+
+    return {
+      selectedX: selectedTransform.e,
+      incomingX: incoming.map(xFor).filter((x): x is number => typeof x === "number"),
+      outgoingX: outgoing.map(xFor).filter((x): x is number => typeof x === "number")
+    };
+  });
+
+  expect(directions).not.toBeNull();
+  expect(directions!.incomingX.length).toBeGreaterThan(0);
+  expect(directions!.outgoingX.length).toBeGreaterThan(0);
+
+  for (const x of directions!.incomingX) expect(x).toBeLessThan(directions!.selectedX);
+  for (const x of directions!.outgoingX) expect(x).toBeGreaterThan(directions!.selectedX);
+});
+
+test("focused hero names stay clear of active relationship lines", async ({ page }) => {
+  await page.goto("/?hero=crystal-maiden");
+  await page.waitForTimeout(520);
+
+  const intersections = await page.evaluate(() => {
+    const lines = [...document.querySelectorAll<SVGLineElement>(".edge-active")];
+
+    const transformPoint = (x: number, y: number, matrix: DOMMatrix) => ({
+      x: matrix.a * x + matrix.c * y + matrix.e,
+      y: matrix.b * x + matrix.d * y + matrix.f
+    });
+
+    const segmentIntersectsRect = (
+      start: { x: number; y: number },
+      end: { x: number; y: number },
+      rect: DOMRect
+    ) => {
+      const left = rect.left + 1;
+      const right = rect.right - 1;
+      const top = rect.top + 1;
+      const bottom = rect.bottom - 1;
+
+      const inside = (point: { x: number; y: number }) =>
+        point.x >= left && point.x <= right && point.y >= top && point.y <= bottom;
+      if (inside(start) || inside(end)) return true;
+
+      const edges = [
+        [{ x: left, y: top }, { x: right, y: top }],
+        [{ x: right, y: top }, { x: right, y: bottom }],
+        [{ x: right, y: bottom }, { x: left, y: bottom }],
+        [{ x: left, y: bottom }, { x: left, y: top }]
+      ] as const;
+
+      const cross = (
+        a: { x: number; y: number },
+        b: { x: number; y: number },
+        c: { x: number; y: number }
+      ) => (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
+
+      return edges.some(([a, b]) => {
+        const c1 = cross(start, end, a);
+        const c2 = cross(start, end, b);
+        const c3 = cross(a, b, start);
+        const c4 = cross(a, b, end);
+        return c1 * c2 <= 0 && c3 * c4 <= 0;
+      });
+    };
+
+    const result: string[] = [];
+    const labels = [...document.querySelectorAll<SVGGElement>(".hero-label-group")];
+
+    for (const line of lines) {
+      const matrix = line.getScreenCTM();
+      if (!matrix) continue;
+      const start = transformPoint(line.x1.baseVal.value, line.y1.baseVal.value, matrix);
+      const end = transformPoint(line.x2.baseVal.value, line.y2.baseVal.value, matrix);
+
+      for (const label of labels) {
+        const rect = label.getBoundingClientRect();
+        if (segmentIntersectsRect(start, end, rect)) {
+          result.push(`${line.dataset.sourceHero}->${line.dataset.targetHero} crosses ${label.dataset.heroLabel}`);
+        }
+      }
+    }
+
+    return result;
+  });
+
+  expect(intersections).toEqual([]);
+});
+
 test("focused win-rate labels stay source-anchored and do not overlap", async ({ page }) => {
   await page.goto("/?hero=viper");
 
