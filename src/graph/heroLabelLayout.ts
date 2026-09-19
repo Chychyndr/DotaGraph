@@ -28,6 +28,13 @@ export interface HeroLabelPlacement {
   angle: number;
 }
 
+export interface HeroLabelBounds {
+  minX?: number;
+  maxX?: number;
+  minY?: number;
+  maxY?: number;
+}
+
 interface Rect {
   left: number;
   right: number;
@@ -38,7 +45,7 @@ interface Rect {
 const TWO_PI = Math.PI * 2;
 const LABEL_GAP = 8;
 const EDGE_GAP = 3;
-const EXTRA_DISTANCES = [0, 18, 36, 54];
+const EXTRA_DISTANCES = [0, 18, 36, 54, 72, 90];
 
 const normalizeAngle = (angle: number) => {
   const normalized = angle % TWO_PI;
@@ -141,10 +148,20 @@ const candidateAngles = (preferredAngle: number) =>
         left - right
     );
 
+const outsideBounds = (rect: Rect, bounds?: HeroLabelBounds) =>
+  Boolean(
+    bounds &&
+      ((bounds.minX !== undefined && rect.left < bounds.minX) ||
+        (bounds.maxX !== undefined && rect.right > bounds.maxX) ||
+        (bounds.minY !== undefined && rect.top < bounds.minY) ||
+        (bounds.maxY !== undefined && rect.bottom > bounds.maxY))
+  );
+
 export function layoutHeroLabels(
   inputs: HeroLabelInput[],
   segments: HeroLabelSegment[],
-  obstacles: HeroLabelObstacle[]
+  obstacles: HeroLabelObstacle[],
+  bounds?: HeroLabelBounds
 ) {
   const placements = new Map<string, HeroLabelPlacement>();
   const placedRects: Rect[] = [];
@@ -194,6 +211,7 @@ export function layoutHeroLabels(
         );
 
         const score =
+          (outsideBounds(rect, bounds) ? 1_000_000 : 0) +
           edgeHits * 100_000 +
           portraitHits * 100_000 +
           labelHits * 100_000 +
