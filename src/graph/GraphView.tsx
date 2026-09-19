@@ -907,11 +907,12 @@ export function GraphView({
                   isIncoming ? "label-incoming" : isOutgoing ? "label-outgoing" : "",
                   matchupHeroId && !isMatchup ? "edge-label-deemphasized" : ""
                 ].filter(Boolean).join(" ")}
-                transform={`translate(${labelPlacement.x} ${labelPlacement.y})`}
+                transform={`translate(${labelPlacement.x} ${labelPlacement.y}) scale(${labelPlacement.scale})`}
                 data-source-hero={relationship.sourceHeroId}
                 data-target-hero={relationship.targetHeroId}
                 data-label-t={labelPlacement.t.toFixed(3)}
                 data-label-offset={labelPlacement.offset.toFixed(1)}
+                data-label-scale={labelPlacement.scale.toFixed(2)}
               >
                 <rect
                   x={-EDGE_LABEL_WIDTH / 2}
