@@ -49,6 +49,19 @@ test("capture dense Dragon Knight and Rubick focus geometry", async ({ page }) =
   }
 });
 
+test("capture clean directional Focus regression cases", async ({ page }) => {
+  await page.setViewportSize({ width: 1366, height: 768 });
+
+  for (const heroId of ["crystal-maiden", "terrorblade", "dark-willow"]) {
+    await page.goto(`/?hero=${heroId}`, { waitUntil: "networkidle" });
+    await page.waitForTimeout(520);
+    await page.screenshot({
+      path: `${output}/focus-${heroId}-directional.png`,
+      fullPage: true
+    });
+  }
+});
+
 test("capture mobile Focus and Matchup states", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/?hero=viper", { waitUntil: "networkidle" });
