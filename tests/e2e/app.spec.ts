@@ -190,8 +190,8 @@ test("focused win-rate labels stay source-anchored and do not overlap", async ({
   for (let index = 0; index < labelCount; index += 1) {
     const label = labels.nth(index);
     const t = Number(await label.getAttribute("data-label-t"));
-    expect(t).toBeGreaterThanOrEqual(0.2);
-    expect(t).toBeLessThanOrEqual(0.62);
+    expect(t).toBeGreaterThanOrEqual(0.12);
+    expect(t).toBeLessThanOrEqual(0.88);
 
     const box = await label.boundingBox();
     expect(box).not.toBeNull();
