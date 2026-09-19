@@ -119,19 +119,25 @@ Scope limitation:
 
 Review date: 2026-09-18.
 
-### Patch 7.41e layout evaluation
+### Current patch 7.41f production pipeline
 
-Issue #26 uses the OpenDota hosted API only for a reproducible offline **layout evaluation**:
-- query source: OpenDota Explorer over `public_matches`;
-- patch window: 2026-08-01T00:00:00Z through 2026-09-15T00:00:00Z exclusive;
-- ranked All Pick and average rank tier >= 60;
-- only derived hero coordinates, query scope, coverage, and layout-quality metrics are committed;
-- raw match IDs, raw player data, and the full OpenDota matchup matrix are not committed;
-- the generated coordinates must not be described as OpenDota's own counter ranking.
+Issue #28 / PR #29 use the OpenDota hosted API as the reproducible headline numeric source.
 
-The owner has since approved OpenDota as a direct production data source. The layout snapshot remains geometry-only because counter-ranking methodology is a separate product decision.
+Current query scope:
+- OpenDota Explorer over `public_matches`;
+- observation start: `2026-09-16T00:00:00Z`;
+- observation end: generation time;
+- `avg_rank_tier >= 60`;
+- `game_mode_all_draft` (22);
+- `lobby_type_ranked` (7);
+- valid 5v5 hero arrays;
+- minimum 500 pair observations before a relationship can qualify.
 
-DOTABUFF, Dota2ProTracker, and STRATZ are also owner-approved direct sources. For this layout snapshot, OpenDota remains the machine-readable input; STRATZ can be added through its official API, while DOTABUFF/Dota2ProTracker automation must still follow their provider-compatible access constraints.
+Published output contains aggregate hero statistics, qualified hero-vs-hero observations, provenance, and deterministic graph coordinates. It does not publish player identities or raw match IDs.
+
+The daily workflow uses bounded retries, time-range splitting for expensive Explorer queries, structured logs, and a static generated JSON artifact. Provider availability never becomes a runtime dependency for the frontend.
+
+STRATZ, DOTABUFF, and Dota2ProTracker remain owner-approved direct sources for compatible secondary/detail evidence. Their observations must retain their own scope/provenance and must not silently alter or inflate the OpenDota headline sample size.
 
 ## STRATZ GraphQL API
 
@@ -280,7 +286,7 @@ Before implementing or changing a statistical adapter:
 4. obey provider terms for the chosen access method; direct-source approval is not permission to bypass restrictions;
 5. update this document in the same PR that introduces a materially new adapter/access path.
 
-Source/legal review may continue independently of methodology work. The next methodology tasks can define sample-size, ranking, aggregation, and freshness semantics without ingesting blocked provider data.
+Current OpenDota headline ingestion is active under the documented source and methodology rules. Sample-size and counter-ranking semantics are approved; cross-source aggregation/disagreement rules remain a separate methodology task.
 
 ## Project licensing
 
