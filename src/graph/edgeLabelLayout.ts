@@ -31,7 +31,7 @@ const MIN_T = 0.2;
 const MAX_T = 0.62;
 const SOURCE_DISTANCES = [56, 84, 112, 140, 168, 196, 224, 252, 280, 308];
 const SOURCE_T_FALLBACKS = [0.2, 0.27, 0.34, 0.41, 0.48, 0.55, 0.62];
-const NORMAL_OFFSETS = [0, -13, 13, -26, 26, -39, 39, -52, 52];
+const NORMAL_OFFSETS = [0];
 
 interface Rect {
   left: number;
