@@ -19,18 +19,11 @@ const round = (value: number) => Math.round(value * 100) / 100;
 
 const uniqueHeroes = (heroes: Hero[], excluded = new Set<string>()) => {
   const seen = new Set(excluded);
-  return heroes
-    .filter((hero) => {
-      if (seen.has(hero.id)) return false;
-      seen.add(hero.id);
-      return true;
-    })
-    .sort(
-      (a, b) =>
-        a.y - b.y ||
-        a.x - b.x ||
-        a.id.localeCompare(b.id)
-    );
+  return heroes.filter((hero) => {
+    if (seen.has(hero.id)) return false;
+    seen.add(hero.id);
+    return true;
+  });
 };
 
 const placeSide = (
