@@ -28,6 +28,14 @@ test("capture Overview, Focus and Matchup states", async ({ page }) => {
 });
 
 
+test("capture one-graph hover state", async ({ page }) => {
+  await page.setViewportSize({ width: 1366, height: 768 });
+  await page.goto("/", { waitUntil: "networkidle" });
+  await page.locator("#graph-hero-viper").hover();
+  await page.waitForTimeout(180);
+  await page.screenshot({ path: `${output}/hover-viper.png`, fullPage: true });
+});
+
 test("capture settled Spectre focus badge rendering", async ({ page }) => {
   await page.setViewportSize({ width: 1366, height: 768 });
   await page.goto("/?hero=spectre", { waitUntil: "networkidle" });
