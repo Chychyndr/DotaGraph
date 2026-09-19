@@ -267,6 +267,23 @@ Boundary:
 
 Review date: 2026-09-18.
 
+## Mona Sans
+
+**Decision: Approved for interface typography under the SIL Open Font License 1.1.**
+
+Official references:
+- repository: https://github.com/github/mona-sans
+- license: https://github.com/github/mona-sans/blob/main/OFL.txt
+
+Use:
+- DotaGraph loads the official Mona Sans variable webfont for the interface;
+- the font URL is pinned to upstream revision `0f7dc66ddd766605eb0e75c3f47bf9d1dd38ceca` so deployed typography does not silently change;
+- the existing system sans-serif stack remains the fallback if the font request fails.
+
+License:
+- Mona Sans is distributed under the SIL Open Font License 1.1;
+- no font files are redistributed inside the DotaGraph repository by this integration.
+
 ## Production gate outcome
 
 This review is complete for the currently listed providers, and the owner has approved four direct DotaGraph statistical sources: OpenDota, STRATZ, DOTABUFF, and Dota2ProTracker.

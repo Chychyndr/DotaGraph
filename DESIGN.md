@@ -15,7 +15,7 @@ https://www.figma.com/design/rydgq1wV8C0hlVb5n7Ohws/DotaGraph-Design?node-id=1-2
 
 - plain dark canvas with no decorative glow or gradient;
 - graph-first composition;
-- GitHub-like system font stack for familiar, neutral typography;
+- Mona Sans as the primary interface typeface, with the existing system sans-serif stack as fallback;
 - solid panels with restrained borders and small radii;
 - near-white primary text and muted gray secondary text;
 - red incoming counter edges;
