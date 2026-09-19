@@ -508,7 +508,7 @@ def main() -> None:
     parser.add_argument(
         "--output",
         type=Path,
-        default=Path("src/data/current-matchups.json"),
+        default=Path("public/data/current-matchups.json"),
     )
     parser.add_argument("--verbose", action="store_true")
     args = parser.parse_args()
