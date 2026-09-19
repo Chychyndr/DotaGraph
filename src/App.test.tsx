@@ -1,5 +1,5 @@
-import { render, screen } from "@testing-library/react";
-import { beforeEach, describe, expect, it } from "vitest";
+import { cleanup, render, screen } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import App from "./App";
 import { fixtureMetadata, fixtureRelationships, scope } from "./data/fixtures";
 import heroCatalog from "./data/heroCatalog.json";
@@ -18,6 +18,10 @@ const heroes = buildHeroes({
   heroStats: Object.fromEntries(heroCatalog.map((hero) => [hero.slug, null]))
 });
 import type { DatasetLoadResult } from "./data/loadDataset";
+
+afterEach(() => {
+  cleanup();
+});
 
 beforeEach(() => {
   window.history.replaceState({}, "", "/");
