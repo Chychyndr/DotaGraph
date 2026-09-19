@@ -1,6 +1,6 @@
 # Methodology
 
-Status: production methodology is not approved yet.
+Status: current-patch sample-size and counter-ranking methodology are approved. Cross-source aggregation/disagreement rules remain a separate decision.
 
 ## Current fixture methodology
 
@@ -133,20 +133,67 @@ The graph displays source-hero matchup win rate.
 
 `A -> B` at 55.4% means A has 55.4% win rate against B in the stated scope.
 
-## Future ranking
+## Data-driven graph layout
 
-Raw matchup win rate alone is not enough to rank specific counters because hero baseline strength changes the expected result.
+The graph topology may use real matchup observations before the final public counter-ranking formula is approved, but this use is strictly geometric.
 
-Research direction:
-- baseline strength of both heroes;
-- expected matchup win rate;
-- actual-vs-expected delta;
-- sample-size confidence;
-- cross-source agreement;
-- freshness;
-- rank-scope compatibility.
+For the patch 7.41e layout evaluation:
+- source corpus: OpenDota `public_matches`;
+- clean historical window: 2026-08-01T00:00:00Z inclusive through 2026-09-15T00:00:00Z exclusive;
+- OpenDota `game_mode_all_draft` (22) with `lobby_type_ranked` (7) only;
+- OpenDota average rank tier >= 60 as the adapter predicate for the Ancient+ target population;
+- minimum 500 observed hero-pair matches before a pair may influence primary layout affinity;
+- both directions matter: heroes that strongly counter each other in either direction should remain spatially close;
+- raw pair win rate is adjusted by the heroes' observed baseline strength before determining layout affinity;
+- sample size strengthens geometric confidence but cannot be summed across providers.
 
-No user-visible confidence/counter score should be invented before the formula is justified.
+The current layout affinity is intentionally **not** a user-visible counter score and is not the final production counter-ranking methodology. Its only output is stable hero coordinates plus quality/provenance metadata.
+
+The OpenDota `public_matches` table is a public-match sample, so this snapshot represents the observed OpenDota sample under the recorded query scope rather than every Ancient+ match played during 7.41e.
+
+## Counter ranking
+
+Status: **approved for implementation/evaluation on patch 7.41f**.
+
+The percentage shown to users remains the raw source-hero matchup win rate. Ranking uses a separate internal conservative score so globally strong heroes do not automatically dominate the counter list.
+
+For ordered matchup `A -> B`:
+
+```text
+p = wins(A vs B) / matches(A vs B)
+
+baselineA = A win rate against all other heroes
+baselineB = B win rate against all other heroes
+
+expected = 0.5 + (baselineA - baselineB) / 2
+delta = p - expected
+
+se = sqrt(
+  p * (1 - p) / nPair
+  + baselineA * (1 - baselineA) / (4 * nBaselineA)
+  + baselineB * (1 - baselineB) / (4 * nBaselineB)
+)
+
+rankingScore = delta - 1.645 * se
+```
+
+The direct A-vs-B observation is excluded from both hero baselines.
+
+Eligibility:
+- exact current patch/scope;
+- known sample count;
+- `nPair >= 500`;
+- `rankingScore > 0`.
+
+Sort order:
+1. `rankingScore` descending;
+2. `delta` descending;
+3. `sampleSize` descending;
+4. stable hero IDs.
+
+Show at most five relationships per direction. Never fill missing slots with weak or previous-patch relationships.
+
+`rankingScore` is internal and is not presented as a user-facing percentage or invented “counter score”.
 
 ## Aggregation
 

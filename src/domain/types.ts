@@ -21,6 +21,13 @@ export interface MatchupRelationship {
   patch: string;
   rankScope: "ancient_plus";
   sourceKind: "fixture" | "generated";
+  rankingScore?: number;
+  baselineAdjustedDelta?: number;
+  expectedWinRate?: number;
+  standardError?: number;
+  provenanceSource?: string;
+  observationWindowStart?: string;
+  observationWindowEndExclusive?: string;
   explanation?: string;
 }
 

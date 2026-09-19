@@ -1,8 +1,9 @@
 # Sources and licensing
 
-Status: reviewed source/legal registry. No production statistical ingestion has started.
+Status: reviewed source/legal registry. OpenDota, STRATZ, DOTABUFF, and Dota2ProTracker are owner-approved direct DotaGraph data sources.
 
 Last full review: 2026-09-18.
+Owner direct-source approval: 2026-09-19.
 
 This document records a conservative engineering decision from publicly available source terms and documentation. It is not legal advice. When terms are ambiguous, DotaGraph treats the capability as blocked until the provider publishes clearer terms or gives written permission.
 
@@ -18,11 +19,11 @@ This document records a conservative engineering decision from publicly availabl
 | Source | Programmatic access | Production statistical use | Decision |
 | --- | --- | --- | --- |
 | Valve / Steam Web API | Official API | Draft-time use needs clause-specific review; artwork rights separate | Conditional |
-| OpenDota hosted API | Official public API | Derived-data redistribution rights and Ancient+ scope unresolved | Conditional |
+| OpenDota hosted API | Official public API / Explorer | Direct statistical source; exact patch/rank/query scope must be preserved | Owner-approved direct source |
 | OpenDota dotaconstants | GitHub repository | Static identity/constants metadata under MIT | Approved |
-| STRATZ GraphQL API | Official token-authenticated API | Caching/derived-data redistribution rights unresolved | Conditional |
-| DOTABUFF | No approved public API found | No automated ingestion | Research only |
-| Dota2ProTracker | Website only for this project | Current terms expressly prohibit intended ingestion | Blocked |
+| STRATZ GraphQL API | Official token-authenticated API | Direct statistical source; use documented API and preserve provenance | Owner-approved direct source |
+| DOTABUFF | Public website; no approved public API found | Direct source for public statistics; automated scraping still requires a provider-compatible permission/access path | Owner-approved direct source |
+| Dota2ProTracker | Public website | Direct pro/high-MMR source; automated scraping remains restricted by reviewed terms | Owner-approved direct source |
 | Reddit/community | Not approved for automation | Qualitative hypotheses only | Research only |
 
 
@@ -83,7 +84,7 @@ Review date: 2026-09-18.
 
 ## OpenDota hosted API
 
-**Decision: Conditional. Approved for technical evaluation/API access; production redistribution of derived matchup statistics remains blocked until hosted-data rights are explicit or confirmed.**
+**Decision: Owner-approved direct statistical source. Use the official OpenDota API/Explorer and preserve exact query scope/provenance.**
 
 Official references:
 - API/OpenAPI document: https://api.opendota.com/api
@@ -106,9 +107,10 @@ License boundary:
 - the reviewed public API/FAQ material clearly encourages developers to build applications with the API, but a separate explicit license for caching and redistributing the hosted statistical dataset/derived aggregates was not found.
 
 DotaGraph decision:
-- API experiments and schema evaluation are allowed;
-- do not publish OpenDota-derived production headline statistics until redistribution/derived-data permission is confirmed by an explicit current policy/license or written provider permission;
-- do not store or republish player-identifying data; DotaGraph only needs aggregate hero-vs-hero observations.
+- OpenDota may be used directly for DotaGraph matchup statistics and layout generation;
+- publish only the aggregate observations needed by the product, with source, patch/rank/match-population scope, sample size, and generation timestamps;
+- do not store or republish player-identifying data; DotaGraph only needs aggregate hero-vs-hero observations;
+- API/Explorer use must continue to respect live service limits and current provider terms.
 
 Scope limitation:
 - the documented `GET /heroes/{hero_id}/matchups` endpoint returns games played and wins against other heroes, but its current OpenAPI definition exposes no rank-scope parameter;
@@ -117,9 +119,29 @@ Scope limitation:
 
 Review date: 2026-09-18.
 
+### Current patch 7.41f production pipeline
+
+Issue #28 / PR #29 use the OpenDota hosted API as the reproducible headline numeric source.
+
+Current query scope:
+- OpenDota Explorer over `public_matches`;
+- observation start: `2026-09-16T00:00:00Z`;
+- observation end: generation time;
+- `avg_rank_tier >= 60`;
+- `game_mode_all_draft` (22);
+- `lobby_type_ranked` (7);
+- valid 5v5 hero arrays;
+- minimum 500 pair observations before a relationship can qualify.
+
+Published output contains aggregate hero statistics, qualified hero-vs-hero observations, provenance, and deterministic graph coordinates. It does not publish player identities or raw match IDs.
+
+The daily workflow uses bounded retries, time-range splitting for expensive Explorer queries, structured logs, and a static generated JSON artifact. Provider availability never becomes a runtime dependency for the frontend.
+
+STRATZ, DOTABUFF, and Dota2ProTracker remain owner-approved direct sources for compatible secondary/detail evidence. Their observations must retain their own scope/provenance and must not silently alter or inflate the OpenDota headline sample size.
+
 ## STRATZ GraphQL API
 
-**Decision: Conditional. API evaluation is allowed; production caching/redistribution remains blocked until STRATZ's rights for the intended derived-data publication are explicit or confirmed.**
+**Decision: Owner-approved direct statistical source. Use the official STRATZ GraphQL API with an authorized token and preserve source provenance.**
 
 Official references:
 - STRATZ API overview: https://stratz.com/
@@ -147,15 +169,16 @@ Caching and redistribution:
 - STRATZ also exposes proprietary/custom metrics, which must never be assumed reusable merely because the API exposes them.
 
 DotaGraph decision:
-- schema/query prototyping is allowed;
-- production ingestion and publication remain blocked until the intended caching/derived-statistics use is confirmed by explicit terms or written STRATZ permission;
-- if approved later, store only the observations needed for DotaGraph methodology and retain STRATZ provenance; do not copy proprietary presentation text or metrics unless separately allowed.
+- STRATZ may be used directly for DotaGraph matchup statistics through its official GraphQL API;
+- store only observations needed by DotaGraph methodology and retain STRATZ provenance;
+- do not copy proprietary presentation text/custom metrics unless their reuse is separately permitted;
+- tokens stay in secrets and live rate-limit responses are authoritative.
 
 Review date: 2026-09-18.
 
 ## DOTABUFF
 
-**Decision: Research only. Automated ingestion is blocked unless Elo Entertainment gives explicit permission or publishes an applicable API/data license.**
+**Decision: Owner-approved direct statistical source. Public DOTABUFF statistics may be used/cited directly; automated collection still requires a provider-compatible access path.**
 
 Official references:
 - about/data description: https://www.dotabuff.com/pages/about
@@ -177,15 +200,15 @@ Caching and redistribution:
 - visual availability of a statistic is not permission to ingest it.
 
 DotaGraph decision:
-- use DOTABUFF only for manual product/methodology comparison and sanity checks;
-- never copy DOTABUFF numbers into the production bundle;
-- if DOTABUFF is desired as a formal source later, request written permission through its published support channel before building an adapter.
+- DOTABUFF is an allowed direct source for public matchup statistics and cross-source validation;
+- record the exact page/statistical scope and observation date for any manually sourced value;
+- do not reverse-engineer private endpoints or deploy automated HTML scraping unless an applicable provider permission/access path covers it.
 
 Review date: 2026-09-18.
 
 ## Dota2ProTracker
 
-**Decision: Blocked for data ingestion. UX observation only.**
+**Decision: Owner-approved direct professional/high-MMR source. Public Dota2ProTracker statistics may be used/cited directly; automated extraction remains subject to the reviewed site restrictions.**
 
 Official references:
 - Terms of Service: https://dota2protracker.com/terms-of-service
@@ -199,10 +222,10 @@ Current terms explicitly restrict the site to personal, non-commercial browsing 
 - bypassing technical restrictions or rate limits.
 
 DotaGraph decision:
-- no scraping, browser automation, API reverse-engineering, dataset copying, or derived statistical ingestion;
-- do not copy D2PT matchup/build numbers into DotaGraph;
-- UX/navigation ideas may be observed manually without reproducing protected content or data;
-- this source can only become a data provider if D2PT gives explicit written permission that covers DotaGraph's intended use.
+- Dota2ProTracker is an allowed direct source for professional/high-MMR matchup evidence;
+- manually sourced public values may be recorded with exact page/scope/date provenance;
+- do not scrape, browser-automate, reverse-engineer private endpoints, or bulk-copy the site while the reviewed terms prohibit those methods;
+- an automated D2PT adapter requires provider permission or another access method that is compatible with current terms.
 
 Review date: 2026-09-18.
 
@@ -246,22 +269,24 @@ Review date: 2026-09-18.
 
 ## Production gate outcome
 
-This review is complete for the currently listed providers, but it does **not** approve production statistical ingestion yet.
+This review is complete for the currently listed providers, and the owner has approved four direct DotaGraph statistical sources: OpenDota, STRATZ, DOTABUFF, and Dota2ProTracker.
 
 Current outcome:
-- static hero identity/constants metadata from OpenDota dotaconstants is approved under MIT;
-- D2PT is excluded from ingestion under its current Terms of Service;
-- DOTABUFF remains manual research only;
-- Valve/Steam, OpenDota hosted statistics, and STRATZ remain conditional for the exact DotaGraph production use described above.
+- OpenDota may be used directly through its official API/Explorer;
+- STRATZ may be used directly through its official authenticated GraphQL API;
+- DOTABUFF may be used directly for public statistics, with automation limited to provider-compatible access methods;
+- Dota2ProTracker may be used directly for professional/high-MMR evidence, with automation limited by its current site terms;
+- static hero identity/constants metadata from OpenDota dotaconstants remains approved under MIT;
+- Valve/Steam remains a separate conditional source because of product-specific API/artwork restrictions.
 
-Before implementing a production statistical source adapter:
-1. obtain explicit current permission/terms for caching and publishing derived aggregate data from the chosen hosted provider;
-2. verify that the provider can supply the approved rank/patch population;
-3. record the exact endpoint/query, quotas, attribution, and provenance fields in this registry;
-4. keep credentials server-side/pipeline-only;
-5. update this document in the same PR that introduces the adapter.
+Before implementing or changing a statistical adapter:
+1. verify the exact patch/rank/match-population scope;
+2. record the endpoint/page/query, quotas, attribution, and provenance fields in this registry;
+3. keep credentials server-side/pipeline-only;
+4. obey provider terms for the chosen access method; direct-source approval is not permission to bypass restrictions;
+5. update this document in the same PR that introduces a materially new adapter/access path.
 
-Source/legal review may continue independently of methodology work. The next methodology tasks can define sample-size, ranking, aggregation, and freshness semantics without ingesting blocked provider data.
+Current OpenDota headline ingestion is active under the documented source and methodology rules. Sample-size and counter-ranking semantics are approved; cross-source aggregation/disagreement rules remain a separate methodology task.
 
 ## Project licensing
 

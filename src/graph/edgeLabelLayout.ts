@@ -29,8 +29,9 @@ export const EDGE_LABEL_HEIGHT = 18;
 const LABEL_GAP = 5;
 const MIN_T = 0.2;
 const MAX_T = 0.62;
-const SOURCE_DISTANCES = [72, 116, 160, 204, 248];
-const NORMAL_OFFSETS = [0, -13, 13];
+const SOURCE_DISTANCES = [56, 84, 112, 140, 168, 196, 224, 252, 280, 308];
+const SOURCE_T_FALLBACKS = [0.2, 0.27, 0.34, 0.41, 0.48, 0.55, 0.62];
+const NORMAL_OFFSETS = [0, -13, 13, -26, 26, -39, 39, -52, 52];
 
 interface Rect {
   left: number;
@@ -114,13 +115,27 @@ export function layoutSourceAnchoredEdgeLabels(
 ) {
   const placements = new Map<string, EdgeLabelPlacement>();
   const placedRects: Rect[] = [];
+  const orderedInputs = [...inputs].sort((a, b) => {
+    const aLength = Math.hypot(
+      a.segment.x2 - a.segment.x1,
+      a.segment.y2 - a.segment.y1
+    );
+    const bLength = Math.hypot(
+      b.segment.x2 - b.segment.x1,
+      b.segment.y2 - b.segment.y1
+    );
+    return aLength - bLength || a.id.localeCompare(b.id);
+  });
 
-  for (const input of inputs) {
+  for (const input of orderedInputs) {
     const { segment } = input;
     const length = Math.hypot(segment.x2 - segment.x1, segment.y2 - segment.y1) || 1;
-    const sourceTs = SOURCE_DISTANCES.map((distance) =>
-      clamp(distance / length, MIN_T, MAX_T)
-    );
+    const sourceTs = [
+      ...SOURCE_DISTANCES.map((distance) =>
+        clamp(distance / length, MIN_T, MAX_T)
+      ),
+      ...SOURCE_T_FALLBACKS
+    ];
     const uniqueTs = [...new Set(sourceTs.map((value) => value.toFixed(4)))]
       .map(Number);
 

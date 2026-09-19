@@ -1,8 +1,11 @@
 import type { Hero, MatchupRelationship, ScopeConfig } from "../domain/types";
 
 export interface DatasetMetadata {
-  schemaVersion: 1;
+  schemaVersion: 1 | 2;
   generatedAt: string;
+  source?: string;
+  observationWindowStart?: string;
+  observationWindowEndExclusive?: string;
   freshness: {
     status: "current" | "stale";
     reason?: string;
@@ -73,7 +76,7 @@ export function validateDataset(value: unknown): DatasetValidationResult {
   if (!isRecord(metadata)) {
     issues.push("Dataset metadata is missing or malformed.");
   } else {
-    if (metadata.schemaVersion !== 1) {
+    if (metadata.schemaVersion !== 1 && metadata.schemaVersion !== 2) {
       issues.push("Dataset schemaVersion is unsupported.");
     }
     if (
@@ -81,6 +84,24 @@ export function validateDataset(value: unknown): DatasetValidationResult {
       Number.isNaN(Date.parse(metadata.generatedAt))
     ) {
       issues.push("Dataset generatedAt must be a valid timestamp.");
+    }
+
+    if (metadata.schemaVersion === 2) {
+      if (typeof metadata.source !== "string" || !metadata.source.trim()) {
+        issues.push("Schema v2 datasets must include a source.");
+      }
+      if (
+        typeof metadata.observationWindowStart !== "string" ||
+        Number.isNaN(Date.parse(metadata.observationWindowStart))
+      ) {
+        issues.push("Schema v2 datasets must include a valid observationWindowStart.");
+      }
+      if (
+        typeof metadata.observationWindowEndExclusive !== "string" ||
+        Number.isNaN(Date.parse(metadata.observationWindowEndExclusive))
+      ) {
+        issues.push("Schema v2 datasets must include a valid observationWindowEndExclusive.");
+      }
     }
 
     const freshness = metadata.freshness;
@@ -178,6 +199,34 @@ export function validateDataset(value: unknown): DatasetValidationResult {
       }
       if (relationship.sourceKind !== "fixture" && relationship.sourceKind !== "generated") {
         issues.push(`${prefix} has an unsupported sourceKind.`);
+      }
+
+      if (relationship.sourceKind === "generated") {
+        if (!isFiniteNumber(relationship.rankingScore) || relationship.rankingScore <= 0) {
+          issues.push(`${prefix} must include a positive rankingScore.`);
+        }
+        if (
+          !isFiniteNumber(relationship.baselineAdjustedDelta) ||
+          relationship.baselineAdjustedDelta <= 0
+        ) {
+          issues.push(`${prefix} must include a positive baselineAdjustedDelta.`);
+        }
+        if (
+          !isFiniteNumber(relationship.expectedWinRate) ||
+          relationship.expectedWinRate < 0 ||
+          relationship.expectedWinRate > 1
+        ) {
+          issues.push(`${prefix} has an invalid expectedWinRate.`);
+        }
+        if (!isFiniteNumber(relationship.standardError) || relationship.standardError < 0) {
+          issues.push(`${prefix} has an invalid standardError.`);
+        }
+        if (
+          typeof relationship.provenanceSource !== "string" ||
+          !relationship.provenanceSource.trim()
+        ) {
+          issues.push(`${prefix} must include provenanceSource.`);
+        }
       }
     });
   }

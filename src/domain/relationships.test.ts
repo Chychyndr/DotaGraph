@@ -1,6 +1,21 @@
 import { describe, expect, it } from "vitest";
-import { heroById, heroes } from "../data/heroes";
+import heroCatalog from "../data/heroCatalog.json";
+import { buildHeroes } from "../data/heroes";
 import { fixtureRelationships, scope } from "../data/fixtures";
+
+const heroes = buildHeroes({
+  positions: Object.fromEntries(
+    heroCatalog.map((hero, index) => [
+      hero.slug,
+      {
+        x: 60 + (index % 16) * 65,
+        y: 60 + Math.floor(index / 16) * 75
+      }
+    ])
+  ),
+  heroStats: Object.fromEntries(heroCatalog.map((hero) => [hero.slug, null]))
+});
+const heroById = new Map(heroes.map((hero) => [hero.id, hero]));
 import { findRelationship, searchHeroes, selectRelations } from "./relationships";
 
 describe("relationship semantics", () => {
@@ -16,6 +31,41 @@ describe("relationship semantics", () => {
   it("excludes low-sample relationships", () => {
     const selected = selectRelations("viper", fixtureRelationships, scope);
     expect(selected.incoming.some((r) => r.sourceHeroId === "axe")).toBe(false);
+  });
+
+  it("sorts reliable relationships by ranking score rather than raw win rate", () => {
+    const ranked = [
+      {
+        id: "a--viper",
+        sourceHeroId: "axe",
+        targetHeroId: "viper",
+        sourceWinRate: 0.61,
+        sampleSize: 1200,
+        patch: scope.patch,
+        rankScope: scope.rankScope,
+        sourceKind: "generated" as const,
+        rankingScore: 0.01,
+        baselineAdjustedDelta: 0.04
+      },
+      {
+        id: "b--viper",
+        sourceHeroId: "bristleback",
+        targetHeroId: "viper",
+        sourceWinRate: 0.56,
+        sampleSize: 1200,
+        patch: scope.patch,
+        rankScope: scope.rankScope,
+        sourceKind: "generated" as const,
+        rankingScore: 0.05,
+        baselineAdjustedDelta: 0.07
+      }
+    ];
+
+    const selected = selectRelations("viper", ranked, scope);
+    expect(selected.incoming.map((relationship) => relationship.sourceHeroId)).toEqual([
+      "bristleback",
+      "axe"
+    ]);
   });
 
   it("finds the active directed relationship for a selected neighbor", () => {

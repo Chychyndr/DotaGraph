@@ -362,6 +362,7 @@ Python rule: use uv, never pip.
 Pipeline responsibilities:
 - source adapters;
 - bounded retries and rate limiting;
+- structured debug logging;
 - normalization;
 - aggregation;
 - ranking;
@@ -369,6 +370,8 @@ Pipeline responsibilities:
 - output generation;
 - provenance;
 - current-patch update.
+
+Current production data is regenerated daily through GitHub Actions. Generation logs must remain downloadable as workflow artifacts, and ordinary frontend runtime must not depend on live provider availability.
 
 Do not write one monolithic scraper. Keep source adapters isolated and tested.
 
@@ -392,14 +395,14 @@ Never use "publicly visible on the web" as proof that scraping is permitted.
 
 Current decisions:
 - **OpenDota dotaconstants:** approved for static identity/constants metadata under MIT.
-- **Dota2ProTracker:** blocked for ingestion under the reviewed Terms of Service; UX observation only.
-- **DOTABUFF:** research only; no automated ingestion.
-- **OpenDota hosted API:** conditional; API evaluation is allowed, but production derived-data publication and Ancient+ scope remain unresolved.
-- **STRATZ GraphQL API:** conditional; API evaluation is allowed, but caching/derived-data redistribution rights remain unresolved.
+- **OpenDota hosted API:** owner-approved direct statistical source. Prefer the official API/Explorer; retain exact scope and provenance.
+- **STRATZ GraphQL API:** owner-approved direct statistical source. Use the official token-authenticated API; keep tokens server-side/pipeline-only.
+- **DOTABUFF:** owner-approved direct statistical source. Public statistics may be cited/used directly, but automated HTML scraping/private-endpoint reverse engineering still requires a provider-compatible access method or explicit permission.
+- **Dota2ProTracker:** owner-approved direct professional/high-MMR source. Public statistics may be cited/used directly, but automated scraping remains disallowed under the currently reviewed site terms unless D2PT grants permission.
 - **Valve / Steam:** conditional; API use and Valve artwork rights are separate, and the multiplayer unfair-advantage clause needs product-specific review.
 - **Reddit/community:** qualitative only; community opinions never contribute directly to headline numerical statistics.
 
-Do not implement a production statistical adapter for a conditional source until the exact caching/derived-publication rights and approved rank/patch scope are explicit.
+Owner approval recorded on 2026-09-19 establishes OpenDota, STRATZ, DOTABUFF, and Dota2ProTracker as the allowed direct-source set for DotaGraph. Direct-source approval does not override provider terms: use official APIs where available, do not bypass authentication/rate limits, and do not automate a website when its current terms prohibit that automation.
 
 ## Aggregation
 
@@ -415,18 +418,21 @@ Large cross-source disagreement must be visible in detailed data/flags.
 
 ## Counter detection/ranking
 
-Raw win rate alone is insufficient to define a specific counter.
+Raw win rate alone is insufficient to rank a specific counter.
 
-A future methodology may compare actual matchup performance against an expected win rate derived from each hero's baseline strength.
+Approved current methodology:
+- user-visible statistic = raw source-hero matchup win rate;
+- direct pair must have at least 500 qualifying current-patch matches;
+- each hero baseline excludes the direct pair;
+- expected matchup = `0.5 + (sourceBaseline - targetBaseline) / 2`;
+- `delta = observed - expected`;
+- sampling uncertainty includes pair and both baseline terms;
+- internal `rankingScore = delta - 1.645 * standardError`;
+- relationship is eligible only when `rankingScore > 0`;
+- sort by rankingScore, then delta, sample size, stable IDs;
+- never expose rankingScore as a fake percentage.
 
-Before implementing a formula:
-- document it in docs/METHODOLOGY.md;
-- define units and scope;
-- add worked examples;
-- add tests;
-- review edge cases.
-
-The user-facing graph should remain simple even if the ranking method is sophisticated.
+See `docs/METHODOLOGY.md` for the complete formula and units.
 
 ## Generated statistics are immutable by hand
 
@@ -599,8 +605,8 @@ Only one relationship layer should dominate at a time.
 ## Human approval gates
 
 Ask the owner before:
-- beginning production scraping/data ingestion;
-- adding a new external data source;
+- adding a new external data source outside the owner-approved direct-source set;
+- introducing a new automated scraping/access method that is not already documented as provider-compatible;
 - changing headline rank scope;
 - changing the 500-match threshold;
 - changing aggregation methodology;
