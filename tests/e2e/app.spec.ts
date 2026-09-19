@@ -239,6 +239,32 @@ test("focus places incoming heroes left and outgoing heroes right", async ({ pag
   for (const x of directions!.outgoingX) expect(x).toBeGreaterThan(directions!.selectedX);
 });
 
+test("desktop focus keeps hero names clear of the context card", async ({ page }) => {
+  await page.setViewportSize({ width: 1366, height: 768 });
+  await page.goto("/?hero=crystal-maiden");
+  await page.waitForTimeout(520);
+
+  const overlaps = await page.evaluate(() => {
+    const card = document.querySelector<HTMLElement>(".context-card");
+    if (!card) return ["missing context card"];
+    const cardRect = card.getBoundingClientRect();
+
+    return [...document.querySelectorAll<SVGGElement>(".hero-label-group")]
+      .filter((label) => {
+        const rect = label.getBoundingClientRect();
+        return (
+          rect.left < cardRect.right &&
+          rect.right > cardRect.left &&
+          rect.top < cardRect.bottom &&
+          rect.bottom > cardRect.top
+        );
+      })
+      .map((label) => label.dataset.heroLabel ?? "unknown");
+  });
+
+  expect(overlaps).toEqual([]);
+});
+
 test("focused hero names stay clear of active relationship lines", async ({ page }) => {
   await page.goto("/?hero=crystal-maiden");
   await page.waitForTimeout(520);
