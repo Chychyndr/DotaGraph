@@ -33,6 +33,41 @@ describe("relationship semantics", () => {
     expect(selected.incoming.some((r) => r.sourceHeroId === "axe")).toBe(false);
   });
 
+  it("sorts reliable relationships by ranking score rather than raw win rate", () => {
+    const ranked = [
+      {
+        id: "a--viper",
+        sourceHeroId: "axe",
+        targetHeroId: "viper",
+        sourceWinRate: 0.61,
+        sampleSize: 1200,
+        patch: scope.patch,
+        rankScope: scope.rankScope,
+        sourceKind: "generated" as const,
+        rankingScore: 0.01,
+        baselineAdjustedDelta: 0.04
+      },
+      {
+        id: "b--viper",
+        sourceHeroId: "bristleback",
+        targetHeroId: "viper",
+        sourceWinRate: 0.56,
+        sampleSize: 1200,
+        patch: scope.patch,
+        rankScope: scope.rankScope,
+        sourceKind: "generated" as const,
+        rankingScore: 0.05,
+        baselineAdjustedDelta: 0.07
+      }
+    ];
+
+    const selected = selectRelations("viper", ranked, scope);
+    expect(selected.incoming.map((relationship) => relationship.sourceHeroId)).toEqual([
+      "bristleback",
+      "axe"
+    ]);
+  });
+
   it("finds the active directed relationship for a selected neighbor", () => {
     const relationship = findRelationship("viper", "shadow-demon", fixtureRelationships, scope);
     expect(relationship?.sourceHeroId).toBe("shadow-demon");
