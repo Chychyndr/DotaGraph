@@ -29,7 +29,7 @@ describe("layoutFocusPresentation", () => {
     ]);
 
     const close = layout.get("close")!;
-    expect(Math.hypot(close.x - selected.x, close.y - selected.y)).toBeGreaterThanOrEqual(179.5);
+    expect(Math.hypot(close.x - selected.x, close.y - selected.y)).toBeGreaterThanOrEqual(219.5);
   });
 
   it("pulls excessively distant active heroes into the readable focus radius", () => {
@@ -39,7 +39,7 @@ describe("layoutFocusPresentation", () => {
     ]);
 
     const far = layout.get("far")!;
-    expect(Math.hypot(far.x - selected.x, far.y - selected.y)).toBeLessThanOrEqual(310.5);
+    expect(Math.hypot(far.x - selected.x, far.y - selected.y)).toBeLessThanOrEqual(330.5);
   });
 
   it("keeps active heroes separated from each other", () => {
@@ -60,7 +60,7 @@ describe("layoutFocusPresentation", () => {
             points[right].x - points[left].x,
             points[right].y - points[left].y
           )
-        ).toBeGreaterThanOrEqual(110);
+        ).toBeGreaterThanOrEqual(145);
       }
     }
   });
@@ -79,7 +79,7 @@ describe("layoutFocusPresentation", () => {
     let difference = Math.abs(farAngle - nearAngle);
     if (difference > Math.PI) difference = Math.PI * 2 - difference;
 
-    expect(difference).toBeGreaterThanOrEqual(Math.PI / 9 - 0.02);
+    expect(difference).toBeGreaterThanOrEqual(Math.PI / 6 - 0.02);
     expect(layout.get("selected")).toEqual({ x: 400, y: 300 });
   });
 
