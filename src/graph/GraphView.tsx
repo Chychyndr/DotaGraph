@@ -26,6 +26,7 @@ import {
   selectHoverRelationships,
   selectOverviewBackbone
 } from "./relationshipVisibility";
+import { layoutHeroLabels } from "./heroLabelLayout";
 
 interface GraphViewProps {
   heroes: Hero[];
@@ -430,6 +431,68 @@ export function GraphView({
     };
   };
 
+  const labelWidthFor = (hero: Hero) =>
+    Math.max(42, hero.name.length * 6.7 + 14);
+
+  const labelHeroes = heroes
+    .filter(
+      (hero) =>
+        hero.id === selectedHeroId ||
+        activeIds.has(hero.id) ||
+        hero.id === hoveredHeroId
+    )
+    .sort((left, right) => {
+      const priority = (hero: Hero) =>
+        hero.id === selectedHeroId ? 0 : activeIds.has(hero.id) ? 1 : 2;
+      return priority(left) - priority(right) || left.id.localeCompare(right.id);
+    });
+
+  const activeEdgeSegments = activeRelationships.flatMap((relationship) => {
+    const source = byId.get(relationship.sourceHeroId);
+    const target = byId.get(relationship.targetHeroId);
+    if (!source || !target) return [];
+
+    return [edgeGeometry(source, target)];
+  });
+
+  const heroLabelPlacements = layoutHeroLabels(
+    labelHeroes.map((hero) => {
+      let preferredAngle =
+        hero.x > WIDTH - 170 ? Math.PI : 0;
+
+      if (hero.id === selectedHeroId) {
+        preferredAngle = largestAngularGap(hero, relatedHeroes).angle;
+      } else if (selectedHero && activeIds.has(hero.id)) {
+        preferredAngle = Math.atan2(
+          hero.y - selectedHero.y,
+          hero.x - selectedHero.x
+        );
+      }
+
+      return {
+        id: hero.id,
+        x: hero.x,
+        y: hero.y,
+        radius: radiusFor(hero.id),
+        width: labelWidthFor(hero),
+        height: 20,
+        preferredAngle
+      };
+    }),
+    activeEdgeSegments,
+    [...activeIds].flatMap((heroId) => {
+      const hero = byId.get(heroId);
+      return hero
+        ? [{
+            id: hero.id,
+            x: hero.x,
+            y: hero.y,
+            radius: radiusFor(hero.id) + 3
+          }]
+        : [];
+    })
+  );
+
   const edgeLabelPlacements = layoutSourceAnchoredEdgeLabels(
     activeRelationships.flatMap((relationship) => {
       const source = byId.get(relationship.sourceHeroId);
@@ -793,54 +856,16 @@ export function GraphView({
 
             if (!showLabel) return null;
 
-            const radius = radiusFor(hero.id);
-            const labelWidth = Math.max(42, hero.name.length * 6.7 + 14);
-            const selected = selectedHero;
-            let labelX = hero.x;
-            let labelY = hero.y;
-
-            if (hero.id === selectedHeroId) {
-              const gap = largestAngularGap(hero, relatedHeroes);
-              const labelRadius = Math.hypot(labelWidth / 2 + 8, 12);
-              const safeDistance = Math.min(
-                210,
-                Math.max(
-                  radius + 88,
-                  (labelRadius + 10) / Math.max(Math.sin(gap.halfGap), 0.15)
-                )
-              );
-              labelX += Math.cos(gap.angle) * safeDistance;
-              labelY += Math.sin(gap.angle) * safeDistance;
-            } else if (selected && activeIds.has(hero.id)) {
-              const dx = hero.x - selected.x;
-              const dy = hero.y - selected.y;
-              const length = Math.hypot(dx, dy) || 1;
-              const ux = dx / length;
-              const uy = dy / length;
-              const labelHalfWidth = labelWidth / 2;
-              const labelHalfHeight = 10;
-              const outwardDistance =
-                radius +
-                10 +
-                Math.abs(ux) * labelHalfWidth +
-                Math.abs(uy) * labelHalfHeight;
-
-              labelX += ux * outwardDistance;
-              labelY += uy * outwardDistance;
-            } else if (selected) {
-              const side = hero.x < selected.x ? -1 : 1;
-              labelX += side * (radius + 10 + labelWidth / 2);
-            } else {
-              const side = hero.x > WIDTH - 170 ? -1 : 1;
-              labelX += side * (radius + 9 + labelWidth / 2);
-            }
+            const labelWidth = labelWidthFor(hero);
+            const placement = heroLabelPlacements.get(hero.id);
+            if (!placement) return null;
 
             return (
               <g
                 key={`hero-label-${hero.id}`}
                 className="hero-label-group"
                 data-hero-label={hero.id}
-                transform={`translate(${labelX} ${labelY})`}
+                transform={`translate(${placement.x} ${placement.y})`}
               >
                 <rect
                   className="hero-label-bg"
