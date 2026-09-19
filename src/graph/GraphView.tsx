@@ -78,6 +78,56 @@ const lerp = (from: number, to: number, progress: number) =>
 const easeOutQuart = (progress: number) =>
   1 - Math.pow(1 - progress, 4);
 
+const normalizeAngle = (angle: number) => {
+  const fullTurn = Math.PI * 2;
+  const normalized = angle % fullTurn;
+  return normalized < 0 ? normalized + fullTurn : normalized;
+};
+
+const largestAngularGap = (
+  center: { x: number; y: number },
+  neighbors: Array<{ x: number; y: number }>
+) => {
+  if (!neighbors.length) {
+    return { angle: -Math.PI / 2, halfGap: Math.PI };
+  }
+
+  const angles = neighbors
+    .map((neighbor) =>
+      normalizeAngle(Math.atan2(neighbor.y - center.y, neighbor.x - center.x))
+    )
+    .sort((a, b) => a - b);
+
+  if (angles.length === 1) {
+    return {
+      angle: normalizeAngle(angles[0] + Math.PI),
+      halfGap: Math.PI
+    };
+  }
+
+  let bestStart = angles[0];
+  let bestGap = -1;
+
+  for (let index = 0; index < angles.length; index += 1) {
+    const start = angles[index];
+    const end =
+      index === angles.length - 1
+        ? angles[0] + Math.PI * 2
+        : angles[index + 1];
+    const gap = end - start;
+
+    if (gap > bestGap) {
+      bestGap = gap;
+      bestStart = start;
+    }
+  }
+
+  return {
+    angle: normalizeAngle(bestStart + bestGap / 2),
+    halfGap: bestGap / 2
+  };
+};
+
 export function GraphView({
   heroes,
   relationships,
@@ -792,7 +842,17 @@ export function GraphView({
             let labelY = hero.y;
 
             if (hero.id === selectedHeroId) {
-              labelY -= radius + 72;
+              const gap = largestAngularGap(hero, presentationRelatedHeroes);
+              const labelRadius = Math.hypot(labelWidth / 2 + 8, 12);
+              const safeDistance = Math.min(
+                210,
+                Math.max(
+                  radius + 88,
+                  (labelRadius + 10) / Math.max(Math.sin(gap.halfGap), 0.15)
+                )
+              );
+              labelX += Math.cos(gap.angle) * safeDistance;
+              labelY += Math.sin(gap.angle) * safeDistance;
             } else if (selected) {
               const side = hero.x < selected.x ? -1 : 1;
               labelX += side * (radius + 10 + labelWidth / 2);
