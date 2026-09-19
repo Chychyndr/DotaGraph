@@ -613,6 +613,8 @@ export function GraphView({
                 x2={geometry.x2}
                 y2={geometry.y2}
                 markerEnd={isIncoming ? "url(#arrow-incoming)" : isOutgoing ? "url(#arrow-outgoing)" : undefined}
+                data-source-hero={relationship.sourceHeroId}
+                data-target-hero={relationship.targetHeroId}
               />
             );
           })}
@@ -797,6 +799,7 @@ export function GraphView({
                 data-source-hero={relationship.sourceHeroId}
                 data-target-hero={relationship.targetHeroId}
                 data-label-t={labelPlacement.t.toFixed(3)}
+                data-label-offset={labelPlacement.offset.toFixed(1)}
               >
                 <rect
                   x={-EDGE_LABEL_WIDTH / 2}
