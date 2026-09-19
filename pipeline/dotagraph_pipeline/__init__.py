@@ -1,1 +1,0 @@
-"""DotaGraph offline data pipeline."""
