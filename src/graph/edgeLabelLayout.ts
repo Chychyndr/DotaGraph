@@ -35,7 +35,7 @@ const MIN_T = 0.12;
 const MAX_T = 0.88;
 const PREFERRED_T = 0.34;
 const NORMAL_OFFSETS = [0];
-const MIN_LABEL_SCALE = 0.6;
+const MIN_LABEL_SCALE = 0.8;
 
 const safeEndMargin = (scale: number) =>
   Math.hypot(
