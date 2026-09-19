@@ -293,7 +293,7 @@ The overview must not randomly reorganize on every page load.
 
 Prefer deterministic/precomputed positions, seeded layout, or cached stable positions generated as part of the data build.
 
-Hover and Focus must not relayout the graph. Hero coordinates are the committed Overview coordinates in every interaction state; selection changes emphasis, labels, active edges, camera framing, and contextual cards only.
+Hover and Focus must not relayout the graph. Hero coordinates are the committed Overview coordinates in every interaction state. On desktop, hero selection also keeps the Overview camera unchanged; selection changes emphasis, labels, active edges, and contextual cards only. Compact viewports may reframe the same graph when needed for the card.
 
 ## URL state
 
