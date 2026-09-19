@@ -69,11 +69,13 @@ test("win-rate badges render above every camera edge", async ({ page }) => {
 
   const order = await page.evaluate(() => {
     const graph = document.querySelector("svg.graph");
-    const camera = graph?.querySelector(":scope > .graph-camera");
-    const labels = graph?.querySelector(":scope > .edge-label-layer");
-    if (!graph || !camera || !labels) return null;
+    if (!graph) return null;
 
     const children = Array.from(graph.children);
+    const camera = children.find((child) => child.classList.contains("graph-camera"));
+    const labels = children.find((child) => child.classList.contains("edge-label-layer"));
+    if (!camera || !labels) return null;
+
     return {
       camera: children.indexOf(camera),
       labels: children.indexOf(labels)
@@ -84,10 +86,20 @@ test("win-rate badges render above every camera edge", async ({ page }) => {
   expect(order!.labels).toBeGreaterThan(order!.camera);
 });
 
-test("win-rate badges keep native screen scale after focus zoom", async ({ page }) => {
+test("win-rate badges keep native screen scale after camera zoom", async ({ page }) => {
   await page.setViewportSize({ width: 1366, height: 768 });
-  await page.goto("/?hero=spectre");
+  await page.goto("/?hero=viper");
   await page.waitForTimeout(520);
+
+  const graph = page.getByRole("group", { name: "Dota 2 hero counter relationships" });
+  const camera = page.locator(".graph-camera");
+  const box = await graph.boundingBox();
+  expect(box).not.toBeNull();
+
+  const beforeTransform = await camera.getAttribute("transform");
+  await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2);
+  await page.mouse.wheel(0, 420);
+  await expect.poll(() => camera.getAttribute("transform")).not.toBe(beforeTransform);
 
   const scales = await page.evaluate(() => {
     const graph = document.querySelector("svg.graph") as SVGSVGElement | null;
