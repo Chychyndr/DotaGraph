@@ -381,6 +381,10 @@ button:focus-visible, input:focus-visible, [role="button"]:focus-visible {
 .marker-incoming { fill: var(--incoming-strong); }
 .marker-outgoing { fill: var(--outgoing-strong); }
 
+.edge-label-layer {
+  pointer-events: none;
+}
+
 .edge-label {
   pointer-events: none;
   transition: opacity 140ms ease;
