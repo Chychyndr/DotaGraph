@@ -39,6 +39,20 @@ describe("layoutSourceAnchoredEdgeLabels", () => {
     }
   });
 
+  it("slides along the edge to avoid an unrelated hero portrait", () => {
+    const segment = { x1: 100, y1: 200, x2: 500, y2: 200 };
+    const placements = layoutSourceAnchoredEdgeLabels(
+      [{ id: "edge", segment }],
+      [{ x: 236, y: 200, radius: 34 }]
+    );
+
+    const placement = placements.get("edge")!;
+
+    expect(placement.offset).toBe(0);
+    expect(placement.y).toBeCloseTo(200, 6);
+    expect(Math.abs(placement.x - 236)).toBeGreaterThan(34 + 23);
+  });
+
   it("separates near-parallel labels from the same source", () => {
     const placements = layoutSourceAnchoredEdgeLabels([
       { id: "a", segment: { x1: 40, y1: 100, x2: 380, y2: 100 } },
