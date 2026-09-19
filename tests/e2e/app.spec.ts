@@ -64,6 +64,71 @@ test("hovered hero label renders above every portrait node", async ({ page }) =>
   expect(layerOrder!.labels).toBeGreaterThan(layerOrder!.nodes);
 });
 
+test("win-rate badges render above every camera edge", async ({ page }) => {
+  await page.goto("/?hero=viper");
+  await expect(
+    page.getByRole("group", { name: "Dota 2 hero counter relationships" })
+  ).toBeVisible();
+  await expect(page.locator(".edge-label").first()).toBeVisible();
+
+  const order = await page.evaluate(() => {
+    const graph = document.querySelector("svg.graph");
+    if (!graph) return null;
+
+    const children = Array.from(graph.children);
+    const camera = children.find((child) => child.classList.contains("graph-camera"));
+    const labels = children.find((child) => child.classList.contains("edge-label-layer"));
+    if (!camera || !labels) return null;
+
+    return {
+      camera: children.indexOf(camera),
+      labels: children.indexOf(labels)
+    };
+  });
+
+  expect(order).not.toBeNull();
+  expect(order!.labels).toBeGreaterThan(order!.camera);
+});
+
+test("win-rate badges keep native screen scale after camera zoom", async ({ page }) => {
+  await page.setViewportSize({ width: 1366, height: 768 });
+  await page.goto("/?hero=viper");
+  await page.waitForTimeout(520);
+
+  const graph = page.getByRole("group", { name: "Dota 2 hero counter relationships" });
+  const camera = page.locator(".graph-camera");
+  const box = await graph.boundingBox();
+  expect(box).not.toBeNull();
+
+  const beforeTransform = await camera.getAttribute("transform");
+  await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2);
+  await page.mouse.wheel(0, 420);
+  await expect.poll(() => camera.getAttribute("transform")).not.toBe(beforeTransform);
+
+  const scales = await page.evaluate(() => {
+    const graph = document.querySelector("svg.graph") as SVGSVGElement | null;
+    const camera = document.querySelector(".graph-camera") as SVGGElement | null;
+    const label = document.querySelector(".edge-label") as SVGGElement | null;
+    if (!graph || !camera || !label) return null;
+
+    const graphCtm = graph.getScreenCTM();
+    const labelCtm = label.getScreenCTM();
+    const cameraTransform = camera.getAttribute("transform") ?? "";
+    const cameraScaleMatch = cameraTransform.match(/scale\(([^)]+)\)/);
+    if (!graphCtm || !labelCtm || !cameraScaleMatch) return null;
+
+    return {
+      graphScale: Math.hypot(graphCtm.a, graphCtm.b),
+      labelScale: Math.hypot(labelCtm.a, labelCtm.b),
+      cameraScale: Number(cameraScaleMatch[1])
+    };
+  });
+
+  expect(scales).not.toBeNull();
+  expect(scales!.cameraScale).toBeLessThan(1);
+  expect(Math.abs(scales!.labelScale - scales!.graphScale)).toBeLessThan(0.01);
+});
+
 test("focused win-rate labels stay source-anchored and do not overlap", async ({ page }) => {
   await page.goto("/?hero=viper");
 
@@ -281,7 +346,7 @@ test("mouse wheel zooms the graph", async ({ page }) => {
     .not.toBe(before);
 });
 
-test("selecting a distant hero moves the camera progressively", async ({ page }) => {
+test("selecting a distant hero moves and settles the camera", async ({ page }) => {
   await page.goto("/");
   const camera = page.locator(".graph-camera");
   const search = page.getByRole("combobox", { name: "Search for a hero" });
@@ -289,14 +354,17 @@ test("selecting a distant hero moves the camera progressively", async ({ page })
 
   await search.fill("underlord");
   await page.getByRole("option", { name: /Underlord/ }).click();
-  await page.waitForTimeout(90);
-  const during = await camera.getAttribute("transform");
 
-  await page.waitForTimeout(500);
-  const after = await camera.getAttribute("transform");
+  await expect
+    .poll(() => camera.getAttribute("transform"))
+    .not.toBe(before);
 
-  expect(during).not.toBe(before);
-  expect(after).not.toBe(during);
+  await page.waitForTimeout(520);
+  const settled = await camera.getAttribute("transform");
+  expect(settled).not.toBe(before);
+
+  await page.waitForTimeout(120);
+  expect(await camera.getAttribute("transform")).toBe(settled);
   await expect(page).toHaveURL(/hero=underlord/);
 });
 

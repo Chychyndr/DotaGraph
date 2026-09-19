@@ -16,7 +16,7 @@ test("capture Overview, Focus and Matchup states", async ({ page }) => {
   await search.fill("viper");
   await page.getByRole("option", { name: /Viper/ }).click();
   await expect(page.getByLabel("Viper counter summary")).toBeVisible();
-  await page.waitForTimeout(250);
+  await page.waitForTimeout(520);
   await page.screenshot({ path: `${output}/focus-viper.png`, fullPage: true });
 
   const firstRelationship = page.locator(".relation-row").first();
@@ -27,6 +27,14 @@ test("capture Overview, Focus and Matchup states", async ({ page }) => {
   await page.screenshot({ path: `${output}/matchup-current-viper.png`, fullPage: true });
 });
 
+
+test("capture settled Spectre focus badge rendering", async ({ page }) => {
+  await page.setViewportSize({ width: 1366, height: 768 });
+  await page.goto("/?hero=spectre", { waitUntil: "networkidle" });
+  await expect(page.getByLabel("Spectre counter summary")).toBeVisible();
+  await page.waitForTimeout(520);
+  await page.screenshot({ path: `${output}/focus-spectre-settled.png`, fullPage: true });
+});
 
 test("capture mobile Focus and Matchup states", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
