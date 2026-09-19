@@ -804,6 +804,22 @@ export function GraphView({
               );
               labelX += Math.cos(gap.angle) * safeDistance;
               labelY += Math.sin(gap.angle) * safeDistance;
+            } else if (selected && activeIds.has(hero.id)) {
+              const dx = hero.x - selected.x;
+              const dy = hero.y - selected.y;
+              const length = Math.hypot(dx, dy) || 1;
+              const ux = dx / length;
+              const uy = dy / length;
+              const labelHalfWidth = labelWidth / 2;
+              const labelHalfHeight = 10;
+              const outwardDistance =
+                radius +
+                10 +
+                Math.abs(ux) * labelHalfWidth +
+                Math.abs(uy) * labelHalfHeight;
+
+              labelX += ux * outwardDistance;
+              labelY += uy * outwardDistance;
             } else if (selected) {
               const side = hero.x < selected.x ? -1 : 1;
               labelX += side * (radius + 10 + labelWidth / 2);
