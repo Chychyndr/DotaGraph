@@ -26,11 +26,11 @@ export function layoutFocusPresentation(
   selected: Hero,
   related: Hero[],
   {
-    minSelectedDistance = 180,
-    maxSelectedDistance = 310,
-    minActiveDistance = 120,
-    minAngularSeparation = Math.PI / 9,
-    iterations = 180
+    minSelectedDistance = 220,
+    maxSelectedDistance = 330,
+    minActiveDistance = 150,
+    minAngularSeparation = Math.PI / 6,
+    iterations = 240
   }: FocusPresentationOptions = {}
 ): Map<string, FocusPosition> {
   const ordered = [...related]
