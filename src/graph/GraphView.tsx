@@ -66,7 +66,6 @@ const DRAG_THRESHOLD = 5;
 const CAMERA_DURATION = 460;
 const COMPACT_VIEWPORT_QUERY = "(max-width: 640px)";
 const COMPACT_FOCUS_OFFSET_Y = -120;
-const DESKTOP_FOCUS_OFFSET_X = 180;
 
 const clamp = (value: number, min: number, max: number) =>
   Math.min(max, Math.max(min, value));
@@ -171,15 +170,6 @@ export function GraphView({
     [isCompactViewport, svgViewport]
   );
 
-  const targetFocusScale = selectedHero
-    ? calculateFocusScale(selectedHero, relatedHeroes, {
-        ...visibleGraphSpan,
-        offsetX: isCompactViewport ? 0 : DESKTOP_FOCUS_OFFSET_X,
-        offsetY: isCompactViewport ? COMPACT_FOCUS_OFFSET_Y : 0,
-        paddingX: isCompactViewport ? 60 : 84,
-        paddingY: isCompactViewport ? 54 : 68
-      })
-    : 1;
   const overviewCamera = useMemo(
     () =>
       calculateOverviewCamera(heroes, {
@@ -188,14 +178,32 @@ export function GraphView({
       }),
     [heroes]
   );
+  const targetFocusScale =
+    selectedHero && isCompactViewport
+      ? calculateFocusScale(selectedHero, relatedHeroes, {
+          ...visibleGraphSpan,
+          offsetY: COMPACT_FOCUS_OFFSET_Y,
+          paddingX: 60,
+          paddingY: 54
+        })
+      : overviewCamera.scale;
 
   const initialCamera: CameraState = {
-    anchorX: selectedHero?.x ?? overviewCamera.anchorX,
-    anchorY: selectedHero?.y ?? overviewCamera.anchorY,
-    panX: selectedHero && !initialCompactViewport ? DESKTOP_FOCUS_OFFSET_X : 0,
+    anchorX:
+      selectedHero && initialCompactViewport
+        ? selectedHero.x
+        : overviewCamera.anchorX,
+    anchorY:
+      selectedHero && initialCompactViewport
+        ? selectedHero.y
+        : overviewCamera.anchorY,
+    panX: 0,
     panY: selectedHero && initialCompactViewport ? COMPACT_FOCUS_OFFSET_Y : 0,
     zoom: 1,
-    focusScale: selectedHero ? targetFocusScale : overviewCamera.scale
+    focusScale:
+      selectedHero && initialCompactViewport
+        ? targetFocusScale
+        : overviewCamera.scale
   };
 
   const [camera, setCameraState] = useState<CameraState>(initialCamera);
@@ -239,12 +247,15 @@ export function GraphView({
 
     cancelCameraAnimation();
 
-    const selected = selectedHeroId ? byId.get(selectedHeroId) : undefined;
+    const selected =
+      selectedHeroId && isCompactViewport
+        ? byId.get(selectedHeroId)
+        : undefined;
     const target: CameraState = {
       anchorX: selected?.x ?? overviewCamera.anchorX,
       anchorY: selected?.y ?? overviewCamera.anchorY,
-      panX: selected && !isCompactViewport ? DESKTOP_FOCUS_OFFSET_X : 0,
-      panY: selected && isCompactViewport ? COMPACT_FOCUS_OFFSET_Y : 0,
+      panX: 0,
+      panY: selected ? COMPACT_FOCUS_OFFSET_Y : 0,
       zoom: 1,
       focusScale: selected ? targetFocusScale : overviewCamera.scale
     };
