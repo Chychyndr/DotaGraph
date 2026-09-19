@@ -65,6 +65,24 @@ describe("layoutFocusPresentation", () => {
     }
   });
 
+  it("separates active heroes that start on the same radial spoke", () => {
+    const selected = hero("selected", 400, 300);
+    const layout = layoutFocusPresentation(selected, [
+      hero("near", 580, 300),
+      hero("far", 700, 300)
+    ]);
+
+    const near = layout.get("near")!;
+    const far = layout.get("far")!;
+    const nearAngle = Math.atan2(near.y - selected.y, near.x - selected.x);
+    const farAngle = Math.atan2(far.y - selected.y, far.x - selected.x);
+    let difference = Math.abs(farAngle - nearAngle);
+    if (difference > Math.PI) difference = Math.PI * 2 - difference;
+
+    expect(difference).toBeGreaterThanOrEqual(Math.PI / 9 - 0.02);
+    expect(layout.get("selected")).toEqual({ x: 400, y: 300 });
+  });
+
   it("preserves the original side of the selected hero", () => {
     const selected = hero("selected", 400, 300);
     const related = [
