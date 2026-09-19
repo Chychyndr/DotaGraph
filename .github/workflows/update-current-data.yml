@@ -47,7 +47,7 @@ jobs:
         run: |
           set -o pipefail
           mkdir -p .artifacts
-          uv run --project pipeline             python -m dotagraph_pipeline.generate_current_bundle             --output src/data/current-matchups.json             --verbose             2>&1 | tee .artifacts/current-data.log
+          uv run --project pipeline             python -m dotagraph_pipeline.generate_current_bundle             --output public/data/current-matchups.json             --verbose             2>&1 | tee .artifacts/current-data.log
 
       - name: Summarize generated data
         shell: bash
@@ -56,7 +56,7 @@ jobs:
           import json
           from pathlib import Path
 
-          data = json.loads(Path("src/data/current-matchups.json").read_text())
+          data = json.loads(Path("public/data/current-matchups.json").read_text())
           coverage = data["coverage"]
           metrics = data["layoutMetrics"]
 
@@ -83,14 +83,14 @@ jobs:
       - name: Commit generated data
         shell: bash
         run: |
-          if git ls-files --error-unmatch src/data/current-matchups.json >/dev/null 2>&1             && git diff --quiet -- src/data/current-matchups.json; then
+          if git ls-files --error-unmatch public/data/current-matchups.json >/dev/null 2>&1             && git diff --quiet -- public/data/current-matchups.json; then
             echo "Current matchup bundle is unchanged."
             exit 0
           fi
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add src/data/current-matchups.json
+          git add public/data/current-matchups.json
           git commit -m "data: refresh current 7.41f matchups"
 
           BRANCH="${GITHUB_REF_NAME}"
