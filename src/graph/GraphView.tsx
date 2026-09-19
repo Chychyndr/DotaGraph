@@ -67,6 +67,7 @@ const DRAG_THRESHOLD = 5;
 const CAMERA_DURATION = 460;
 const COMPACT_VIEWPORT_QUERY = "(max-width: 640px)";
 const COMPACT_FOCUS_OFFSET_Y = -120;
+const DESKTOP_FOCUS_OFFSET_X = 180;
 
 const clamp = (value: number, min: number, max: number) =>
   Math.min(max, Math.max(min, value));
@@ -95,27 +96,43 @@ export function GraphView({
   const [isCompactViewport, setIsCompactViewport] = useState(initialCompactViewport);
   const [svgViewport, setSvgViewport] = useState({ width: WIDTH, height: HEIGHT });
   const selectedHero = selectedHeroId ? byId.get(selectedHeroId) : undefined;
+  const incomingHeroes = useMemo(
+    () =>
+      selectedRelations.incoming.flatMap((relationship) => {
+        const hero = byId.get(relationship.sourceHeroId);
+        return hero ? [hero] : [];
+      }),
+    [byId, selectedRelations.incoming]
+  );
+  const outgoingHeroes = useMemo(
+    () =>
+      selectedRelations.outgoing.flatMap((relationship) => {
+        const hero = byId.get(relationship.targetHeroId);
+        return hero ? [hero] : [];
+      }),
+    [byId, selectedRelations.outgoing]
+  );
   const relatedHeroes = useMemo(() => {
-    if (!selectedHeroId) return [];
-
-    const ids = new Set(
-      [...selectedRelations.incoming, ...selectedRelations.outgoing]
-        .flatMap((relationship) => [relationship.sourceHeroId, relationship.targetHeroId])
-        .filter((heroId) => heroId !== selectedHeroId)
-    );
-
-    return [...ids].flatMap((heroId) => {
-      const hero = byId.get(heroId);
-      return hero ? [hero] : [];
-    });
-  }, [byId, selectedHeroId, selectedRelations]);
+    const unique = new Map<string, Hero>();
+    for (const hero of [...incomingHeroes, ...outgoingHeroes]) unique.set(hero.id, hero);
+    return [...unique.values()];
+  }, [incomingHeroes, outgoingHeroes]);
 
   const focusPositions = useMemo(
     () =>
       selectedHero
-        ? layoutFocusPresentation(selectedHero, relatedHeroes)
+        ? layoutFocusPresentation(
+            selectedHero,
+            {
+              incoming: incomingHeroes,
+              outgoing: outgoingHeroes
+            },
+            {
+              radius: isCompactViewport ? 250 : 330
+            }
+          )
         : new Map<string, { x: number; y: number }>(),
-    [relatedHeroes, selectedHero]
+    [incomingHeroes, isCompactViewport, outgoingHeroes, selectedHero]
   );
   const presentationHeroes = useMemo(
     () =>
@@ -139,6 +156,18 @@ export function GraphView({
         return presentationHero ? [presentationHero] : [];
       }),
     [presentationById, relatedHeroes]
+  );
+  const focusVisibleIds = useMemo(() => {
+    const ids = new Set(relatedHeroes.map((hero) => hero.id));
+    if (selectedHeroId) ids.add(selectedHeroId);
+    return ids;
+  }, [relatedHeroes, selectedHeroId]);
+  const navigationHeroes = useMemo(
+    () =>
+      selectedHeroId
+        ? presentationHeroes.filter((hero) => focusVisibleIds.has(hero.id))
+        : presentationHeroes,
+    [focusVisibleIds, presentationHeroes, selectedHeroId]
   );
 
   const visibleGraphSpan = useMemo(
@@ -172,7 +201,7 @@ export function GraphView({
   const initialCamera: CameraState = {
     anchorX: presentationSelectedHero?.x ?? overviewCamera.anchorX,
     anchorY: presentationSelectedHero?.y ?? overviewCamera.anchorY,
-    panX: 0,
+    panX: selectedHero && !initialCompactViewport ? DESKTOP_FOCUS_OFFSET_X : 0,
     panY: selectedHero && initialCompactViewport ? COMPACT_FOCUS_OFFSET_Y : 0,
     zoom: 1,
     focusScale: presentationSelectedHero ? targetFocusScale : overviewCamera.scale
@@ -182,7 +211,7 @@ export function GraphView({
   const [isPanning, setIsPanning] = useState(false);
   const initialKeyboardHero = selectedHeroId
     ? presentationById.get(selectedHeroId)
-    : findNearestHeroToPoint(presentationHeroes, WIDTH / 2, HEIGHT / 2);
+    : findNearestHeroToPoint(navigationHeroes, WIDTH / 2, HEIGHT / 2);
   const [keyboardHeroId, setKeyboardHeroId] = useState<string | null>(initialKeyboardHero?.id ?? null);
   const cameraRef = useRef(camera);
   const svgRef = useRef<SVGSVGElement>(null);
@@ -223,7 +252,7 @@ export function GraphView({
     const target: CameraState = {
       anchorX: selected?.x ?? overviewCamera.anchorX,
       anchorY: selected?.y ?? overviewCamera.anchorY,
-      panX: 0,
+      panX: selected && !isCompactViewport ? DESKTOP_FOCUS_OFFSET_X : 0,
       panY: selected && isCompactViewport ? COMPACT_FOCUS_OFFSET_Y : 0,
       zoom: 1,
       focusScale: selected ? targetFocusScale : overviewCamera.scale
@@ -622,7 +651,7 @@ export function GraphView({
         </g>
 
         <g className="nodes">
-          {presentationHeroes.map((hero) => {
+          {navigationHeroes.map((hero) => {
             const isSelected = hero.id === selectedHeroId;
             const isActive = activeIds.has(hero.id) && !isSelected;
             const isHovered = hero.id === hoveredHeroId;
@@ -657,7 +686,7 @@ export function GraphView({
             };
 
             const moveKeyboardFocus = (direction: GraphNavigationDirection) => {
-              const next = findHeroInDirection(hero.id, direction, presentationHeroes);
+              const next = findHeroInDirection(hero.id, direction, navigationHeroes);
               if (!next) return;
 
               setKeyboardHeroId(next.id);
@@ -748,7 +777,7 @@ export function GraphView({
         </g>
 
         <g className="hero-label-layer" aria-hidden="true">
-          {presentationHeroes.map((hero) => {
+          {navigationHeroes.map((hero) => {
             const showLabel =
               hero.id === selectedHeroId ||
               activeIds.has(hero.id) ||
@@ -757,20 +786,44 @@ export function GraphView({
             if (!showLabel) return null;
 
             const radius = radiusFor(hero.id);
-            const placeLeft = hero.x > WIDTH - 170;
+            const labelWidth = Math.max(42, hero.name.length * 6.7 + 14);
+            const selected = presentationSelectedHero;
+            let labelX = hero.x;
+            let labelY = hero.y;
+
+            if (hero.id === selectedHeroId) {
+              labelY -= radius + 72;
+            } else if (selected) {
+              const side = hero.x < selected.x ? -1 : 1;
+              labelX += side * (radius + 10 + labelWidth / 2);
+            } else {
+              const side = hero.x > WIDTH - 170 ? -1 : 1;
+              labelX += side * (radius + 9 + labelWidth / 2);
+            }
 
             return (
-              <text
+              <g
                 key={`hero-label-${hero.id}`}
-                className="hero-label"
+                className="hero-label-group"
                 data-hero-label={hero.id}
-                transform={`translate(${hero.x} ${hero.y})`}
-                x={placeLeft ? -(radius + 9) : radius + 9}
-                y="4"
-                textAnchor={placeLeft ? "end" : "start"}
+                transform={`translate(${labelX} ${labelY})`}
               >
-                {hero.name}
-              </text>
+                <rect
+                  className="hero-label-bg"
+                  x={-labelWidth / 2}
+                  y="-10"
+                  width={labelWidth}
+                  height="20"
+                  rx="3"
+                />
+                <text
+                  className="hero-label"
+                  textAnchor="middle"
+                  dominantBaseline="central"
+                >
+                  {hero.name}
+                </text>
+              </g>
             );
           })}
         </g>

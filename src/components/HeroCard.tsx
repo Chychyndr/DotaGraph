@@ -70,7 +70,6 @@ export function HeroCard({ hero, incoming, outgoing, onMatchup, heroesById }: He
       <div className="card-section">
         <div className="section-heading incoming-text">
           <span>Countered by</span>
-          <small>{incoming.length}/5</small>
         </div>
         <RelationRows
           relationships={incoming}
@@ -83,7 +82,6 @@ export function HeroCard({ hero, incoming, outgoing, onMatchup, heroesById }: He
       <div className="card-section">
         <div className="section-heading outgoing-text">
           <span>Counters</span>
-          <small>{outgoing.length}/5</small>
         </div>
         <RelationRows
           relationships={outgoing}
