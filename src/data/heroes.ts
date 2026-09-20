@@ -147,7 +147,7 @@ const ALIASES: Record<string, string[]> = {
   muerta: [],
   kez: [],
   largo: []
-}
+};
 
 const DISPLAY_ID_OVERRIDES: Record<string, string> = {
   nevermore: "shadow-fiend",
