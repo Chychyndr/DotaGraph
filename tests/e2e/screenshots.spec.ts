@@ -28,6 +28,15 @@ test("capture Overview, Focus and Matchup states", async ({ page }) => {
 });
 
 
+test("capture compact search results", async ({ page }) => {
+  await page.setViewportSize({ width: 432, height: 490 });
+  await page.goto("/", { waitUntil: "networkidle" });
+  const search = page.getByRole("combobox", { name: "Search for a hero" });
+  await search.fill("sh");
+  await expect(page.getByRole("listbox", { name: "Hero search results" })).toBeVisible();
+  await page.screenshot({ path: `${output}/search-shadow-results.png`, fullPage: true });
+});
+
 test("capture one-graph hover state", async ({ page }) => {
   await page.setViewportSize({ width: 1366, height: 768 });
   await page.goto("/", { waitUntil: "networkidle" });
