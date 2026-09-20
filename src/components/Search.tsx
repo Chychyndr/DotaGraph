@@ -85,7 +85,12 @@ export function Search({ heroes, onSelect }: SearchProps) {
           role="listbox"
           aria-label="Hero search results"
         >
-          {results.length ? results.map((hero, index) => (
+          {results.length ? results.map((hero, index) => {
+            const shortcutAlias = hero.aliases.find(
+              (alias) => /^[a-z0-9]{1,4}$/i.test(alias)
+            );
+
+            return (
             <button
               id={`hero-result-${hero.id}`}
               type="button"
@@ -97,10 +102,13 @@ export function Search({ heroes, onSelect }: SearchProps) {
               onClick={() => choose(hero)}
             >
               <HeroPortrait hero={hero} />
-              <span>{hero.name}</span>
-              {hero.aliases[0] && <small>{hero.aliases[0].toUpperCase()}</small>}
+              <span className="search-result-name">{hero.name}</span>
+              {shortcutAlias && (
+                <small className="search-result-shortcut">{shortcutAlias.toUpperCase()}</small>
+              )}
             </button>
-          )) : <div className="search-empty">No hero found</div>}
+            );
+          }) : <div className="search-empty">No hero found</div>}
         </div>
       )}
     </div>
