@@ -50,7 +50,14 @@ export function findRelationship(
 }
 
 export function normalizeSearch(value: string): string {
-  return value.trim().toLocaleLowerCase().replace(/[’']/g, "").replace(/\s+/g, " ");
+  return value
+    .normalize("NFKD")
+    .replace(/\p{M}/gu, "")
+    .toLocaleLowerCase()
+    .replace(/[’']/g, "")
+    .replace(/[-_.]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 export function searchHeroes(heroes: Hero[], query: string): Hero[] {
