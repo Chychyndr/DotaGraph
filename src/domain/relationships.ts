@@ -50,7 +50,14 @@ export function findRelationship(
 }
 
 export function normalizeSearch(value: string): string {
-  return value.trim().toLocaleLowerCase().replace(/[’']/g, "").replace(/\s+/g, " ");
+  return value
+    .normalize("NFKD")
+    .replace(/\p{M}/gu, "")
+    .toLocaleLowerCase()
+    .replace(/[’']/g, "")
+    .replace(/[-_.]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 export function searchHeroes(heroes: Hero[], query: string): Hero[] {
@@ -59,12 +66,34 @@ export function searchHeroes(heroes: Hero[], query: string): Hero[] {
 
   return heroes
     .map((hero) => {
-      const haystacks = [hero.name, hero.slug, ...hero.aliases].map(normalizeSearch);
-      const exactAlias = hero.aliases.map(normalizeSearch).includes(normalized);
-      const exactName = normalizeSearch(hero.name) === normalized;
-      const starts = haystacks.some((value) => value.startsWith(normalized));
-      const contains = haystacks.some((value) => value.includes(normalized));
-      const score = exactAlias ? 0 : exactName ? 1 : starts ? 2 : contains ? 3 : 99;
+      const name = normalizeSearch(hero.name);
+      const slug = normalizeSearch(hero.slug);
+      const aliases = hero.aliases.map(normalizeSearch);
+      const exactName = name === normalized;
+      const exactAlias = aliases.includes(normalized);
+      const nameStarts = name.startsWith(normalized);
+      const aliasStarts = aliases.some((value) => value.startsWith(normalized));
+      const slugStarts = slug.startsWith(normalized);
+      const nameContains = name.includes(normalized);
+      const aliasContains = aliases.some((value) => value.includes(normalized));
+      const slugContains = slug.includes(normalized);
+      const score = exactName
+        ? 0
+        : exactAlias
+          ? 1
+          : nameStarts
+            ? 2
+            : aliasStarts
+              ? 3
+              : slugStarts
+                ? 4
+                : nameContains
+                  ? 5
+                  : aliasContains
+                    ? 6
+                    : slugContains
+                      ? 7
+                      : 99;
       return { hero, score };
     })
     .filter(({ score }) => score < 99)

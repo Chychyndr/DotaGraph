@@ -640,6 +640,51 @@ test("hero alias search resolves from metadata", async ({ page }) => {
   await expect(page).toHaveURL(/hero=phantom-assassin/);
 });
 
+test("lore alias search resolves to the correct hero", async ({ page }) => {
+  await page.goto("/");
+  const search = page.getByRole("combobox", { name: "Search for a hero" });
+  await search.fill("rylai");
+  await page.getByRole("option", { name: /Crystal Maiden/ }).click();
+  await expect(page).toHaveURL(/hero=crystal-maiden/);
+});
+
+test("search result portraits stay square instead of stretching with the row", async ({ page }) => {
+  await page.setViewportSize({ width: 432, height: 490 });
+  await page.goto("/");
+
+  const search = page.getByRole("combobox", { name: "Search for a hero" });
+  await search.fill("sh");
+
+  const results = page.getByRole("listbox", { name: "Hero search results" });
+  await expect(results).toBeVisible();
+  await expect(results.getByRole("option").first()).toBeVisible();
+
+  const geometry = await page.evaluate(() => {
+    const list = document.querySelector<HTMLElement>(".search-results");
+    const portraits = [...document.querySelectorAll<HTMLElement>(".search-result .hero-portrait")];
+    const rows = [...document.querySelectorAll<HTMLElement>(".search-result")];
+
+    return {
+      list: list?.getBoundingClientRect().toJSON() ?? null,
+      portraits: portraits.map((portrait) => portrait.getBoundingClientRect().toJSON()),
+      rows: rows.map((row) => row.getBoundingClientRect().toJSON())
+    };
+  });
+
+  expect(geometry.list).not.toBeNull();
+  expect(geometry.portraits.length).toBeGreaterThan(0);
+  for (const portrait of geometry.portraits) {
+    expect(portrait.width).toBeCloseTo(28, 1);
+    expect(portrait.height).toBeCloseTo(28, 1);
+    expect(Math.abs(portrait.width - portrait.height)).toBeLessThan(0.5);
+  }
+
+  for (const row of geometry.rows) {
+    expect(row.left).toBeGreaterThanOrEqual(geometry.list!.left);
+    expect(row.right).toBeLessThanOrEqual(geometry.list!.right);
+  }
+});
+
 test("direct URL state loads focus without status copy inside the hero card", async ({ page }) => {
   await page.goto("/?hero=viper");
   const card = page.getByLabel("Viper counter summary");

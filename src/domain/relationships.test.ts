@@ -77,9 +77,28 @@ describe("relationship semantics", () => {
 });
 
 describe("hero search", () => {
-  it("resolves common aliases from hero metadata", () => {
+  it("resolves common, lore, and legacy aliases from hero metadata", () => {
     expect(searchHeroes(heroes, "pa")[0]?.id).toBe("phantom-assassin");
     expect(searchHeroes(heroes, "wr")[0]?.id).toBe("windranger");
+    expect(searchHeroes(heroes, "rylai")[0]?.id).toBe("crystal-maiden");
+    expect(searchHeroes(heroes, "davion")[0]?.id).toBe("dragon-knight");
+    expect(searchHeroes(heroes, "mireska")[0]?.id).toBe("dark-willow");
+    expect(searchHeroes(heroes, "valora")[0]?.id).toBe("dawnbreaker");
+    expect(searchHeroes(heroes, "rizzrack")[0]?.id).toBe("timbersaw");
+  });
+
+  it("ranks hero-name prefixes ahead of broader alias matches", () => {
+    expect(searchHeroes(heroes, "sh").slice(0, 3).map((hero) => hero.id)).toEqual([
+      "shadow-demon",
+      "shadow-fiend",
+      "shadow-shaman"
+    ]);
+  });
+
+  it("normalizes punctuation, separators, and diacritics for search", () => {
+    expect(searchHeroes(heroes, "dark-willow")[0]?.id).toBe("dark-willow");
+    expect(searchHeroes(heroes, "donté")[0]?.id).toBe("pangolier");
+    expect(searchHeroes(heroes, "DONTÉ   PANLIN")[0]?.id).toBe("pangolier");
   });
 });
 

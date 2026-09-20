@@ -309,9 +309,9 @@ Validate URL state. Invalid IDs must fail safely.
 
 ## Search
 
-Hero aliases belong in hero metadata, never in a switch statement inside the UI.
+Hero aliases belong in hero metadata, never in a switch statement inside the UI. Alias metadata may include common abbreviations, established lore identities, and useful legacy/community-recognized names, but should not invent unsupported names.
 
-Normalize case, whitespace, common punctuation, and known abbreviations.
+Normalize case, whitespace, diacritics, common punctuation, separators, and known abbreviations.
 
 Examples:
 - pa -> Phantom Assassin
