@@ -87,6 +87,14 @@ describe("hero search", () => {
     expect(searchHeroes(heroes, "rizzrack")[0]?.id).toBe("timbersaw");
   });
 
+  it("ranks hero-name prefixes ahead of broader alias matches", () => {
+    expect(searchHeroes(heroes, "sh").slice(0, 3).map((hero) => hero.id)).toEqual([
+      "shadow-demon",
+      "shadow-fiend",
+      "shadow-shaman"
+    ]);
+  });
+
   it("normalizes punctuation, separators, and diacritics for search", () => {
     expect(searchHeroes(heroes, "dark-willow")[0]?.id).toBe("dark-willow");
     expect(searchHeroes(heroes, "donté")[0]?.id).toBe("pangolier");
