@@ -216,11 +216,20 @@ button:focus-visible, input:focus-visible, [role="button"]:focus-visible {
 .search-result .hero-portrait {
   width: 28px;
   height: 28px;
+  flex: 0 0 28px;
 }
 
-.search-result span {
-  flex: 1;
+.search-result-name {
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
   font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.search-result-shortcut {
+  flex: 0 0 auto;
 }
 
 .search-result small,
