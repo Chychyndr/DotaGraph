@@ -63,7 +63,7 @@
 - Enter selects.
 - Escape closes/clears.
 - Slash may focus the field.
-- Aliases come from hero metadata.
+- Aliases come from hero metadata and may include common abbreviations, established lore names, and legacy/community-recognized hero names.
 
 
 ## Responsive behavior
