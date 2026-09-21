@@ -17,7 +17,9 @@ test("search, focus, matchup and reset flow", async ({ page }) => {
   await firstRelationship.click();
   await expect(page.locator(".matchup-card")).toBeVisible();
   await expect(page).toHaveURL(/matchup=/);
-  await expect(page.getByText("OpenDota", { exact: true })).toBeVisible();
+  await expect(
+    page.locator(".matchup-meta").getByText("OpenDota", { exact: true })
+  ).toBeVisible();
 
   await page.getByRole("button", { name: "Reset" }).click();
   await expect(page).not.toHaveURL(/hero=/);
