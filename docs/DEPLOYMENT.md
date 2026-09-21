@@ -12,18 +12,20 @@ The repository should use:
 
 The custom workflow is `.github/workflows/pages.yml`.
 
-## Daily data refresh
+## Twice-daily data refresh
 
-`.github/workflows/update-current-data.yml` runs every day at 03:17 UTC and can also be started manually.
+`.github/workflows/update-current-data.yml` targets a 12-hour cadence at 03:17 and 15:17 UTC and can also be started manually. GitHub's scheduler is best-effort, so an individual run may begin a little later than the cron time.
 
 It:
 1. runs all Python/uv pipeline tests;
 2. queries the current-patch OpenDota scope with bounded retries and timeout splitting;
 3. writes `public/data/current-matchups.json`;
 4. uploads pipeline test/generation logs as a 14-day debug artifact;
-5. commits the JSON only when the generated snapshot changed.
+5. publishes the JSON on an automation branch only when the generated snapshot changed;
+6. opens a pull request, dispatches full CI for that branch, and waits for it to pass;
+7. merges the validated pull request and explicitly dispatches `CI` on `main` so Pages deployment still runs even though the merge was performed with `GITHUB_TOKEN`.
 
-GitHub suppresses ordinary workflow chaining for commits pushed with `GITHUB_TOKEN`. Therefore, after the generated commit is pushed, the data workflow explicitly dispatches `CI` on the refreshed branch. On `main`, a successful dispatched CI then triggers the Pages workflow below through `workflow_run`. This keeps daily data refreshes behind the same validation and live-browser deployment gates as ordinary code changes.
+The default branch requires pull requests, so scheduled refreshes never push generated data directly to `main`. Each refresh uses a short-lived automation branch and pull request, validates that exact branch with the normal `CI` workflow, merges only after CI succeeds, then explicitly dispatches `CI` on `main`. The explicit main dispatch is required because GitHub suppresses ordinary workflow chaining for events created with `GITHUB_TOKEN`. A successful main CI run then triggers the Pages workflow below through `workflow_run`, keeping automated refreshes behind the same validation and live-browser deployment gates as ordinary code changes.
 
 ## Deployment sequence
 
