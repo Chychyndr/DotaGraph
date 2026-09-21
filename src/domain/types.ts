@@ -43,3 +43,66 @@ export interface SelectedRelations {
   incoming: MatchupRelationship[];
   outgoing: MatchupRelationship[];
 }
+
+
+export type StatisticalProvider =
+  | "OpenDota"
+  | "STRATZ"
+  | "DOTABUFF"
+  | "Dota2ProTracker";
+
+export interface MatchupEvidenceScope {
+  patch: string;
+  rankScope: string;
+  matchPopulation: string;
+  observationWindowStart: string;
+  observationWindowEndExclusive: string;
+}
+
+export interface MatchupEvidenceProvenance {
+  sourceUrl: string;
+  queryScope: string;
+  collectedAt: string;
+}
+
+export interface MatchupEvidenceObservation {
+  id: string;
+  provider: StatisticalProvider;
+  sourceHeroId: HeroId;
+  targetHeroId: HeroId;
+  sourceWinRate: number;
+  sampleSize?: number;
+  scope: MatchupEvidenceScope;
+  provenance: MatchupEvidenceProvenance;
+}
+
+export type EvidenceExclusionReason =
+  | "different_direction"
+  | "different_patch"
+  | "different_rank_scope"
+  | "different_match_population"
+  | "invalid_observation_window"
+  | "misaligned_observation_window"
+  | "unknown_sample_size"
+  | "insufficient_sample"
+  | "superseded_provider_observation";
+
+export type CrossSourceDisagreementLevel =
+  | "single_source"
+  | "aligned"
+  | "noticeable"
+  | "large";
+
+export interface ExcludedMatchupEvidence {
+  observation: MatchupEvidenceObservation;
+  reasons: EvidenceExclusionReason[];
+}
+
+export interface CrossSourceEvidenceSummary {
+  referenceObservationId: string;
+  includedObservations: MatchupEvidenceObservation[];
+  excludedObservations: ExcludedMatchupEvidence[];
+  disagreementLevel: CrossSourceDisagreementLevel;
+  spreadPercentagePoints?: number;
+  consensusWinRate?: number;
+}
