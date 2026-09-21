@@ -410,15 +410,22 @@ Owner approval recorded on 2026-09-19 establishes OpenDota, STRATZ, DOTABUFF, an
 
 ## Aggregation
 
-The normal UI may show one aggregate win rate while details expose individual source observations.
+The graph headline remains the current OpenDota observation. Cross-source aggregation is allowed only in detailed evidence views and must not change headline ranking or the graph percentage.
 
-Sample size is source-observation-local. Never sum provider sample counts merely because the labels/scopes appear compatible; overlapping populations are assumed possible unless non-overlap is proven under an approved aggregation method.
+Preserve every observation by source. Sample size is source-observation-local and provider counts are never summed merely because scopes appear compatible.
 
-Preserve observations by source.
+A source may enter the detail consensus only when it matches the directed hero pair, patch, normalized rank scope, and normalized match population; has a valid sufficiently aligned observation window; has a valid win rate; and has a known source-local sample size of at least 500. See `docs/METHODOLOGY.md` for the exact window thresholds.
 
-If scopes are incompatible, exclude or explicitly downgrade them. Never silently average incompatible populations.
+One provider gets at most one vote. Use the newest compatible observation from that provider.
 
-Large cross-source disagreement must be visible in detailed data/flags.
+With at least two compatible providers, the detail consensus is the equal-provider median of source win rates. It has no aggregate sample size and is never used as a confidence estimate or headline ranking score.
+
+Cross-source disagreement is measured by provider-rate spread:
+- aligned: < 2 percentage points;
+- noticeable: >= 2 and < 5 percentage points;
+- large: >= 5 percentage points.
+
+Large disagreement must suppress the consensus number and show individual source observations with a visible warning. Incompatible, low-sample, unknown-sample, professional/Immortal, or otherwise non-aggregatable observations remain separate evidence with explicit exclusion reasons rather than being silently discarded.
 
 ## Counter detection/ranking
 
