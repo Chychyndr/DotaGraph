@@ -93,22 +93,31 @@ const sourceScopeReasons = (
   return reasons;
 };
 
-const sampleReasons = (
+const observationValueReasons = (
   observation: MatchupEvidenceObservation,
   minimumSample: number
 ): EvidenceExclusionReason[] => {
-  if (typeof observation.sampleSize !== "number") {
-    return ["unknown_sample_size"];
+  const reasons: EvidenceExclusionReason[] = [];
+
+  if (
+    !Number.isFinite(observation.sourceWinRate) ||
+    observation.sourceWinRate < 0 ||
+    observation.sourceWinRate > 1
+  ) {
+    reasons.push("invalid_win_rate");
   }
 
+  if (typeof observation.sampleSize !== "number") {
+    return [...reasons, "unknown_sample_size"];
+  }
   if (
     !Number.isInteger(observation.sampleSize) ||
     observation.sampleSize < minimumSample
   ) {
-    return ["insufficient_sample"];
+    reasons.push("insufficient_sample");
   }
 
-  return [];
+  return reasons;
 };
 
 const median = (values: number[]): number => {
@@ -154,7 +163,7 @@ export function summarizeCrossSourceEvidence(
   for (const observation of candidates) {
     const reasons = [
       ...sourceScopeReasons(reference, observation, resolved),
-      ...sampleReasons(observation, resolved.minimumSample)
+      ...observationValueReasons(observation, resolved.minimumSample)
     ];
 
     if (reasons.length > 0) {
