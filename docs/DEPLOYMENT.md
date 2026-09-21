@@ -18,7 +18,7 @@ The custom workflow is `.github/workflows/pages.yml`.
 
 It:
 1. runs all Python/uv pipeline tests;
-2. queries the current-patch OpenDota scope with bounded retries and timeout splitting;
+2. queries the current-patch OpenDota scope with bounded retries, honors provider retry hints up to 120 seconds, and uses timeout splitting;
 3. writes `public/data/current-matchups.json`;
 4. uploads pipeline test/generation logs as a 14-day debug artifact;
 5. publishes the JSON on an automation branch only when the generated snapshot changed;
