@@ -67,4 +67,4 @@ Canonical sample-size semantics and counter-ranking methodology are documented i
 
 Owner-approved direct Dota data sources are **OpenDota, STRATZ, DOTABUFF, and Dota2ProTracker**. OpenDota is currently the reproducible headline numeric source; the other sources remain available for compatible detailed/cross-source evidence under their documented access constraints.
 
-Cross-source aggregation/disagreement rules and richer detailed provenance are the next data-methodology work.
+Cross-source aggregation/disagreement rules are approved, and matchup details expose the headline source provenance on demand. The next data work is adding compatible secondary-source observations, including separate Immortal/pro evidence where available.
