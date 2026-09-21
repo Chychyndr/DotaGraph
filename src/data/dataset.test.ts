@@ -72,6 +72,27 @@ describe("validateDataset", () => {
     }
   });
 
+  it("requires provenance details for schema v2 datasets", () => {
+    const dataset = validDataset();
+    dataset.metadata = {
+      schemaVersion: 2,
+      generatedAt: "2026-09-18T00:00:00.000Z",
+      source: "OpenDota",
+      observationWindowStart: "2026-09-16T00:00:00Z",
+      observationWindowEndExclusive: "2026-09-18T00:00:00Z",
+      freshness: { status: "current" }
+    };
+
+    const result = validateDataset(dataset);
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.issues).toContain(
+        "Schema v2 datasets must include provenance details."
+      );
+    }
+  });
+
   it("requires an explanation when upstream marks data stale", () => {
     const dataset = validDataset();
     dataset.metadata.freshness = { status: "stale" };
