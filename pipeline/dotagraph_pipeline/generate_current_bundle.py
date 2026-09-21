@@ -176,7 +176,7 @@ def _pair_query(start_epoch: int, end_epoch: int) -> str:
     scope = CURRENT_SCOPE
     return f"""
 WITH scoped_matches AS (
-  SELECT radiant_win, radiant_team, dire_team
+  SELECT radiant_win, radiant_team, dire_team, avg_rank_tier
   FROM public_matches
   WHERE start_time >= {start_epoch}
     AND start_time < {end_epoch}
@@ -190,7 +190,17 @@ SELECT
   radiant_hero.hero_id AS radiant_hero_id,
   dire_hero.hero_id AS dire_hero_id,
   COUNT(*)::bigint AS matches,
-  SUM(CASE WHEN radiant_win THEN 1 ELSE 0 END)::bigint AS radiant_wins
+  SUM(CASE WHEN radiant_win THEN 1 ELSE 0 END)::bigint AS radiant_wins,
+  COUNT(*) FILTER (
+    WHERE avg_rank_tier >= {scope.immortal_avg_rank_tier_min}
+  )::bigint AS immortal_matches,
+  SUM(
+    CASE
+      WHEN avg_rank_tier >= {scope.immortal_avg_rank_tier_min} AND radiant_win
+      THEN 1
+      ELSE 0
+    END
+  )::bigint AS immortal_radiant_wins
 FROM scoped_matches
 CROSS JOIN LATERAL unnest(radiant_team) AS radiant_hero(hero_id)
 CROSS JOIN LATERAL unnest(dire_team) AS dire_hero(hero_id)
@@ -316,6 +326,46 @@ def _normalize_pairs(
 
         matches = int(row["matches"])
         radiant_wins = int(row["radiant_wins"])
+        first_slug, second_slug = sorted((radiant_slug, dire_slug))
+        key = (first_slug, second_slug)
+        totals = aggregated.setdefault(key, [0, 0])
+        totals[0] += matches
+        totals[1] += (
+            radiant_wins
+            if radiant_slug == first_slug
+            else matches - radiant_wins
+        )
+
+    return [
+        PairObservation(
+            first_slug=first_slug,
+            second_slug=second_slug,
+            matches=values[0],
+            first_wins=values[1],
+        )
+        for (first_slug, second_slug), values in sorted(aggregated.items())
+    ]
+
+
+def _normalize_immortal_pairs(
+    rows: list[dict[str, Any]],
+    hero_map: dict[int, str],
+) -> list[PairObservation]:
+    aggregated: dict[tuple[str, str], list[int]] = {}
+
+    for row in rows:
+        radiant_slug = hero_map.get(int(row["radiant_hero_id"]))
+        dire_slug = hero_map.get(int(row["dire_hero_id"]))
+        if radiant_slug is None or dire_slug is None or radiant_slug == dire_slug:
+            continue
+
+        matches = int(row.get("immortal_matches", 0))
+        radiant_wins = int(row.get("immortal_radiant_wins", 0))
+        if matches <= 0:
+            continue
+        if radiant_wins < 0 or radiant_wins > matches:
+            raise RuntimeError("OpenDota Immortal aggregate has invalid win counts")
+
         first_slug, second_slug = sorted((radiant_slug, dire_slug))
         key = (first_slug, second_slug)
         totals = aggregated.setdefault(key, [0, 0])
