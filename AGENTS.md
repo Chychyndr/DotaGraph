@@ -339,6 +339,19 @@ Explicitly design and test:
 
 Never replace missing data with fake relationships.
 
+## Detail provenance
+
+Matchup details must distinguish actual evidence from the registry of sources that are merely approved for future use.
+
+For a published source observation, details should expose the provenance already carried by the validated dataset when available:
+- provider/source identity;
+- source URL;
+- endpoint or provider query mode;
+- observation window;
+- snapshot generation/collection time.
+
+Keep this information behind progressive disclosure so draft-time UI stays compact. Never show an approved secondary provider as if it supplied evidence for the current matchup unless a real source-local observation exists.
+
 ## Data boundary
 
 Frontend consumes validated generated data.
