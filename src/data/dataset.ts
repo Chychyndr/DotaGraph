@@ -44,6 +44,29 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 const isFiniteNumber = (value: unknown): value is number =>
   typeof value === "number" && Number.isFinite(value);
 
+const STATISTICAL_PROVIDERS = new Set([
+  "OpenDota",
+  "STRATZ",
+  "DOTABUFF",
+  "Dota2ProTracker"
+]);
+
+const isValidTimestamp = (value: unknown): value is string =>
+  typeof value === "string" && !Number.isNaN(Date.parse(value));
+
+const isValidUrl = (value: unknown): value is string => {
+  if (typeof value !== "string" || !value.trim()) {
+    return false;
+  }
+
+  try {
+    new URL(value);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
 export function validateDataset(value: unknown): DatasetValidationResult {
   const issues: string[] = [];
 
@@ -204,6 +227,106 @@ export function validateDataset(value: unknown): DatasetValidationResult {
       }
       if (!isFiniteNumber(hero.x) || !isFiniteNumber(hero.y)) {
         issues.push(`${prefix} has invalid graph coordinates.`);
+      }
+    });
+  }
+
+  const evidenceObservations = value.evidenceObservations;
+  if (evidenceObservations !== undefined && !Array.isArray(evidenceObservations)) {
+    issues.push("Dataset evidenceObservations must be an array.");
+  }
+
+  const evidenceIds = new Set<string>();
+  if (Array.isArray(evidenceObservations)) {
+    evidenceObservations.forEach((observation, index) => {
+      if (!isRecord(observation)) {
+        issues.push(`Evidence observation at index ${index} is malformed.`);
+        return;
+      }
+
+      const prefix = `Evidence observation at index ${index}`;
+      if (typeof observation.id !== "string" || !observation.id.trim()) {
+        issues.push(`${prefix} has an invalid id.`);
+      } else if (evidenceIds.has(observation.id)) {
+        issues.push(`Evidence observation id "${observation.id}" is duplicated.`);
+      } else {
+        evidenceIds.add(observation.id);
+      }
+
+      if (
+        typeof observation.provider !== "string" ||
+        !STATISTICAL_PROVIDERS.has(observation.provider)
+      ) {
+        issues.push(`${prefix} has an unsupported provider.`);
+      }
+      if (
+        typeof observation.sourceHeroId !== "string" ||
+        !heroIds.has(observation.sourceHeroId)
+      ) {
+        issues.push(`${prefix} references an unknown source hero.`);
+      }
+      if (
+        typeof observation.targetHeroId !== "string" ||
+        !heroIds.has(observation.targetHeroId)
+      ) {
+        issues.push(`${prefix} references an unknown target hero.`);
+      }
+      if (
+        typeof observation.sourceHeroId === "string" &&
+        observation.sourceHeroId === observation.targetHeroId
+      ) {
+        issues.push(`${prefix} cannot point a hero to itself.`);
+      }
+      if (
+        !isFiniteNumber(observation.sourceWinRate) ||
+        observation.sourceWinRate < 0 ||
+        observation.sourceWinRate > 1
+      ) {
+        issues.push(`${prefix} has an invalid sourceWinRate.`);
+      }
+      if (
+        observation.sampleSize !== undefined &&
+        (!Number.isInteger(observation.sampleSize) || observation.sampleSize < 0)
+      ) {
+        issues.push(`${prefix} has an invalid sampleSize.`);
+      }
+
+      const evidenceScope = observation.scope;
+      if (!isRecord(evidenceScope)) {
+        issues.push(`${prefix} has a malformed scope.`);
+      } else {
+        for (const key of ["patch", "rankScope", "matchPopulation"] as const) {
+          const entry = evidenceScope[key];
+          if (typeof entry !== "string" || !entry.trim()) {
+            issues.push(`${prefix} scope ${key} must be a non-empty string.`);
+          }
+        }
+
+        const start = evidenceScope.observationWindowStart;
+        const end = evidenceScope.observationWindowEndExclusive;
+        if (!isValidTimestamp(start) || !isValidTimestamp(end)) {
+          issues.push(`${prefix} has an invalid observation window.`);
+        } else if (Date.parse(end) <= Date.parse(start)) {
+          issues.push(`${prefix} observation window must have positive duration.`);
+        }
+      }
+
+      const evidenceProvenance = observation.provenance;
+      if (!isRecord(evidenceProvenance)) {
+        issues.push(`${prefix} has malformed provenance.`);
+      } else {
+        if (!isValidUrl(evidenceProvenance.sourceUrl)) {
+          issues.push(`${prefix} provenance sourceUrl must be a valid URL.`);
+        }
+        if (
+          typeof evidenceProvenance.queryScope !== "string" ||
+          !evidenceProvenance.queryScope.trim()
+        ) {
+          issues.push(`${prefix} provenance queryScope must be a non-empty string.`);
+        }
+        if (!isValidTimestamp(evidenceProvenance.collectedAt)) {
+          issues.push(`${prefix} provenance collectedAt must be a valid timestamp.`);
+        }
       }
     });
   }
