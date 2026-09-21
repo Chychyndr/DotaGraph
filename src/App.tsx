@@ -89,7 +89,13 @@ function BlockingDataState({
 
 function ReadyApp({ data }: { data: DatasetBundle }) {
   const portraitAsset = usePortraitAsset();
-  const { heroes, relationships, scope, metadata } = data;
+  const {
+    heroes,
+    relationships,
+    evidenceObservations = [],
+    scope,
+    metadata
+  } = data;
   const heroById = useMemo(() => new Map(heroes.map((hero) => [hero.id, hero])), [heroes]);
   const initial = useMemo(() => readInitialState(heroById), [heroById]);
   const [selectedHeroId, setSelectedHeroId] = useState<string | null>(initial.hero);
@@ -107,6 +113,18 @@ function ReadyApp({ data }: { data: DatasetBundle }) {
   const matchup = selectedHeroId && matchupHeroId
     ? findRelationship(selectedHeroId, matchupHeroId, relationships, scope)
     : undefined;
+
+  const matchupEvidence = useMemo(
+    () =>
+      matchup
+        ? evidenceObservations.filter(
+            (observation) =>
+              observation.sourceHeroId === matchup.sourceHeroId &&
+              observation.targetHeroId === matchup.targetHeroId
+          )
+        : [],
+    [evidenceObservations, matchup]
+  );
 
   const visibleRelationships = useMemo(
     () => relationships.filter(
@@ -231,6 +249,7 @@ function ReadyApp({ data }: { data: DatasetBundle }) {
             relationship={matchup}
             scope={scope}
             metadata={metadata}
+            evidenceObservations={matchupEvidence}
             onBack={() => setMatchupHeroId(null)}
           />
         )}
