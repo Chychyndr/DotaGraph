@@ -40,6 +40,7 @@ def compute_layout(
     height: float = 760.0,
     margin: float = 52.0,
     min_distance: float = 58.0,
+    max_nearest_distance: float = 88.0,
     fill_ratio: float = 0.90,
     iterations: int = 900,
 ) -> dict[str, tuple[float, float]]:
@@ -235,6 +236,46 @@ def compute_layout(
         for point in pixel_positions:
             point[0] = _clamp(point[0], layout_left, layout_right)
             point[1] = _clamp(point[1], layout_top, layout_bottom)
+
+        if not moved:
+            break
+
+    # Keep a lone hull node from looking detached from the rest of the graph.
+    # A node is moved only when every other node is farther away than the
+    # approved visual-gap target. Moving it toward its current nearest node by
+    # exactly the excess distance cannot violate the minimum spacing because
+    # every current pair is at least that far apart at the time of the move.
+    sparse_gap_target = max(min_distance, max_nearest_distance)
+    for _ in range(12):
+        moved = False
+        for node_index in range(count):
+            x, y = pixel_positions[node_index]
+            nearest_index = -1
+            nearest_distance = math.inf
+
+            for other_index, (other_x, other_y) in enumerate(pixel_positions):
+                if other_index == node_index:
+                    continue
+                distance = math.hypot(other_x - x, other_y - y)
+                if distance < nearest_distance:
+                    nearest_distance = distance
+                    nearest_index = other_index
+
+            if (
+                nearest_index < 0
+                or nearest_distance <= sparse_gap_target + 1e-8
+            ):
+                continue
+
+            target_x, target_y = pixel_positions[nearest_index]
+            excess = nearest_distance - sparse_gap_target
+            pixel_positions[node_index][0] += (
+                (target_x - x) / nearest_distance * excess
+            )
+            pixel_positions[node_index][1] += (
+                (target_y - y) / nearest_distance * excess
+            )
+            moved = True
 
         if not moved:
             break
