@@ -1,4 +1,9 @@
-import type { Hero, MatchupRelationship, ScopeConfig } from "../domain/types";
+import type {
+  Hero,
+  MatchupEvidenceObservation,
+  MatchupRelationship,
+  ScopeConfig
+} from "../domain/types";
 
 export interface DatasetProvenance {
   headlineSource: string;
@@ -24,6 +29,7 @@ export interface DatasetMetadata {
 export interface DatasetBundle {
   heroes: Hero[];
   relationships: MatchupRelationship[];
+  evidenceObservations?: MatchupEvidenceObservation[];
   scope: ScopeConfig;
   metadata: DatasetMetadata;
 }
