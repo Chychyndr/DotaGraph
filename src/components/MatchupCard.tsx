@@ -1,4 +1,9 @@
-import type { Hero, MatchupRelationship, ScopeConfig } from "../domain/types";
+import type {
+  Hero,
+  MatchupEvidenceObservation,
+  MatchupRelationship,
+  ScopeConfig
+} from "../domain/types";
 import type { DatasetMetadata } from "../data/dataset";
 import { formatPercent, formatSample } from "../domain/relationships";
 import { HeroPortrait } from "./HeroPortrait";
@@ -9,6 +14,7 @@ interface MatchupCardProps {
   relationship: MatchupRelationship;
   scope: ScopeConfig;
   metadata: DatasetMetadata;
+  evidenceObservations: MatchupEvidenceObservation[];
   onBack: () => void;
 }
 
@@ -19,12 +25,19 @@ const formatUtcTimestamp = (value: string) =>
     timeZone: "UTC"
   }).format(new Date(value))} UTC`;
 
+const formatEvidenceScope = (rankScope: string) => {
+  if (rankScope === "immortal") return "Immortal";
+  if (rankScope === "pro") return "Professional";
+  return rankScope.replaceAll("_", " ");
+};
+
 export function MatchupCard({
   source,
   target,
   relationship,
   scope,
   metadata,
+  evidenceObservations,
   onBack
 }: MatchupCardProps) {
   const provenance = metadata.provenance;
@@ -125,6 +138,60 @@ export function MatchupCard({
               </dd>
             </div>
           </dl>
+        </details>
+      )}
+
+      {evidenceObservations.length > 0 && (
+        <details className="population-evidence-details">
+          <summary>Immortal / pro evidence</summary>
+          <div className="population-evidence-list">
+            {evidenceObservations.map((observation) => (
+              <article className="population-evidence-item" key={observation.id}>
+                <div className="population-evidence-heading">
+                  <strong>{formatEvidenceScope(observation.scope.rankScope)}</strong>
+                  <a
+                    href={observation.provenance.sourceUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    {observation.provider}
+                  </a>
+                </div>
+                <div className="population-evidence-stat">
+                  <strong>{formatPercent(observation.sourceWinRate)}</strong>
+                  <span>{source.name} win rate</span>
+                </div>
+                <dl className="population-evidence-meta">
+                  <div>
+                    <dt>Matches</dt>
+                    <dd>
+                      {typeof observation.sampleSize === "number"
+                        ? formatSample(observation.sampleSize)
+                        : "Unknown"}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>Observed</dt>
+                    <dd>
+                      <time dateTime={observation.scope.observationWindowStart}>
+                        {formatUtcTimestamp(observation.scope.observationWindowStart)}
+                      </time>
+                      <span aria-hidden="true"> → </span>
+                      <time dateTime={observation.scope.observationWindowEndExclusive}>
+                        {formatUtcTimestamp(
+                          observation.scope.observationWindowEndExclusive
+                        )}
+                      </time>
+                    </dd>
+                  </div>
+                </dl>
+                <p className="population-evidence-note">
+                  Separate population; excluded from the {scope.rankLabel} headline
+                  and cross-source consensus.
+                </p>
+              </article>
+            ))}
+          </div>
         </details>
       )}
 
