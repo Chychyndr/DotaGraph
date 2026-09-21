@@ -817,7 +817,7 @@ button:focus-visible, input:focus-visible, [role="button"]:focus-visible {
   padding: 8px;
   border: 1px solid var(--border);
   border-radius: 8px;
-  background: var(--surface-raised);
+  background: var(--panel-subtle);
 }
 
 .population-evidence-heading,
