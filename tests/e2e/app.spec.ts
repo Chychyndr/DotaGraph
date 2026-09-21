@@ -740,6 +740,74 @@ test("matchup source details expose production provenance on demand", async ({ p
   await expect(details).toContainText("Generated");
 });
 
+test("matchup details keep Immortal evidence separate from the headline", async ({ page }) => {
+  await page.route("**/data/current-matchups.json", async (route) => {
+    const response = await route.fetch();
+    const payload = (await response.json()) as {
+      patch: string;
+      generatedAt: string;
+      scope: {
+        observationWindowStart: string;
+        observationWindowEndExclusive: string;
+      };
+      relationships: Array<{
+        sourceSlug: string;
+        targetSlug: string;
+        sourceWinRate: number;
+        sampleSize: number;
+      }>;
+      evidenceObservations?: unknown[];
+    };
+
+    payload.evidenceObservations = payload.relationships.map(
+      (relationship, index) => ({
+        id: `test-immortal-${index}`,
+        provider: "OpenDota",
+        sourceSlug: relationship.sourceSlug,
+        targetSlug: relationship.targetSlug,
+        sourceWinRate: Math.min(1, relationship.sourceWinRate + 0.01),
+        sampleSize: Math.max(1, Math.floor(relationship.sampleSize / 4)),
+        scope: {
+          patch: payload.patch,
+          rankScope: "immortal",
+          matchPopulation: "ranked_all_draft_5v5",
+          observationWindowStart: payload.scope.observationWindowStart,
+          observationWindowEndExclusive:
+            payload.scope.observationWindowEndExclusive
+        },
+        provenance: {
+          sourceUrl: "https://www.opendota.com/",
+          queryScope: "public_matches:avg_rank_tier>=80:game_mode=22:lobby_type=7",
+          collectedAt: payload.generatedAt
+        }
+      })
+    );
+
+    await route.fulfill({ response, json: payload });
+  });
+
+  await page.goto("/?hero=viper");
+
+  const firstRelationship = page.locator(".relation-row").first();
+  await expect(firstRelationship).toBeVisible();
+  await firstRelationship.click();
+
+  const details = page.locator(".population-evidence-details");
+  await expect(details).toBeVisible();
+  await expect(details).not.toHaveAttribute("open", "");
+  await details.getByText("Immortal / pro evidence", { exact: true }).click();
+
+  await expect(details).toHaveAttribute("open", "");
+  await expect(details).toContainText("Immortal");
+  await expect(details.getByRole("link", { name: "OpenDota" })).toHaveAttribute(
+    "href",
+    "https://www.opendota.com/"
+  );
+  await expect(details).toContainText(
+    "Separate population; excluded from the Ancient+ headline and cross-source consensus."
+  );
+});
+
 test("clicking empty graph space exits the selected hero", async ({ page }) => {
   await page.goto("/?hero=viper");
   await expect(page.getByLabel("Viper counter summary")).toBeVisible();
