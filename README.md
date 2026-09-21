@@ -53,6 +53,7 @@ For patch **7.41f**:
 - headline data comes from OpenDota `public_matches`;
 - observation window begins at `2026-09-16T00:00:00Z`;
 - headline scope is Ancient+ using `avg_rank_tier >= 60`, ranked all-draft matches;
+- matchup details can show a separate OpenDota Immortal subset using `avg_rank_tier >= 80` when matches are available;
 - a hero pair needs at least 500 qualifying matches;
 - the displayed percentage is the raw source-hero matchup win rate;
 - counter ordering uses the documented baseline-adjusted one-sided 95% lower confidence bound;
@@ -67,4 +68,4 @@ Canonical sample-size semantics and counter-ranking methodology are documented i
 
 Owner-approved direct Dota data sources are **OpenDota, STRATZ, DOTABUFF, and Dota2ProTracker**. OpenDota is currently the reproducible headline numeric source; the other sources remain available for compatible detailed/cross-source evidence under their documented access constraints.
 
-Cross-source aggregation/disagreement rules are approved, and matchup details expose the headline source provenance on demand. The next data work is adding compatible secondary-source observations, including separate Immortal/pro evidence where available.
+Cross-source aggregation/disagreement rules are approved. Matchup details expose headline provenance and keep Immortal evidence in a separate population section. The next data work is adding compatible STRATZ/DOTABUFF/Dota2ProTracker observations where provider-compatible access is available.
