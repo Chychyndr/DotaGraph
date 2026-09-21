@@ -12,7 +12,7 @@ Current production scope:
 - ranked All Draft only (`game_mode = 22`, `lobby_type = 7`);
 - OpenDota average rank tier >= 60 as the Ancient+ adapter predicate;
 - observation window starts at the recorded 7.41f patch boundary and ends at generation time;
-- daily generation runs in GitHub Actions.
+- generation targets a 12-hour cadence in GitHub Actions.
 
 Development fixtures may still exist in tests, but they must never be substituted for the published production bundle.
 
