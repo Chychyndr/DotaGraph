@@ -31,7 +31,7 @@ GitHub Pages deployment uses a compiled Vite artifact. See [docs/DEPLOYMENT.md](
 - The displayed percentage is the source hero's matchup win rate.
 - The current product scope contains heroes and hero-vs-hero counter relationships only.
 - Headline scope is Ancient+ and the current patch supplied through data/configuration.
-- Current matchup data is regenerated daily by GitHub Actions and published as static JSON.
+- Current matchup data is regenerated every 12 hours by GitHub Actions and published as static JSON.
 
 Read [AGENTS.md](./AGENTS.md) before contributing.
 
@@ -57,7 +57,7 @@ For patch **7.41f**:
 - the displayed percentage is the raw source-hero matchup win rate;
 - counter ordering uses the documented baseline-adjusted one-sided 95% lower confidence bound;
 - the same eligible relationships drive deterministic offline graph geometry;
-- generated data is refreshed daily through GitHub Actions;
+- generated data is refreshed every 12 hours through GitHub Actions;
 - pipeline test/generation logs are uploaded as workflow artifacts;
 - a successful data commit triggers normal CI, GitHub Pages deployment, and live Chromium verification.
 
