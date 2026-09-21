@@ -156,7 +156,7 @@ Rare-hero geometry fallback:
 - fallback observations do not alter displayed win rates, headline ranking, or the normal 500-match eligibility rule;
 - low-degree heroes are pulled toward the centroid of their real affinity neighbors before collision relaxation so sparse evidence does not create detached layout islands.
 
-Final coordinates are deterministic. Collision relaxation enforces a 58 px default center distance, and generated snapshots record node-spacing, nearest-neighbor, isolation, and edge-distance metrics. CI rejects the committed production snapshot if any hero is isolated, minimum spacing falls below the tested threshold, or the worst nearest-neighbor gap exceeds the approved quality gate.
+Final coordinates are deterministic. Collision relaxation enforces a 58 px default center distance. A final sparse-gap compaction pass moves only visually detached hull nodes toward their current nearest node until the nearest-node gap is at most 88 px; this pass does not change relationship semantics or the 58 px collision floor. Generated snapshots record node-spacing, nearest-neighbor, isolation, and edge-distance metrics. CI rejects the committed production snapshot if any hero is isolated, minimum spacing falls below the tested threshold, or the worst nearest-neighbor gap exceeds the 90 px quality gate.
 
 The layout affinity is not a user-visible counter score. Its output is stable geometry and layout-quality metadata only.
 
