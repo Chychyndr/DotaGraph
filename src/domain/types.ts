@@ -83,6 +83,7 @@ export type EvidenceExclusionReason =
   | "different_match_population"
   | "invalid_observation_window"
   | "misaligned_observation_window"
+  | "invalid_win_rate"
   | "unknown_sample_size"
   | "insufficient_sample"
   | "superseded_provider_observation";
