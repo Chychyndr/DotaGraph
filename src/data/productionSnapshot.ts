@@ -425,7 +425,7 @@ export function buildDatasetFromProductionSnapshot(
         freshness: stale
           ? {
               status: "stale",
-              reason: `Daily matchup snapshot is ${Math.floor(
+              reason: `Matchup snapshot is ${Math.floor(
                 ageMs / (60 * 60 * 1000)
               )} hours old.`
             }
