@@ -1,9 +1,18 @@
 import type { Hero, MatchupRelationship, ScopeConfig } from "../domain/types";
 
+export interface DatasetProvenance {
+  headlineSource: string;
+  sourceUrl?: string;
+  endpoint?: string;
+  queryMode?: string;
+  secondarySources?: string[];
+}
+
 export interface DatasetMetadata {
   schemaVersion: 1 | 2;
   generatedAt: string;
   source?: string;
+  provenance?: DatasetProvenance;
   observationWindowStart?: string;
   observationWindowEndExclusive?: string;
   freshness: {
