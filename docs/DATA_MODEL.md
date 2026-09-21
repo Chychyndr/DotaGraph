@@ -77,9 +77,12 @@ Metadata schema v2 contains:
 - `schemaVersion`;
 - `generatedAt`;
 - headline `source`;
+- structured `provenance` with the headline provider plus optional source URL, endpoint, query mode, and approved secondary-source registry entries;
 - `observationWindowStart`;
 - `observationWindowEndExclusive`;
 - freshness state.
+
+The frontend may expose the headline provenance in matchup details. `secondarySources` is registry metadata only: a provider listed there is not presented as matchup evidence until a real `MatchupEvidenceObservation` exists for that provider.
 
 A snapshot is treated as stale after 36 hours without regeneration. Stale data remains usable with a visible warning; malformed data blocks the graph.
 

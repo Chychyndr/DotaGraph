@@ -108,6 +108,42 @@ export function buildDatasetFromProductionSnapshot(
   ) {
     issues.push("Production snapshot headlineSource is missing.");
   }
+  if (
+    provenance.sourceUrl !== undefined &&
+    (typeof provenance.sourceUrl !== "string" ||
+      !provenance.sourceUrl.trim() ||
+      (() => {
+        try {
+          new URL(provenance.sourceUrl);
+          return false;
+        } catch {
+          return true;
+        }
+      })())
+  ) {
+    issues.push("Production snapshot provenance sourceUrl is invalid.");
+  }
+  if (
+    provenance.endpoint !== undefined &&
+    (typeof provenance.endpoint !== "string" || !provenance.endpoint.trim())
+  ) {
+    issues.push("Production snapshot provenance endpoint is invalid.");
+  }
+  if (
+    provenance.queryMode !== undefined &&
+    (typeof provenance.queryMode !== "string" || !provenance.queryMode.trim())
+  ) {
+    issues.push("Production snapshot provenance queryMode is invalid.");
+  }
+  if (
+    provenance.secondarySources !== undefined &&
+    (!Array.isArray(provenance.secondarySources) ||
+      provenance.secondarySources.some(
+        (source) => typeof source !== "string" || !source.trim()
+      ))
+  ) {
+    issues.push("Production snapshot provenance secondarySources are invalid.");
+  }
 
   const positions: Record<string, { x: number; y: number }> = {};
   for (const [slug, point] of Object.entries(positionsValue)) {
@@ -243,6 +279,25 @@ export function buildDatasetFromProductionSnapshot(
         schemaVersion: 2,
         generatedAt: value.generatedAt,
         source: provenance.headlineSource as string,
+        provenance: {
+          headlineSource: provenance.headlineSource as string,
+          ...(typeof provenance.sourceUrl === "string"
+            ? { sourceUrl: provenance.sourceUrl }
+            : {}),
+          ...(typeof provenance.endpoint === "string"
+            ? { endpoint: provenance.endpoint }
+            : {}),
+          ...(typeof provenance.queryMode === "string"
+            ? { queryMode: provenance.queryMode }
+            : {}),
+          ...(Array.isArray(provenance.secondarySources)
+            ? {
+                secondarySources: provenance.secondarySources.filter(
+                  (source): source is string => typeof source === "string"
+                )
+              }
+            : {})
+        },
         observationWindowStart: scopeValue.observationWindowStart as string,
         observationWindowEndExclusive:
           scopeValue.observationWindowEndExclusive as string,

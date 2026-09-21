@@ -41,11 +41,11 @@ If you touch graph/domain logic, add or update tests for direction, win-rate own
 
 ## Data changes
 
-The current frontend uses fixture statistics for UX development.
+The production frontend loads generated current-patch statistics from `public/data/current-matchups.json`; test-only fixtures stay outside the production load path.
 
 Do not submit manually invented values as production statistics.
 
-When the production pipeline exists, generated numeric data must be corrected through source/pipeline/methodology changes and regeneration rather than hand editing.
+Generated numeric data must be corrected through source/pipeline/methodology changes and regeneration rather than hand editing.
 
 ## External sources
 

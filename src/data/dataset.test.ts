@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
+import type { DatasetBundle } from "./dataset";
 import { validateDataset } from "./dataset";
 
-const validDataset = () => ({
+const validDataset = (): DatasetBundle => ({
   heroes: [
     {
       id: "viper",
@@ -68,6 +69,27 @@ describe("validateDataset", () => {
     if (!result.ok) {
       expect(result.issues).toContain(
         "Relationship at index 0 references an unknown target hero."
+      );
+    }
+  });
+
+  it("requires provenance details for schema v2 datasets", () => {
+    const dataset = validDataset();
+    dataset.metadata = {
+      schemaVersion: 2,
+      generatedAt: "2026-09-18T00:00:00.000Z",
+      source: "OpenDota",
+      observationWindowStart: "2026-09-16T00:00:00Z",
+      observationWindowEndExclusive: "2026-09-18T00:00:00Z",
+      freshness: { status: "current" }
+    };
+
+    const result = validateDataset(dataset);
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.issues).toContain(
+        "Schema v2 datasets must include provenance details."
       );
     }
   });

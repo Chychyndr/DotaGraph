@@ -230,6 +230,7 @@ function ReadyApp({ data }: { data: DatasetBundle }) {
             target={matchupTarget}
             relationship={matchup}
             scope={scope}
+            metadata={metadata}
             onBack={() => setMatchupHeroId(null)}
           />
         )}

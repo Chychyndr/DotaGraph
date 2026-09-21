@@ -47,7 +47,9 @@
 - Selected relationship becomes dominant.
 - Other active relationships dim.
 - HeroCard becomes MatchupCard in the same region.
-- Card shows A -> B, raw source win rate, sample size, patch/rank scope, source provenance, and baseline-adjusted matchup advantage; reviewed explanation appears only when available.
+- Card shows A -> B, raw source win rate, sample size, patch/rank scope, headline source, and baseline-adjusted matchup advantage; reviewed explanation appears only when available.
+- A collapsed `Source details` disclosure exposes the real provider link, endpoint/query mode, observation window, and snapshot generation time without making the default card noisy.
+- Approved secondary providers are never shown as matchup evidence until an actual source-local observation exists.
 - Graph remains visible.
 
 ## Reset

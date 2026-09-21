@@ -22,7 +22,7 @@ The production data pipeline lives under `pipeline/` and uses Python + `uv`.
 
 ## Stable data-driven layout
 
-Hero coordinates are generated offline from real current-patch matchup observations and committed inside the daily production snapshot. Geometry is deliberately separate from the stricter headline-counter publication gate.
+Hero coordinates are generated offline from real current-patch matchup observations and committed inside the regenerated production snapshot. Geometry is deliberately separate from the stricter headline-counter publication gate.
 
 The layout build:
 - reads the canonical hero catalog;
@@ -61,7 +61,7 @@ Loading and validation are intentionally explicit:
 
 Production observations retain explicit direction, raw source win rate, sample size, baseline-adjusted delta, internal ranking score, patch, rank scope, provenance, observation window, and generation metadata.
 
-The current OpenDota pipeline runs daily in GitHub Actions. Structured test/generation logs are retained as workflow artifacts. Provider availability is therefore a build-time concern; the published static frontend never depends on a live OpenDota request.
+The current OpenDota pipeline targets regeneration every 12 hours in GitHub Actions. Structured test/generation logs are retained as workflow artifacts. Provider availability is therefore a build-time concern; the published static frontend never depends on a live OpenDota request.
 
 ## Portrait asset boundary
 
