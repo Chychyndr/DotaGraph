@@ -135,7 +135,7 @@ Current query scope:
 
 Published output contains aggregate hero statistics, qualified hero-vs-hero observations, provenance, and deterministic graph coordinates. It does not publish player identities or raw match IDs.
 
-The daily workflow uses bounded retries, time-range splitting for expensive Explorer queries, structured logs, and a static generated JSON artifact. Provider availability never becomes a runtime dependency for the frontend.
+The twice-daily workflow uses bounded retries, time-range splitting for expensive Explorer queries, structured logs, and a static generated JSON artifact. Provider availability never becomes a runtime dependency for the frontend.
 
 STRATZ, DOTABUFF, and Dota2ProTracker remain owner-approved direct sources for compatible secondary/detail evidence. Their observations must retain their own scope/provenance and must not silently alter or inflate the OpenDota headline sample size.
 
