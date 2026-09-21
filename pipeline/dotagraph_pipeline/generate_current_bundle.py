@@ -542,6 +542,7 @@ def generate(
     hero_map = _load_opendota_hero_map(repo_root, catalog_slugs)
     rows = _fetch_pair_rows(end_epoch, logger=logger)
     pairs = _normalize_pairs(rows, hero_map)
+    immortal_pairs = _normalize_immortal_pairs(rows, hero_map)
     totals = hero_totals(pairs)
     ranked = rank_relationships(
         pairs,
@@ -615,13 +616,61 @@ def generate(
         for item in ranked
     ]
 
+    generated_at_iso = (
+        generated_at.astimezone(timezone.utc)
+        .isoformat()
+        .replace("+00:00", "Z")
+    )
+    observation_end_iso = _iso_from_epoch(end_epoch)
+    immortal_by_pair = {
+        (pair.first_slug, pair.second_slug): pair for pair in immortal_pairs
+    }
+    evidence_observations: list[dict[str, Any]] = []
+
+    for item in ranked:
+        first_slug, second_slug = sorted((item.source, item.target))
+        pair = immortal_by_pair.get((first_slug, second_slug))
+        if pair is None or pair.matches <= 0:
+            continue
+
+        source_wins = (
+            pair.first_wins
+            if item.source == pair.first_slug
+            else pair.matches - pair.first_wins
+        )
+        evidence_observations.append(
+            {
+                "id": f"opendota-immortal-{item.source}--{item.target}",
+                "provider": "OpenDota",
+                "sourceSlug": item.source,
+                "targetSlug": item.target,
+                "sourceWinRate": source_wins / pair.matches,
+                "sampleSize": pair.matches,
+                "scope": {
+                    "patch": CURRENT_SCOPE.patch,
+                    "rankScope": "immortal",
+                    "matchPopulation": "ranked_all_draft_5v5",
+                    "observationWindowStart": CURRENT_SCOPE.start_iso,
+                    "observationWindowEndExclusive": observation_end_iso,
+                },
+                "provenance": {
+                    "sourceUrl": "https://www.opendota.com/",
+                    "queryScope": (
+                        "public_matches:"
+                        f"avg_rank_tier>={CURRENT_SCOPE.immortal_avg_rank_tier_min}:"
+                        f"game_mode={CURRENT_SCOPE.game_mode}:"
+                        f"lobby_type={CURRENT_SCOPE.lobby_type}"
+                    ),
+                    "collectedAt": generated_at_iso,
+                },
+            }
+        )
+
     payload = {
         "schemaVersion": 2,
         "kind": "current-production-matchups",
         "patch": CURRENT_SCOPE.patch,
-        "generatedAt": generated_at.astimezone(timezone.utc)
-        .isoformat()
-        .replace("+00:00", "Z"),
+        "generatedAt": generated_at_iso,
         "scope": {
             "rankScope": CURRENT_SCOPE.rank_scope,
             "rankLabel": "Ancient+",
@@ -631,7 +680,7 @@ def generate(
             "gameMode": CURRENT_SCOPE.game_mode,
             "lobbyType": CURRENT_SCOPE.lobby_type,
             "observationWindowStart": CURRENT_SCOPE.start_iso,
-            "observationWindowEndExclusive": _iso_from_epoch(end_epoch),
+            "observationWindowEndExclusive": observation_end_iso,
         },
         "provenance": {
             "headlineSource": "OpenDota",
@@ -657,10 +706,12 @@ def generate(
             "qualifyingPairCount": qualifying_pair_count,
             "rankedRelationshipCount": len(ranked),
             "layoutRelationshipCount": len(layout_relationships),
+            "immortalEvidenceCount": len(evidence_observations),
         },
         "layoutMetrics": metrics,
         "heroStats": hero_stats,
         "relationships": relationships,
+        "evidenceObservations": evidence_observations,
         "positions": {
             slug: {"x": x, "y": y}
             for slug, (x, y) in sorted(positions.items())
