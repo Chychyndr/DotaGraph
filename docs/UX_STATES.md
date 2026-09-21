@@ -100,7 +100,7 @@
 
 - A validated bundle older than 36 hours is marked `stale` by the production snapshot adapter and remains usable.
 - A compact warning stays above the graph and includes the calculated age reason.
-- Daily GitHub Actions generation normally refreshes the snapshot well before the 36-hour threshold.
+- GitHub Actions targets a 12-hour refresh cadence, normally keeping the snapshot well inside the 36-hour stale threshold.
 
 ### Malformed data
 

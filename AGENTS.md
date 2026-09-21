@@ -375,7 +375,7 @@ Pipeline responsibilities:
 - provenance;
 - current-patch update.
 
-Current production data is regenerated daily through GitHub Actions. Generation logs must remain downloadable as workflow artifacts, and ordinary frontend runtime must not depend on live provider availability.
+Current production data targets regeneration every 12 hours through GitHub Actions. The protected `main` branch means automation must publish through a pull request, validate the generated branch with CI, merge only after validation passes, and explicitly dispatch main CI for deployment. Generation logs must remain downloadable as workflow artifacts, and ordinary frontend runtime must not depend on live provider availability.
 
 Do not write one monolithic scraper. Keep source adapters isolated and tested.
 
