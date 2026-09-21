@@ -1,13 +1,18 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from io import BytesIO
+import logging
 from pathlib import Path
 import unittest
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
+from urllib.error import HTTPError
 
 from dotagraph_pipeline.generate_current_bundle import (
     _ensure_layout_neighbors,
     _normalize_pairs,
+    _request_json,
+    _retry_after_seconds,
     _select_layout_relationships,
     generate,
 )
@@ -16,6 +21,48 @@ from dotagraph_pipeline.ranking import RankedRelationship
 
 
 class CurrentBundleTests(unittest.TestCase):
+    def test_retry_after_seconds_reads_provider_hint(self) -> None:
+        self.assertEqual(
+            _retry_after_seconds(
+                '{"retry_after": 60}',
+                {"Retry-After": "120"},
+            ),
+            120.0,
+        )
+
+    def test_request_json_waits_for_provider_retry_hint(self) -> None:
+        url = "https://api.opendota.com/api/explorer"
+        error = HTTPError(
+            url,
+            522,
+            "Connection timed out",
+            {},
+            BytesIO(b'{"retry_after": 120}'),
+        )
+        response = MagicMock()
+        response.__enter__.return_value = response
+        response.__exit__.return_value = False
+        response.status = 200
+        response.read.return_value = b'{"ok": true}'
+
+        with (
+            patch(
+                "dotagraph_pipeline.generate_current_bundle.urlopen",
+                side_effect=[error, response],
+            ),
+            patch(
+                "dotagraph_pipeline.generate_current_bundle.time.sleep"
+            ) as sleep,
+        ):
+            payload = _request_json(
+                url,
+                logger=logging.getLogger("test.opendota.retry"),
+                attempts=2,
+            )
+
+        self.assertEqual(payload, {"ok": True})
+        sleep.assert_called_once_with(120.0)
+
     def test_normalize_pairs_merges_radiant_and_dire(self) -> None:
         rows = [
             {
