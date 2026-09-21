@@ -28,6 +28,25 @@ test("capture Overview, Focus and Matchup states", async ({ page }) => {
 });
 
 
+test("capture expanded matchup provenance details", async ({ page }) => {
+  await page.setViewportSize({ width: 1366, height: 768 });
+  await page.goto("/?hero=viper", { waitUntil: "networkidle" });
+
+  const firstRelationship = page.locator(".relation-row").first();
+  await expect(firstRelationship).toBeVisible();
+  await firstRelationship.click();
+
+  const details = page.locator(".provenance-details");
+  await expect(details).toBeVisible();
+  await details.getByText("Source details", { exact: true }).click();
+  await expect(details).toHaveAttribute("open", "");
+
+  await page.screenshot({
+    path: `${output}/matchup-source-details.png`,
+    fullPage: true
+  });
+});
+
 test("capture compact search results", async ({ page }) => {
   await page.setViewportSize({ width: 432, height: 490 });
   await page.goto("/", { waitUntil: "networkidle" });
