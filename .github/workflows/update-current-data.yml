@@ -2,29 +2,32 @@ name: Update current matchup data
 
 on:
   schedule:
-    - cron: "17 3 * * *"
+    - cron: "17 3,15 * * *"
   workflow_dispatch:
   push:
     branches:
-      - feature/real-7.41f-matchups
+      - main
     paths:
       - .github/workflows/update-current-data.yml
 
 permissions:
   contents: write
   actions: write
+  pull-requests: write
 
 concurrency:
-  group: dotagraph-current-data-${{ github.ref }}
+  group: dotagraph-current-data
   cancel-in-progress: false
 
 jobs:
   update:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: main
 
       - uses: actions/setup-python@v5
         with:
@@ -39,7 +42,9 @@ jobs:
         run: |
           set -o pipefail
           mkdir -p artifacts/pipeline
-          uv run --project pipeline             python -m unittest discover -s pipeline/tests -v             2>&1 | tee artifacts/pipeline/pipeline-tests.log
+          uv run --project pipeline \
+            python -m unittest discover -s pipeline/tests -v \
+            2>&1 | tee artifacts/pipeline/pipeline-tests.log
 
       - name: Generate current matchup bundle
         shell: bash
@@ -48,7 +53,11 @@ jobs:
         run: |
           set -o pipefail
           mkdir -p artifacts/pipeline
-          uv run --project pipeline             python -m dotagraph_pipeline.generate_current_bundle             --output public/data/current-matchups.json             --verbose             2>&1 | tee artifacts/pipeline/current-data.log
+          uv run --project pipeline \
+            python -m dotagraph_pipeline.generate_current_bundle \
+            --output public/data/current-matchups.json \
+            --verbose \
+            2>&1 | tee artifacts/pipeline/current-data.log
 
       - name: Summarize generated data
         shell: bash
@@ -85,9 +94,11 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
-      - name: Commit generated data
+      - name: Publish generated data branch and pull request
         id: publish
         shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           if git ls-files --error-unmatch public/data/current-matchups.json >/dev/null 2>&1 \
             && git diff --quiet -- public/data/current-matchups.json; then
@@ -96,26 +107,80 @@ jobs:
             exit 0
           fi
 
+          PATCH="$(uv run --project pipeline python - <<'PY'
+          import json
+          from pathlib import Path
+          print(json.loads(Path("public/data/current-matchups.json").read_text())["patch"])
+          PY
+          )"
+          REFRESH_BRANCH="automation/current-data-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$REFRESH_BRANCH"
           git add public/data/current-matchups.json
-          git commit -m "data: refresh current 7.41f matchups"
+          git commit -m "data: refresh current ${PATCH} matchups"
+          git push origin "HEAD:$REFRESH_BRANCH"
 
-          BRANCH="${GITHUB_REF_NAME}"
-          git pull --rebase origin "$BRANCH"
-          git push origin "HEAD:$BRANCH"
+          PR_URL="$(gh pr create \
+            --repo "$GITHUB_REPOSITORY" \
+            --base main \
+            --head "$REFRESH_BRANCH" \
+            --title "data: refresh current ${PATCH} matchups" \
+            --body "Automated current-patch data refresh from workflow run ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}. The generated branch is validated by CI before this pull request is merged.")"
+
           echo "changed=true" >> "$GITHUB_OUTPUT"
+          echo "branch=$REFRESH_BRANCH" >> "$GITHUB_OUTPUT"
+          echo "pr_url=$PR_URL" >> "$GITHUB_OUTPUT"
 
-      - name: Dispatch CI for published data
+      - name: Validate generated data branch with CI
+        if: steps.publish.outputs.changed == 'true'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REFRESH_BRANCH: ${{ steps.publish.outputs.branch }}
+        run: |
+          gh workflow run ci.yml --repo "$GITHUB_REPOSITORY" --ref "$REFRESH_BRANCH"
+
+          RUN_ID=""
+          for attempt in {1..30}; do
+            RUN_ID="$(gh run list \
+              --repo "$GITHUB_REPOSITORY" \
+              --workflow ci.yml \
+              --branch "$REFRESH_BRANCH" \
+              --event workflow_dispatch \
+              --limit 1 \
+              --json databaseId \
+              --jq '.[0].databaseId // empty')"
+            if [ -n "$RUN_ID" ]; then
+              break
+            fi
+            sleep 2
+          done
+
+          if [ -z "$RUN_ID" ]; then
+            echo "Unable to find the dispatched CI run for $REFRESH_BRANCH." >&2
+            exit 1
+          fi
+
+          gh run watch "$RUN_ID" --repo "$GITHUB_REPOSITORY" --exit-status
+
+      - name: Merge validated data pull request
+        if: steps.publish.outputs.changed == 'true'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_URL: ${{ steps.publish.outputs.pr_url }}
+        run: |
+          gh pr merge "$PR_URL" \
+            --repo "$GITHUB_REPOSITORY" \
+            --merge \
+            --delete-branch
+
+      - name: Dispatch main CI for deployment
         if: steps.publish.outputs.changed == 'true'
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          curl --fail-with-body --silent --show-error \
-            --request POST \
-            --header "Accept: application/vnd.github+json" \
-            --header "Authorization: Bearer $GH_TOKEN" \
-            --header "X-GitHub-Api-Version: 2022-11-28" \
-            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/workflows/ci.yml/dispatches" \
-            --data "$(printf '{"ref":"%s"}' "$GITHUB_REF_NAME")"
+          gh workflow run ci.yml --repo "$GITHUB_REPOSITORY" --ref main
