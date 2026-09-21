@@ -115,18 +115,24 @@ test("win-rate badges keep native screen scale after camera zoom", async ({ page
     const labelCtm = label.getScreenCTM();
     const cameraTransform = camera.getAttribute("transform") ?? "";
     const cameraScaleMatch = cameraTransform.match(/scale\(([^)]+)\)/);
-    if (!graphCtm || !labelCtm || !cameraScaleMatch) return null;
+    const localLabelScale = Number(label.dataset.labelScale ?? "1");
+    if (!graphCtm || !labelCtm || !cameraScaleMatch || !Number.isFinite(localLabelScale)) {
+      return null;
+    }
 
     return {
       graphScale: Math.hypot(graphCtm.a, graphCtm.b),
       labelScale: Math.hypot(labelCtm.a, labelCtm.b),
+      localLabelScale,
       cameraScale: Number(cameraScaleMatch[1])
     };
   });
 
   expect(scales).not.toBeNull();
   expect(scales!.cameraScale).toBeLessThan(1);
-  expect(Math.abs(scales!.labelScale - scales!.graphScale)).toBeLessThan(0.01);
+  expect(
+    Math.abs(scales!.labelScale - scales!.graphScale * scales!.localLabelScale)
+  ).toBeLessThan(0.01);
 });
 
 test("initial overview centers the actual hero bounds", async ({ page }) => {
