@@ -49,7 +49,7 @@ Implemented in #28 / PR #29:
 - validation;
 - deterministic data-driven layout;
 - current-patch generated bundle;
-- daily GitHub Actions refresh;
+- 12-hour GitHub Actions refresh;
 - static runtime loading from `public/data/current-matchups.json`;
 - source/provenance metadata;
 - progressive matchup source/provenance disclosure;
