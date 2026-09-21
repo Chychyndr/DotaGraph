@@ -214,7 +214,8 @@ export function summarizeCrossSourceEvidence(
   const rates = included.map((observation) => observation.sourceWinRate);
   const minimum = Math.min(...rates);
   const maximum = Math.max(...rates);
-  const spreadPercentagePoints = (maximum - minimum) * 100;
+  const spreadPercentagePoints =
+    Math.round((maximum - minimum) * 10_000) / 100;
 
   if (spreadPercentagePoints >= LARGE_DISAGREEMENT_PP) {
     return {
