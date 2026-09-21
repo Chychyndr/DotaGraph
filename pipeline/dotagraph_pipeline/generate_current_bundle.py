@@ -22,18 +22,51 @@ OPENDOTA_BASE_URL = "https://api.opendota.com/api"
 USER_AGENT = "DotaGraph/0.1 (+https://github.com/Chychyndr/DotaGraph)"
 MIN_QUERY_SECONDS = 6 * 60 * 60
 QUERY_CHUNK_SECONDS = 24 * 60 * 60
+MAX_RETRY_DELAY_SECONDS = 120
+
+
+def _retry_after_seconds(body: str, headers: Any) -> float | None:
+    candidates: list[float] = []
+
+    if headers is not None:
+        raw_header = headers.get("Retry-After")
+        try:
+            value = float(raw_header)
+        except (TypeError, ValueError):
+            pass
+        else:
+            if value > 0:
+                candidates.append(value)
+
+    try:
+        payload = json.loads(body)
+    except (json.JSONDecodeError, TypeError):
+        payload = None
+
+    if isinstance(payload, dict):
+        raw_body = payload.get("retry_after")
+        try:
+            value = float(raw_body)
+        except (TypeError, ValueError):
+            pass
+        else:
+            if value > 0:
+                candidates.append(value)
+
+    return max(candidates) if candidates else None
 
 
 def _request_json(
     url: str,
     *,
     logger: logging.Logger,
-    attempts: int = 4,
+    attempts: int = 6,
 ) -> Any:
     last_error: Exception | None = None
 
     for attempt in range(1, attempts + 1):
         started = time.monotonic()
+        suggested_retry_seconds: float | None = None
         log_event(logger, "http_request_start", attempt=attempt, url=url.split("?")[0])
         request = Request(
             url,
@@ -52,6 +85,7 @@ def _request_json(
                 return payload
         except HTTPError as exc:
             body = exc.read().decode("utf-8", errors="replace")
+            suggested_retry_seconds = _retry_after_seconds(body, exc.headers)
             last_error = RuntimeError(
                 f"OpenDota HTTP {exc.code}: {body[:2000]}"
             )
@@ -62,6 +96,7 @@ def _request_json(
                 attempt=attempt,
                 status=exc.code,
                 body=body[:500],
+                retryAfterSeconds=suggested_retry_seconds,
                 elapsedSeconds=round(time.monotonic() - started, 3),
             )
             if exc.code != 429 and not 500 <= exc.code < 600:
@@ -79,7 +114,12 @@ def _request_json(
             )
 
         if attempt < attempts:
-            delay = min(15, 2**attempt)
+            delay = min(MAX_RETRY_DELAY_SECONDS, 2**attempt)
+            if suggested_retry_seconds is not None:
+                delay = max(
+                    delay,
+                    min(MAX_RETRY_DELAY_SECONDS, suggested_retry_seconds),
+                )
             log_event(logger, "http_retry_wait", attempt=attempt, seconds=delay)
             time.sleep(delay)
 
