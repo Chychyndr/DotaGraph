@@ -217,18 +217,24 @@ class CurrentBundleTests(unittest.TestCase):
                 "dire_hero_id": 47,
                 "matches": 1000,
                 "radiant_wins": 620,
+                "immortal_matches": 240,
+                "immortal_radiant_wins": 156,
             },
             {
                 "radiant_hero_id": 2,
                 "dire_hero_id": 59,
                 "matches": 5000,
                 "radiant_wins": 2500,
+                "immortal_matches": 900,
+                "immortal_radiant_wins": 450,
             },
             {
                 "radiant_hero_id": 47,
                 "dire_hero_id": 59,
                 "matches": 5000,
                 "radiant_wins": 2500,
+                "immortal_matches": 850,
+                "immortal_radiant_wins": 425,
             },
         ]
 
@@ -264,6 +270,21 @@ class CurrentBundleTests(unittest.TestCase):
         self.assertGreater(relationship["rankingScore"], 0)
         self.assertIn("baselineAdjustedDelta", relationship)
         self.assertIn("standardError", relationship)
+
+        evidence = next(
+            item
+            for item in payload["evidenceObservations"]
+            if item["sourceSlug"] == "axe" and item["targetSlug"] == "viper"
+        )
+        self.assertEqual(evidence["provider"], "OpenDota")
+        self.assertEqual(evidence["scope"]["rankScope"], "immortal")
+        self.assertEqual(evidence["sampleSize"], 240)
+        self.assertAlmostEqual(evidence["sourceWinRate"], 0.65)
+        self.assertIn("avg_rank_tier>=80", evidence["provenance"]["queryScope"])
+        self.assertEqual(
+            payload["coverage"]["immortalEvidenceCount"],
+            len(payload["evidenceObservations"]),
+        )
 
 
 if __name__ == "__main__":
