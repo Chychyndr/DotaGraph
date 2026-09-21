@@ -783,6 +783,31 @@ test("matchup details keep Immortal evidence separate from the headline", async 
       })
     );
 
+    payload.evidenceObservations = [
+      ...(payload.evidenceObservations ?? []),
+      ...payload.relationships.map((relationship, index) => ({
+        id: `test-ancient-secondary-${index}`,
+        provider: "STRATZ",
+        sourceSlug: relationship.sourceSlug,
+        targetSlug: relationship.targetSlug,
+        sourceWinRate: relationship.sourceWinRate,
+        sampleSize: relationship.sampleSize,
+        scope: {
+          patch: payload.patch,
+          rankScope: "ancient_plus",
+          matchPopulation: "ranked_all_draft_5v5",
+          observationWindowStart: payload.scope.observationWindowStart,
+          observationWindowEndExclusive:
+            payload.scope.observationWindowEndExclusive
+        },
+        provenance: {
+          sourceUrl: "https://stratz.com/",
+          queryScope: "test-compatible-ancient-plus",
+          collectedAt: payload.generatedAt
+        }
+      }))
+    ];
+
     await route.fulfill({ response, json: payload });
   });
 
@@ -806,6 +831,7 @@ test("matchup details keep Immortal evidence separate from the headline", async 
   await expect(details).toContainText(
     "Separate population; excluded from the Ancient+ headline and cross-source consensus."
   );
+  await expect(details.getByText("STRATZ", { exact: true })).toHaveCount(0);
 });
 
 test("clicking empty graph space exits the selected hero", async ({ page }) => {
