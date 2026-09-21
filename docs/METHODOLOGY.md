@@ -11,6 +11,7 @@ Current production scope:
 - OpenDota `public_matches` as the headline source;
 - ranked All Draft only (`game_mode = 22`, `lobby_type = 7`);
 - OpenDota average rank tier >= 60 as the Ancient+ adapter predicate;
+- detail evidence also derives a separate Immortal subset from the same query with average rank tier >= 80;
 - observation window starts at the recorded 7.41f patch boundary and ends at generation time;
 - generation targets a 12-hour cadence in GitHub Actions.
 
@@ -203,6 +204,22 @@ Sort order:
 Show at most five relationships per direction. Never fill missing slots with weak or previous-patch relationships.
 
 `rankingScore` is internal and is not presented as a user-facing percentage or invented “counter score”.
+
+## Separate Immortal detail evidence
+
+The current OpenDota production query derives an Immortal observation as a nested subset of the same current-patch ranked All Draft corpus.
+
+Exact adapter predicate:
+- `avg_rank_tier >= 80`;
+- `game_mode = 22`;
+- `lobby_type = 7`;
+- same patch boundary and generation-time observation window as the Ancient+ snapshot.
+
+This observation is detail evidence only. It does not alter the Ancient+ headline percentage, graph ranking, graph layout, 500-match headline eligibility gate, or Ancient+ cross-source consensus.
+
+The Immortal `sampleSize` is the source-local count for that Immortal subset. It is displayed as its own sample count and is never added to the Ancient+ count. Because this section is descriptive evidence rather than a headline qualification path, an available Immortal observation may be shown even when its sample size is below 500; the UI must keep the population label and separation explicit.
+
+The pipeline computes the subset with conditional aggregates inside the existing OpenDota Explorer query, so this feature does not add another provider request or a new source-access method.
 
 ## Cross-source detail aggregation
 
