@@ -715,6 +715,29 @@ test("matchup details expose real production source and sample size", async ({ p
   await expect(card).toContainText("Matchup advantage");
 });
 
+test("matchup source details expose production provenance on demand", async ({ page }) => {
+  await page.goto("/?hero=viper");
+
+  const firstRelationship = page.locator(".relation-row").first();
+  await expect(firstRelationship).toBeVisible();
+  await firstRelationship.click();
+
+  const details = page.locator(".provenance-details");
+  const summary = details.getByText("Source details", { exact: true });
+
+  await expect(details).toBeVisible();
+  await expect(details).not.toHaveAttribute("open", "");
+  await summary.click();
+  await expect(details).toHaveAttribute("open", "");
+
+  const sourceLink = details.getByRole("link", { name: "OpenDota" });
+  await expect(sourceLink).toHaveAttribute("href", "https://www.opendota.com/");
+  await expect(details).toContainText("public matches");
+  await expect(details).toContainText("/api/explorer");
+  await expect(details).toContainText("Observed");
+  await expect(details).toContainText("Generated");
+});
+
 test("clicking empty graph space exits the selected hero", async ({ page }) => {
   await page.goto("/?hero=viper");
   await expect(page.getByLabel("Viper counter summary")).toBeVisible();
