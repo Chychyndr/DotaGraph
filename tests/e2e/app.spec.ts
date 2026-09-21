@@ -628,7 +628,7 @@ test("keyboard search selection moves focus to the selected graph hero", async (
   const selected = page.locator("#graph-hero-viper");
   await expect(selected).toBeFocused();
   await expect(selected).toHaveAttribute("aria-pressed", "true");
-  await expect(page.getByRole("status")).toHaveText("Viper selected");
+  await expect(page.locator('.sr-only[role="status"]')).toHaveText("Viper selected");
   await expect(page).toHaveURL(/hero=viper/);
 });
 
