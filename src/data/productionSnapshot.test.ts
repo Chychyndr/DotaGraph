@@ -38,7 +38,11 @@ const snapshot = (generatedAt = "2026-09-19T08:00:00Z") => {
       observationWindowEndExclusive: "2026-09-19T08:00:00Z"
     },
     provenance: {
-      headlineSource: "OpenDota"
+      headlineSource: "OpenDota",
+      sourceUrl: "https://www.opendota.com/",
+      endpoint: "/api/explorer",
+      queryMode: "public_matches",
+      secondarySources: ["STRATZ", "DOTABUFF", "Dota2ProTracker"]
     },
     positions,
     heroStats,
@@ -80,7 +84,27 @@ describe("buildDatasetFromProductionSnapshot", () => {
     expect(relationship.sourceWinRate).toBeCloseTo(0.632);
     expect(relationship.rankingScore).toBeCloseTo(0.088);
     expect(relationship.provenanceSource).toBe("OpenDota");
+    expect(result.data.metadata.provenance).toEqual({
+      headlineSource: "OpenDota",
+      sourceUrl: "https://www.opendota.com/",
+      endpoint: "/api/explorer",
+      queryMode: "public_matches",
+      secondarySources: ["STRATZ", "DOTABUFF", "Dota2ProTracker"]
+    });
     expect(result.data.metadata.freshness.status).toBe("current");
+  });
+
+  it("rejects malformed provenance links", () => {
+    const raw = snapshot();
+    raw.provenance.sourceUrl = "not a url";
+
+    const result = buildDatasetFromProductionSnapshot(raw);
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.issues).toContain(
+        "Production snapshot provenance sourceUrl is invalid."
+      );
+    }
   });
 
   it("marks snapshots stale after 36 hours", () => {
