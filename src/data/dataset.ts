@@ -99,6 +99,49 @@ export function validateDataset(value: unknown): DatasetValidationResult {
       if (typeof metadata.source !== "string" || !metadata.source.trim()) {
         issues.push("Schema v2 datasets must include a source.");
       }
+
+      const provenance = metadata.provenance;
+      if (!isRecord(provenance)) {
+        issues.push("Schema v2 datasets must include provenance details.");
+      } else {
+        if (
+          typeof provenance.headlineSource !== "string" ||
+          !provenance.headlineSource.trim()
+        ) {
+          issues.push("Dataset provenance headlineSource must be a non-empty string.");
+        }
+        if (
+          provenance.sourceUrl !== undefined &&
+          (typeof provenance.sourceUrl !== "string" ||
+            !provenance.sourceUrl.trim() ||
+            (() => {
+              try {
+                new URL(provenance.sourceUrl);
+                return false;
+              } catch {
+                return true;
+              }
+            })())
+        ) {
+          issues.push("Dataset provenance sourceUrl must be a valid URL.");
+        }
+        for (const key of ["endpoint", "queryMode"] as const) {
+          const entry = provenance[key];
+          if (entry !== undefined && (typeof entry !== "string" || !entry.trim())) {
+            issues.push(`Dataset provenance ${key} must be a non-empty string.`);
+          }
+        }
+        if (
+          provenance.secondarySources !== undefined &&
+          (!Array.isArray(provenance.secondarySources) ||
+            provenance.secondarySources.some(
+              (source) => typeof source !== "string" || !source.trim()
+            ))
+        ) {
+          issues.push("Dataset provenance secondarySources must contain non-empty strings.");
+        }
+      }
+
       if (
         typeof metadata.observationWindowStart !== "string" ||
         Number.isNaN(Date.parse(metadata.observationWindowStart))
