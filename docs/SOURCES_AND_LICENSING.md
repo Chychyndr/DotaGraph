@@ -303,7 +303,7 @@ Before implementing or changing a statistical adapter:
 4. obey provider terms for the chosen access method; direct-source approval is not permission to bypass restrictions;
 5. update this document in the same PR that introduces a materially new adapter/access path.
 
-Current OpenDota headline ingestion is active under the documented source and methodology rules. Sample-size and counter-ranking semantics are approved; cross-source aggregation/disagreement rules remain a separate methodology task.
+Current OpenDota headline ingestion is active under the documented source and methodology rules. Sample-size, counter-ranking, and detail-view cross-source aggregation/disagreement semantics are approved. This approval does not expand any provider's permitted access method: STRATZ remains API-only, DOTABUFF automation still requires a provider-compatible path, and Dota2ProTracker automation remains restricted by the reviewed terms.
 
 ## Project licensing
 

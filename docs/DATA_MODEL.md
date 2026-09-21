@@ -113,14 +113,38 @@ Missing reliable relationships stay missing. Never fill slots with weak, previou
 
 OpenDota currently supplies the reproducible headline numeric observation.
 
-Future STRATZ/DOTABUFF/Dota2ProTracker detail observations must remain source-local and preserve:
+Secondary detail evidence uses `MatchupEvidenceObservation`. Each observation preserves:
+- stable observation id;
 - provider/source identity;
-- endpoint/page/query provenance;
+- explicit directed hero pair;
+- raw source-hero matchup win rate;
+- source-local sample size when known;
 - patch;
-- rank/match population;
-- observation window;
-- known source-local sample size;
-- source observation timestamps;
-- compatibility/disagreement metadata.
+- normalized rank scope;
+- normalized match-population key;
+- observation-window start/end;
+- source URL;
+- provider query/scope description;
+- collection timestamp.
 
-Cross-source sample sizes must not be summed unless non-overlap is proven under a separately approved aggregation method.
+Compatibility is explicit. An observation excluded from consensus remains attached to the detail evidence with one or more machine-readable reasons such as:
+- different direction;
+- different patch;
+- different rank scope;
+- different match population;
+- invalid/misaligned observation window;
+- invalid win rate;
+- unknown/insufficient sample size;
+- superseded same-provider observation.
+
+`CrossSourceEvidenceSummary` contains:
+- the reference/headline observation id;
+- compatible included observations;
+- excluded observations with reasons;
+- disagreement level;
+- provider spread in percentage points when at least two providers qualify;
+- optional consensus win rate.
+
+The consensus is an equal-provider median and exists only with at least two compatible providers and less than 5 pp spread. It deliberately has no aggregate `sampleSize`. Provider counts are never summed merely because scopes appear compatible.
+
+Immortal/professional observations remain valid separate evidence but cannot enter the Ancient+ consensus unless a future methodology explicitly changes the normalized scope rules.

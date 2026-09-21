@@ -34,7 +34,8 @@ Completed:
 - one-sided 95% lower confidence ranking bound implemented/tested;
 - user-facing statistic remains raw source-hero matchup win rate;
 - generated snapshot becomes stale after 36 hours without refresh;
-- provider sample sizes remain separate.
+- provider sample sizes remain separate;
+- cross-source detail compatibility, equal-provider median aggregation, and 2/5 pp disagreement rules approved.
 
 ## Current production hero data
 
@@ -55,7 +56,6 @@ Implemented in #28 / PR #29:
 
 ## Next data work
 
-- approve cross-source aggregation/disagreement rules;
 - add STRATZ compatible detail observations;
 - add manually/provider-compatibly sourced DOTABUFF and Dota2ProTracker evidence where useful;
 - expose richer source/provenance breakdown in details;
