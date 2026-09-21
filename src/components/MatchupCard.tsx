@@ -39,7 +39,6 @@ export function MatchupCard({
     provenance;
 
   return (
-  return (
     <aside className="context-card matchup-card" aria-label={`${source.name} counters ${target.name}`}>
       <button className="card-back" type="button" onClick={onBack}>← Hero overview</button>
 
