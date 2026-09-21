@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
+import type { DatasetBundle } from "./dataset";
 import { validateDataset } from "./dataset";
 
-const validDataset = () => ({
+const validDataset = (): DatasetBundle => ({
   heroes: [
     {
       id: "viper",
