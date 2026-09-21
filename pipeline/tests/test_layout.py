@@ -84,6 +84,21 @@ class LayoutTests(unittest.TestCase):
             180.0,
         )
 
+    def test_sparse_gap_compaction_caps_detached_nodes(self) -> None:
+        positions = compute_layout(
+            ["alpha", "beta", "gamma", "delta"],
+            [],
+            width=600,
+            height=400,
+            min_distance=40,
+            max_nearest_distance=70,
+            iterations=1,
+        )
+        metrics = layout_metrics(positions, [])
+
+        self.assertGreaterEqual(metrics["minimumNodeDistance"], 39.8)
+        self.assertLessEqual(metrics["maxNearestNodeDistance"], 70.1)
+
     def test_metrics_cover_layout_edges(self) -> None:
         positions = compute_layout(self.nodes, self.edges, iterations=180)
         metrics = layout_metrics(positions, self.edges)
