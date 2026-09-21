@@ -120,10 +120,13 @@ function ReadyApp({ data }: { data: DatasetBundle }) {
         ? evidenceObservations.filter(
             (observation) =>
               observation.sourceHeroId === matchup.sourceHeroId &&
-              observation.targetHeroId === matchup.targetHeroId
+              observation.targetHeroId === matchup.targetHeroId &&
+              observation.scope.patch === scope.patch &&
+              (observation.scope.rankScope === "immortal" ||
+                observation.scope.rankScope === "pro")
           )
         : [],
-    [evidenceObservations, matchup]
+    [evidenceObservations, matchup, scope.patch]
   );
 
   const visibleRelationships = useMemo(
