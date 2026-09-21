@@ -286,7 +286,9 @@ export function validateDataset(value: unknown): DatasetValidationResult {
       }
       if (
         observation.sampleSize !== undefined &&
-        (!Number.isInteger(observation.sampleSize) || observation.sampleSize < 0)
+        (typeof observation.sampleSize !== "number" ||
+          !Number.isInteger(observation.sampleSize) ||
+          observation.sampleSize < 0)
       ) {
         issues.push(`${prefix} has an invalid sampleSize.`);
       }
