@@ -108,6 +108,13 @@ test("capture expanded Immortal evidence details", async ({ page }) => {
     path: `${output}/matchup-immortal-evidence.png`,
     fullPage: true
   });
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await details.scrollIntoViewIfNeeded();
+  await page.screenshot({
+    path: `${output}/mobile-matchup-immortal-evidence.png`,
+    fullPage: true
+  });
 });
 
 test("capture compact search results", async ({ page }) => {
