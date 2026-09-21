@@ -59,6 +59,7 @@ Schema v2 contains:
 - layout quality metrics;
 - generated hero statistics;
 - every confidence-qualified directed relationship;
+- optional separate `evidenceObservations` for detail-only populations/sources;
 - deterministic `x/y` position for every catalog hero.
 
 Coordinates and source observations are keyed by stable internal hero slug. The frontend converts those slugs to stable UI ids after loading.
@@ -70,6 +71,7 @@ The snapshot contains aggregate matchup data only. It does not contain player id
 The frontend converts the generated snapshot into one validated bundle containing:
 - heroes;
 - relationships;
+- optional `evidenceObservations`;
 - scope;
 - metadata.
 
@@ -95,6 +97,12 @@ Runtime validation rejects:
 - malformed provenance;
 - patch/rank scope mismatches;
 - malformed timestamps.
+
+### Detail evidence validation
+
+`evidenceObservations` use the existing `MatchupEvidenceObservation` model. Runtime validation checks the observation id, approved provider, directed hero references, win rate, optional source-local sample size, explicit scope/window, source URL, query description, and collection timestamp.
+
+The current generator emits OpenDota Immortal observations for published headline pairs when the same production query contains qualifying Immortal matches. Those observations use `rankScope = immortal` and remain separate from the Ancient+ relationship and consensus.
 
 ## Selection
 
