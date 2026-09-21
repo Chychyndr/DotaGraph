@@ -1,6 +1,6 @@
 # Methodology
 
-Status: current-patch sample-size and counter-ranking methodology are approved. Cross-source aggregation/disagreement rules remain a separate decision.
+Status: current-patch sample-size, counter-ranking, and cross-source detail aggregation/disagreement methodology are approved.
 
 ## Current production snapshot
 
@@ -204,10 +204,71 @@ Show at most five relationships per direction. Never fill missing slots with wea
 
 `rankingScore` is internal and is not presented as a user-facing percentage or invented “counter score”.
 
-## Aggregation
+## Cross-source detail aggregation
 
-Future source observations must remain separate.
+Status: **approved for secondary-source detail views**.
 
-Never sum overlapping provider sample sizes.
+The graph headline remains the current OpenDota observation. Cross-source aggregation is a detail-view aid only: it must never silently replace the headline rate, alter graph ranking, or change the source-local sample count attached to the published relationship.
 
-A primary aggregate may be shown only after a documented method and source-compatibility rules are approved.
+### Compatibility gate
+
+An observation may enter the detail consensus only when all of these are true:
+
+1. it describes the same directed hero pair;
+2. it is from the same Dota patch;
+3. it maps to the same normalized rank scope;
+4. it maps to the same normalized match population;
+5. both observation windows are valid, overlap by at least **50% of the shorter window**, and their end times differ by no more than **36 hours**;
+6. the source-local sample size is known and is at least **500** qualifying matches;
+7. the source win rate is a valid finite value from 0 to 1.
+
+Adapters must normalize provider-specific predicates into explicit scope metadata. A provider label that merely sounds similar, such as "high skill" versus Ancient+, is not enough to declare compatibility.
+
+Observations that fail this gate remain available as separate evidence with explicit exclusion reasons. They are not discarded. In particular, Immortal/professional evidence belongs in its own population section instead of being mixed into the Ancient+ consensus.
+
+### Provider deduplication
+
+One provider receives at most one vote in a consensus for one exact detail scope.
+
+If multiple compatible observations from the same provider are present, use the newest collected observation and mark older ones as superseded. Multiple endpoints, snapshots, or pages from one provider must not give that provider extra weight.
+
+### Consensus statistic
+
+A consensus requires at least **two compatible providers**.
+
+The consensus win rate is the **equal-provider median** of the compatible source win rates. Provider sample counts are deliberately not used as aggregation weights because provider populations may overlap and are not statistically independent.
+
+The consensus has **no aggregate sample size**. Never sum provider sample sizes, and never attach a fabricated total count to the median.
+
+This median is a descriptive detail statistic only. It is not a confidence estimate, a replacement ranking score, or a new headline probability.
+
+### Disagreement levels
+
+Measure disagreement as the range between the highest and lowest compatible provider win rates, in percentage points:
+
+- **aligned:** spread < 2 pp;
+- **noticeable:** spread >= 2 pp and < 5 pp;
+- **large:** spread >= 5 pp;
+- **single_source:** fewer than two compatible providers.
+
+For aligned and noticeable evidence, the detail view may show the median consensus together with the individual source rows.
+
+For large disagreement, **suppress the consensus win rate** and show the individual source observations plus a visible disagreement warning. A single summary number would hide materially conflicting evidence.
+
+These thresholds classify disagreement in the displayed raw matchup win rates only. They must not be interpreted as proof that provider-specific counter-ranking methods agree or disagree unless those methods are separately comparable.
+
+### Non-aggregated evidence
+
+A source observation may still be useful in details even when it cannot enter the consensus, for example:
+
+- sample size below 500;
+- unknown sample size;
+- different rank population;
+- professional-only population;
+- different match population;
+- different patch;
+- stale or poorly overlapping observation window.
+
+Such evidence must retain its own source, scope, sample semantics, observation timestamp, and reason for exclusion from the consensus.
+
+Cross-source sample sizes remain source-local in every case.
