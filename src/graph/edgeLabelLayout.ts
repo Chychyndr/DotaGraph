@@ -238,7 +238,7 @@ export function layoutSourceAnchoredEdgeLabels(
         y: input.source.y - uy * (input.source.radius + LABEL_GAP)
       };
 
-      for (const extraDistance of [0, 18, 36, 54, 72]) {
+      for (const extraDistance of [0, 18, 36, 54, 72, 96, 120, 150, 180, 220]) {
         const distance = support + LABEL_GAP + extraDistance;
         const x = sourceEdge.x - ux * distance;
         const y = sourceEdge.y - uy * distance;
