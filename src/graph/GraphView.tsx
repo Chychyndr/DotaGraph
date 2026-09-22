@@ -27,6 +27,10 @@ import {
   selectOverviewBackbone
 } from "./relationshipVisibility";
 import { layoutHeroLabels } from "./heroLabelLayout";
+import {
+  routeEdgeAroundObstacles,
+  routeSegments
+} from "./edgeRouting";
 
 interface GraphViewProps {
   heroes: Hero[];
@@ -491,12 +495,46 @@ export function GraphView({
       return priority(left) - priority(right) || left.id.localeCompare(right.id);
     });
 
-  const activeEdgeSegments = activeRelationships.flatMap((relationship) => {
-    const source = byId.get(relationship.sourceHeroId);
-    const target = byId.get(relationship.targetHeroId);
-    if (!source || !target) return [];
+  const activeEdgeRoutes = new Map(
+    activeRelationships.flatMap((relationship) => {
+      const source = byId.get(relationship.sourceHeroId);
+      const target = byId.get(relationship.targetHeroId);
+      if (!source || !target) return [];
 
-    return [edgeGeometry(source, target)];
+      const geometry = edgeGeometry(source, target);
+      const obstacles = [...activeIds].flatMap((heroId) => {
+        if (
+          heroId === relationship.sourceHeroId ||
+          heroId === relationship.targetHeroId
+        ) {
+          return [];
+        }
+
+        const hero = byId.get(heroId);
+        return hero
+          ? [{
+              id: hero.id,
+              x: hero.x,
+              y: hero.y,
+              radius: radiusFor(hero.id) + 4
+            }]
+          : [];
+      });
+
+      return [[
+        relationship.id,
+        routeEdgeAroundObstacles(
+          { x: geometry.x1, y: geometry.y1 },
+          { x: geometry.x2, y: geometry.y2 },
+          obstacles
+        )
+      ] as const];
+    })
+  );
+
+  const activeEdgeSegments = activeRelationships.flatMap((relationship) => {
+    const route = activeEdgeRoutes.get(relationship.id);
+    return route ? routeSegments(route) : [];
   });
 
   const heroLabelPlacements = layoutHeroLabels(
@@ -557,9 +595,12 @@ export function GraphView({
       const target = byId.get(relationship.targetHeroId);
       if (!source || !target) return [];
 
-      const geometry = edgeGeometry(source, target);
-      const start = projectGraphPoint(geometry.x1, geometry.y1);
-      const end = projectGraphPoint(geometry.x2, geometry.y2);
+      const route = activeEdgeRoutes.get(relationship.id);
+      const sourceSegment = route ? routeSegments(route)[0] : undefined;
+      if (!sourceSegment) return [];
+
+      const start = projectGraphPoint(sourceSegment.x1, sourceSegment.y1);
+      const end = projectGraphPoint(sourceSegment.x2, sourceSegment.y2);
       const sourcePoint = projectGraphPoint(source.x, source.y);
 
       return [{
@@ -769,6 +810,29 @@ export function GraphView({
               isMatchup ? "edge-matchup" : ""
             ].filter(Boolean).join(" ");
             const geometry = edgeGeometry(source, target);
+            const route = isActive
+              ? activeEdgeRoutes.get(relationship.id)
+              : undefined;
+            const markerEnd = isIncoming
+              ? "url(#arrow-incoming)"
+              : isOutgoing
+                ? "url(#arrow-outgoing)"
+                : undefined;
+
+            if (route?.detoured) {
+              return (
+                <polyline
+                  key={relationship.id}
+                  className={edgeClass}
+                  points={route.points.map((point) => `${point.x},${point.y}`).join(" ")}
+                  fill="none"
+                  markerEnd={markerEnd}
+                  data-source-hero={relationship.sourceHeroId}
+                  data-target-hero={relationship.targetHeroId}
+                  data-route-detoured="true"
+                />
+              );
+            }
 
             return (
               <line
@@ -778,9 +842,10 @@ export function GraphView({
                 y1={geometry.y1}
                 x2={geometry.x2}
                 y2={geometry.y2}
-                markerEnd={isIncoming ? "url(#arrow-incoming)" : isOutgoing ? "url(#arrow-outgoing)" : undefined}
+                markerEnd={markerEnd}
                 data-source-hero={relationship.sourceHeroId}
                 data-target-hero={relationship.targetHeroId}
+                data-route-detoured="false"
               />
             );
           })}
