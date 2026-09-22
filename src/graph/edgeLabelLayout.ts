@@ -138,7 +138,8 @@ const candidateScore = (
   let score =
     Math.abs(placement.t - preferredT) * 40 +
     preferenceIndex * 0.05 +
-    Math.abs(placement.offset) * 0.25;
+    Math.abs(placement.offset) * 0.25 +
+    (1 - placement.scale) * 120;
 
   for (const placed of placedRects) {
     if (!rectanglesOverlap(paddedRect, placed)) continue;
@@ -201,8 +202,18 @@ export function layoutSourceAnchoredEdgeLabels(
           a - b
       );
 
-    const candidates = uniqueTs.flatMap((t) =>
-      NORMAL_OFFSETS.map((offset) => candidateFor(segment, t, offset, scale))
+    const candidateScales = [...new Set([
+      scale,
+      Math.max(MIN_LABEL_SCALE, Number((scale - 0.1).toFixed(2))),
+      MIN_LABEL_SCALE
+    ])];
+
+    const candidates = candidateScales.flatMap((candidateScale) =>
+      uniqueTs.flatMap((t) =>
+        NORMAL_OFFSETS.map((offset) =>
+          candidateFor(segment, t, offset, candidateScale)
+        )
+      )
     );
 
     let best = candidates[0];
