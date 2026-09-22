@@ -629,7 +629,8 @@ export function GraphView({
           cameraScale
       };
     }),
-    heroLabelObstacles
+    heroLabelObstacles,
+    { sizeScale: isCompactViewport ? 0.8 : 1 }
   );
 
   const handlePointerDown = (event: ReactPointerEvent<SVGSVGElement>) => {
