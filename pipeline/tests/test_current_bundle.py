@@ -10,7 +10,9 @@ from urllib.error import HTTPError
 
 from dotagraph_pipeline.generate_current_bundle import (
     _ensure_layout_neighbors,
+    _normalize_immortal_pairs,
     _normalize_pairs,
+    _pair_query,
     _request_json,
     _retry_after_seconds,
     _select_layout_relationships,
@@ -82,6 +84,40 @@ class CurrentBundleTests(unittest.TestCase):
         self.assertEqual(len(pairs), 1)
         self.assertEqual(pairs[0].matches, 1000)
         self.assertEqual(pairs[0].first_wins, 580)
+
+    def test_pair_query_collects_immortal_subset_without_second_request(self) -> None:
+        query = _pair_query(1, 2)
+
+        self.assertIn("avg_rank_tier >= 60", query)
+        self.assertIn("avg_rank_tier >= 80", query)
+        self.assertIn("immortal_matches", query)
+        self.assertIn("immortal_radiant_wins", query)
+
+    def test_normalize_immortal_pairs_merges_radiant_and_dire(self) -> None:
+        rows = [
+            {
+                "radiant_hero_id": 1,
+                "dire_hero_id": 2,
+                "matches": 600,
+                "radiant_wins": 360,
+                "immortal_matches": 120,
+                "immortal_radiant_wins": 78,
+            },
+            {
+                "radiant_hero_id": 2,
+                "dire_hero_id": 1,
+                "matches": 400,
+                "radiant_wins": 180,
+                "immortal_matches": 80,
+                "immortal_radiant_wins": 28,
+            },
+        ]
+
+        pairs = _normalize_immortal_pairs(rows, {1: "axe", 2: "viper"})
+
+        self.assertEqual(len(pairs), 1)
+        self.assertEqual(pairs[0].matches, 200)
+        self.assertEqual(pairs[0].first_wins, 130)
 
     def test_layout_selection_covers_every_hero_with_affinity_evidence(self) -> None:
         def relationship(source: str, target: str, delta: float) -> RankedRelationship:
@@ -181,18 +217,24 @@ class CurrentBundleTests(unittest.TestCase):
                 "dire_hero_id": 47,
                 "matches": 1000,
                 "radiant_wins": 620,
+                "immortal_matches": 240,
+                "immortal_radiant_wins": 156,
             },
             {
                 "radiant_hero_id": 2,
                 "dire_hero_id": 59,
                 "matches": 5000,
                 "radiant_wins": 2500,
+                "immortal_matches": 900,
+                "immortal_radiant_wins": 450,
             },
             {
                 "radiant_hero_id": 47,
                 "dire_hero_id": 59,
                 "matches": 5000,
                 "radiant_wins": 2500,
+                "immortal_matches": 850,
+                "immortal_radiant_wins": 425,
             },
         ]
 
@@ -228,6 +270,21 @@ class CurrentBundleTests(unittest.TestCase):
         self.assertGreater(relationship["rankingScore"], 0)
         self.assertIn("baselineAdjustedDelta", relationship)
         self.assertIn("standardError", relationship)
+
+        evidence = next(
+            item
+            for item in payload["evidenceObservations"]
+            if item["sourceSlug"] == "axe" and item["targetSlug"] == "viper"
+        )
+        self.assertEqual(evidence["provider"], "OpenDota")
+        self.assertEqual(evidence["scope"]["rankScope"], "immortal")
+        self.assertEqual(evidence["sampleSize"], 240)
+        self.assertAlmostEqual(evidence["sourceWinRate"], 0.65)
+        self.assertIn("avg_rank_tier>=80", evidence["provenance"]["queryScope"])
+        self.assertEqual(
+            payload["coverage"]["immortalEvidenceCount"],
+            len(payload["evidenceObservations"]),
+        )
 
 
 if __name__ == "__main__":

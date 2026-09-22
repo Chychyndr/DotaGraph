@@ -53,13 +53,13 @@ Implemented in #28 / PR #29:
 - static runtime loading from `public/data/current-matchups.json`;
 - source/provenance metadata;
 - progressive matchup source/provenance disclosure;
+- separate OpenDota Immortal detail evidence from the same production query;
 - automatic CI -> Pages -> live browser verification after data commits.
 
 ## Next data work
 
 - add STRATZ compatible detail observations;
 - add manually/provider-compatibly sourced DOTABUFF and Dota2ProTracker evidence where useful;
-- add separate Immortal/pro evidence where available;
 - automate current-patch detection/update workflow when a reliable primary signal is chosen.
 
 ## Reviewed explanations

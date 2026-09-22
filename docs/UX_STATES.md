@@ -50,6 +50,8 @@
 - Card shows A -> B, raw source win rate, sample size, patch/rank scope, headline source, and baseline-adjusted matchup advantage; reviewed explanation appears only when available.
 - A collapsed `Source details` disclosure exposes the real provider link, endpoint/query mode, observation window, and snapshot generation time without making the default card noisy.
 - Approved secondary providers are never shown as matchup evidence until an actual source-local observation exists.
+- When a real Immortal/pro observation exists for the same directed pair, a separate collapsed `Immortal / pro evidence` disclosure shows its population label, provider, source-local win rate/sample size, and observation window.
+- The separate-population disclosure explicitly states that it is excluded from the Ancient+ headline and cross-source consensus.
 - Graph remains visible.
 
 ## Reset

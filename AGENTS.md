@@ -105,7 +105,7 @@ Initial headline statistics are Ancient+.
 
 Do not add a rank selector unless explicitly requested.
 
-Immortal/professional evidence belongs in detailed views as separate evidence and must not silently replace the Ancient+ headline statistic.
+Immortal/professional evidence belongs in detailed views as separate evidence and must not silently replace the Ancient+ headline statistic. The current OpenDota Immortal adapter uses `avg_rank_tier >= 80` inside the same production query; keep its sample count and population label separate from Ancient+.
 
 ## UX principles
 
@@ -439,6 +439,8 @@ Cross-source disagreement is measured by provider-rate spread:
 - large: >= 5 percentage points.
 
 Large disagreement must suppress the consensus number and show individual source observations with a visible warning. Incompatible, low-sample, unknown-sample, professional/Immortal, or otherwise non-aggregatable observations remain separate evidence with explicit exclusion reasons rather than being silently discarded.
+
+Current OpenDota Immortal observations are descriptive detail evidence. They may be shown below the 500-match headline threshold when real matches exist, but they never qualify a headline relationship, alter graph ranking/layout, enter the Ancient+ consensus, or have their sample count added to Ancient+.
 
 ## Counter detection/ranking
 

@@ -46,6 +46,28 @@ const snapshot = (generatedAt = "2026-09-19T08:00:00Z") => {
     },
     positions,
     heroStats,
+    evidenceObservations: [
+      {
+        id: "opendota-immortal-viper--huskar",
+        provider: "OpenDota",
+        sourceSlug: "viper",
+        targetSlug: "huskar",
+        sourceWinRate: 0.608,
+        sampleSize: 184,
+        scope: {
+          patch: "7.41f",
+          rankScope: "immortal",
+          matchPopulation: "ranked_all_draft_5v5",
+          observationWindowStart: "2026-09-16T00:00:00Z",
+          observationWindowEndExclusive: "2026-09-19T08:00:00Z"
+        },
+        provenance: {
+          sourceUrl: "https://www.opendota.com/",
+          queryScope: "public_matches:avg_rank_tier>=80:game_mode=22:lobby_type=7",
+          collectedAt: "2026-09-19T08:00:00Z"
+        }
+      }
+    ],
     relationships: [
       {
         sourceSlug: "viper",
@@ -92,6 +114,28 @@ describe("buildDatasetFromProductionSnapshot", () => {
       secondarySources: ["STRATZ", "DOTABUFF", "Dota2ProTracker"]
     });
     expect(result.data.metadata.freshness.status).toBe("current");
+    expect(result.data.evidenceObservations).toEqual([
+      {
+        id: "opendota-immortal-viper--huskar",
+        provider: "OpenDota",
+        sourceHeroId: "viper",
+        targetHeroId: "huskar",
+        sourceWinRate: 0.608,
+        sampleSize: 184,
+        scope: {
+          patch: "7.41f",
+          rankScope: "immortal",
+          matchPopulation: "ranked_all_draft_5v5",
+          observationWindowStart: "2026-09-16T00:00:00Z",
+          observationWindowEndExclusive: "2026-09-19T08:00:00Z"
+        },
+        provenance: {
+          sourceUrl: "https://www.opendota.com/",
+          queryScope: "public_matches:avg_rank_tier>=80:game_mode=22:lobby_type=7",
+          collectedAt: "2026-09-19T08:00:00Z"
+        }
+      }
+    ]);
   });
 
   it("rejects malformed provenance links", () => {

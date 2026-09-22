@@ -94,6 +94,72 @@ describe("validateDataset", () => {
     }
   });
 
+  it("accepts separate Immortal detail evidence", () => {
+    const dataset = validDataset();
+    dataset.evidenceObservations = [
+      {
+        id: "opendota-immortal-viper-huskar",
+        provider: "OpenDota",
+        sourceHeroId: "viper",
+        targetHeroId: "huskar",
+        sourceWinRate: 0.58,
+        sampleSize: 240,
+        scope: {
+          patch: "7.41e",
+          rankScope: "immortal",
+          matchPopulation: "ranked_all_draft_5v5",
+          observationWindowStart: "2026-09-16T00:00:00Z",
+          observationWindowEndExclusive: "2026-09-18T00:00:00Z"
+        },
+        provenance: {
+          sourceUrl: "https://www.opendota.com/",
+          queryScope: "public_matches:avg_rank_tier>=80",
+          collectedAt: "2026-09-18T00:05:00Z"
+        }
+      }
+    ];
+
+    expect(validateDataset(dataset)).toEqual({
+      ok: true,
+      data: dataset
+    });
+  });
+
+  it("rejects malformed detail evidence provenance", () => {
+    const dataset = validDataset();
+    dataset.evidenceObservations = [
+      {
+        id: "broken-evidence",
+        provider: "OpenDota",
+        sourceHeroId: "viper",
+        targetHeroId: "huskar",
+        sourceWinRate: 0.58,
+        sampleSize: 240,
+        scope: {
+          patch: "7.41e",
+          rankScope: "immortal",
+          matchPopulation: "ranked_all_draft_5v5",
+          observationWindowStart: "2026-09-16T00:00:00Z",
+          observationWindowEndExclusive: "2026-09-18T00:00:00Z"
+        },
+        provenance: {
+          sourceUrl: "not-a-url",
+          queryScope: "public_matches:avg_rank_tier>=80",
+          collectedAt: "2026-09-18T00:05:00Z"
+        }
+      }
+    ];
+
+    const result = validateDataset(dataset);
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.issues).toContain(
+        "Evidence observation at index 0 provenance sourceUrl must be a valid URL."
+      );
+    }
+  });
+
   it("requires an explanation when upstream marks data stale", () => {
     const dataset = validDataset();
     dataset.metadata.freshness = { status: "stale" };

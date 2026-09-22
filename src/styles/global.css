@@ -789,6 +789,110 @@ button:focus-visible, input:focus-visible, [role="button"]:focus-visible {
   font-size: 8px;
 }
 
+.population-evidence-details {
+  margin: 0 0 11px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.population-evidence-details summary {
+  width: max-content;
+  color: var(--secondary);
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.population-evidence-details[open] summary {
+  margin-bottom: 8px;
+}
+
+.population-evidence-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.population-evidence-item {
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel-subtle);
+}
+
+.population-evidence-heading,
+.population-evidence-stat {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.population-evidence-heading strong {
+  color: var(--primary);
+  font-size: 10px;
+}
+
+.population-evidence-heading a {
+  color: var(--outgoing-strong);
+  font-size: 9px;
+  text-decoration: none;
+}
+
+.population-evidence-heading a:hover {
+  text-decoration: underline;
+}
+
+.population-evidence-stat {
+  margin-top: 6px;
+}
+
+.population-evidence-stat strong {
+  color: var(--primary);
+  font-size: 17px;
+}
+
+.population-evidence-stat span {
+  color: var(--muted);
+  font-size: 8px;
+}
+
+.population-evidence-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 7px 0 0;
+}
+
+.population-evidence-meta div {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr);
+  gap: 8px;
+}
+
+.population-evidence-meta dt,
+.population-evidence-meta dd,
+.population-evidence-note {
+  font-size: 8px;
+  line-height: 1.4;
+}
+
+.population-evidence-meta dt {
+  color: var(--muted);
+}
+
+.population-evidence-meta dd {
+  min-width: 0;
+  margin: 0;
+  color: var(--secondary);
+  overflow-wrap: anywhere;
+}
+
+.population-evidence-note {
+  margin: 7px 0 0;
+  color: var(--muted);
+}
+
 .matchup-copy {
   margin: 0;
   color: var(--secondary);

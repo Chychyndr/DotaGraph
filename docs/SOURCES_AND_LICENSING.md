@@ -127,13 +127,14 @@ Current query scope:
 - OpenDota Explorer over `public_matches`;
 - observation start: `2026-09-16T00:00:00Z`;
 - observation end: generation time;
-- `avg_rank_tier >= 60`;
+- `avg_rank_tier >= 60` for the Ancient+ headline;
+- conditional `avg_rank_tier >= 80` aggregates for separate Immortal detail evidence;
 - `game_mode_all_draft` (22);
 - `lobby_type_ranked` (7);
 - valid 5v5 hero arrays;
 - minimum 500 pair observations before a relationship can qualify.
 
-Published output contains aggregate hero statistics, qualified hero-vs-hero observations, provenance, and deterministic graph coordinates. It does not publish player identities or raw match IDs.
+Published output contains aggregate hero statistics, qualified hero-vs-hero headline observations, separate aggregate Immortal detail observations where available, provenance, and deterministic graph coordinates. The Immortal subset is computed inside the same Explorer query, so no additional provider access method or request is introduced. The output does not publish player identities or raw match IDs.
 
 The twice-daily workflow uses bounded retries, time-range splitting for expensive Explorer queries, structured logs, and a static generated JSON artifact. Provider availability never becomes a runtime dependency for the frontend.
 

@@ -1,4 +1,9 @@
-import type { MatchupRelationship, ScopeConfig } from "../domain/types";
+import type {
+  MatchupEvidenceObservation,
+  MatchupRelationship,
+  ScopeConfig,
+  StatisticalProvider
+} from "../domain/types";
 import { buildHeroes } from "./heroes";
 import type { DatasetBundle } from "./dataset";
 
@@ -201,6 +206,121 @@ export function buildDatasetFromProductionSnapshot(
     maxVisiblePerDirection: scopeValue.maxVisiblePerDirection as number
   };
 
+  const evidenceObservations: MatchupEvidenceObservation[] = [];
+  const evidenceValue = value.evidenceObservations;
+  if (evidenceValue !== undefined && !Array.isArray(evidenceValue)) {
+    issues.push("Production snapshot evidenceObservations must be an array.");
+  }
+
+  if (Array.isArray(evidenceValue)) {
+    const allowedProviders = new Set<StatisticalProvider>([
+      "OpenDota",
+      "STRATZ",
+      "DOTABUFF",
+      "Dota2ProTracker"
+    ]);
+
+    for (const [index, raw] of evidenceValue.entries()) {
+      if (!isRecord(raw)) {
+        issues.push(`Production evidence observation at index ${index} is malformed.`);
+        continue;
+      }
+
+      const sourceHeroId =
+        typeof raw.sourceSlug === "string"
+          ? heroIdBySlug.get(raw.sourceSlug)
+          : undefined;
+      const targetHeroId =
+        typeof raw.targetSlug === "string"
+          ? heroIdBySlug.get(raw.targetSlug)
+          : undefined;
+      const evidenceScope = raw.scope;
+      const evidenceProvenance = raw.provenance;
+      const provider = raw.provider;
+
+      if (!sourceHeroId || !targetHeroId || sourceHeroId === targetHeroId) {
+        issues.push(
+          `Production evidence observation at index ${index} references an invalid hero pair.`
+        );
+        continue;
+      }
+      if (
+        typeof provider !== "string" ||
+        !allowedProviders.has(provider as StatisticalProvider)
+      ) {
+        issues.push(
+          `Production evidence observation at index ${index} has an unsupported provider.`
+        );
+        continue;
+      }
+      if (
+        typeof raw.id !== "string" ||
+        !raw.id.trim() ||
+        !isFiniteNumber(raw.sourceWinRate) ||
+        raw.sourceWinRate < 0 ||
+        raw.sourceWinRate > 1 ||
+        (raw.sampleSize !== undefined &&
+          (!Number.isInteger(raw.sampleSize) ||
+            typeof raw.sampleSize !== "number" ||
+            raw.sampleSize < 0)) ||
+        !isRecord(evidenceScope) ||
+        typeof evidenceScope.patch !== "string" ||
+        !evidenceScope.patch.trim() ||
+        typeof evidenceScope.rankScope !== "string" ||
+        !evidenceScope.rankScope.trim() ||
+        typeof evidenceScope.matchPopulation !== "string" ||
+        !evidenceScope.matchPopulation.trim() ||
+        !timestampIsValid(evidenceScope.observationWindowStart) ||
+        !timestampIsValid(evidenceScope.observationWindowEndExclusive) ||
+        Date.parse(evidenceScope.observationWindowEndExclusive) <=
+          Date.parse(evidenceScope.observationWindowStart) ||
+        !isRecord(evidenceProvenance) ||
+        typeof evidenceProvenance.sourceUrl !== "string" ||
+        !evidenceProvenance.sourceUrl.trim() ||
+        (() => {
+          try {
+            new URL(evidenceProvenance.sourceUrl);
+            return false;
+          } catch {
+            return true;
+          }
+        })() ||
+        typeof evidenceProvenance.queryScope !== "string" ||
+        !evidenceProvenance.queryScope.trim() ||
+        !timestampIsValid(evidenceProvenance.collectedAt)
+      ) {
+        issues.push(
+          `Production evidence observation at index ${index} is invalid.`
+        );
+        continue;
+      }
+
+      evidenceObservations.push({
+        id: raw.id,
+        provider: provider as StatisticalProvider,
+        sourceHeroId,
+        targetHeroId,
+        sourceWinRate: raw.sourceWinRate,
+        ...(typeof raw.sampleSize === "number"
+          ? { sampleSize: raw.sampleSize }
+          : {}),
+        scope: {
+          patch: evidenceScope.patch,
+          rankScope: evidenceScope.rankScope,
+          matchPopulation: evidenceScope.matchPopulation,
+          observationWindowStart: evidenceScope.observationWindowStart,
+          observationWindowEndExclusive:
+            evidenceScope.observationWindowEndExclusive
+        },
+        provenance: {
+          sourceUrl: evidenceProvenance.sourceUrl,
+          queryScope: evidenceProvenance.queryScope,
+          collectedAt: evidenceProvenance.collectedAt
+        }
+      });
+    }
+  }
+
   const relationships: MatchupRelationship[] = [];
   for (const [index, raw] of value.relationships.entries()) {
     if (!isRecord(raw)) {
@@ -274,6 +394,7 @@ export function buildDatasetFromProductionSnapshot(
     data: {
       heroes,
       relationships,
+      evidenceObservations,
       scope,
       metadata: {
         schemaVersion: 2,
@@ -304,7 +425,7 @@ export function buildDatasetFromProductionSnapshot(
         freshness: stale
           ? {
               status: "stale",
-              reason: `Daily matchup snapshot is ${Math.floor(
+              reason: `Matchup snapshot is ${Math.floor(
                 ageMs / (60 * 60 * 1000)
               )} hours old.`
             }

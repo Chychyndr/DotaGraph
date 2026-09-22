@@ -59,9 +59,9 @@ Loading and validation are intentionally explicit:
 - a validated stale bundle remains usable with a visible warning;
 - load failures expose a retry state.
 
-Production observations retain explicit direction, raw source win rate, sample size, baseline-adjusted delta, internal ranking score, patch, rank scope, provenance, observation window, and generation metadata.
+Production headline observations retain explicit direction, raw source win rate, sample size, baseline-adjusted delta, internal ranking score, patch, rank scope, provenance, observation window, and generation metadata. Detail-only evidence travels through the same validated bundle as separate `MatchupEvidenceObservation` records and never mutates headline relationships.
 
-The current OpenDota pipeline targets regeneration every 12 hours in GitHub Actions. Structured test/generation logs are retained as workflow artifacts. Provider availability is therefore a build-time concern; the published static frontend never depends on a live OpenDota request.
+The current OpenDota pipeline targets regeneration every 12 hours in GitHub Actions. Its Explorer query also derives an `avg_rank_tier >= 80` Immortal subset with conditional aggregates, avoiding a second provider request. Structured test/generation logs are retained as workflow artifacts. Provider availability is therefore a build-time concern; the published static frontend never depends on a live OpenDota request.
 
 ## Portrait asset boundary
 
