@@ -152,12 +152,7 @@ const knownCollisionBaseline: Record<string, VisualCollisionAudit> = {
   // changes must fail CI when they add, remove, or move a collision so the
   // geometry change receives an explicit visual review.
   viper: {
-    badgeHeroLabel: [
-      "arc-warden->viper overlaps label:huskar",
-      "chaos-knight->viper overlaps label:chaos-knight",
-      "phantom-lancer->viper overlaps label:phantom-lancer",
-      "viper->bristleback overlaps label:viper"
-    ],
+    badgeHeroLabel: [],
     activeEdgeForeignPortrait: [
       "arc-warden->viper crosses portrait:dark-seer",
       "arc-warden->viper crosses portrait:huskar",
@@ -165,21 +160,18 @@ const knownCollisionBaseline: Record<string, VisualCollisionAudit> = {
       "viper->silencer crosses portrait:dark-seer"
     ],
     badgeDimmedPortrait: [
+      "arc-warden->viper overlaps dimmed:natures-prophet",
       "chaos-knight->viper overlaps dimmed:invoker",
       "chaos-knight->viper overlaps dimmed:medusa",
       "dark-seer->viper overlaps dimmed:wraith-king",
       "enigma->viper overlaps dimmed:terrorblade",
-      "phantom-lancer->viper overlaps dimmed:lifestealer",
-      "viper->bristleback overlaps dimmed:treant-protector",
       "viper->gyrocopter overlaps dimmed:lycan",
       "viper->huskar overlaps dimmed:bounty-hunter",
       "viper->silencer overlaps dimmed:troll-warlord"
     ]
   },
   spectre: {
-    badgeHeroLabel: [
-      "primal-beast->spectre overlaps label:primal-beast"
-    ],
+    badgeHeroLabel: [],
     activeEdgeForeignPortrait: [
       "undying->spectre crosses portrait:drow-ranger"
     ],
@@ -194,15 +186,14 @@ const knownCollisionBaseline: Record<string, VisualCollisionAudit> = {
     ]
   },
   rubick: {
-    badgeHeroLabel: [
-      "phoenix->rubick overlaps label:bounty-hunter"
-    ],
+    badgeHeroLabel: [],
     activeEdgeForeignPortrait: [
       "night-stalker->rubick crosses portrait:legion-commander",
       "spectre->rubick crosses portrait:legion-commander"
     ],
     badgeDimmedPortrait: [
       "night-stalker->rubick overlaps dimmed:kunkka",
+      "phoenix->rubick overlaps dimmed:phantom-lancer",
       "rubick->jakiro overlaps dimmed:doom",
       "rubick->shadow-fiend overlaps dimmed:juggernaut",
       "rubick->weaver overlaps dimmed:spirit-breaker",
@@ -210,9 +201,7 @@ const knownCollisionBaseline: Record<string, VisualCollisionAudit> = {
     ]
   },
   "dark-willow": {
-    badgeHeroLabel: [
-      "leshrac->dark-willow overlaps label:enigma"
-    ],
+    badgeHeroLabel: [],
     activeEdgeForeignPortrait: [
       "dark-willow->bristleback crosses portrait:bounty-hunter",
       "dark-willow->treant-protector crosses portrait:enigma",
@@ -224,10 +213,11 @@ const knownCollisionBaseline: Record<string, VisualCollisionAudit> = {
       "bounty-hunter->dark-willow overlaps dimmed:mirana",
       "dark-willow->shadow-fiend overlaps dimmed:mirana",
       "dark-willow->treant-protector overlaps dimmed:terrorblade",
-      "dark-willow->underlord overlaps dimmed:tiny",
+      "dark-willow->underlord overlaps dimmed:lifestealer",
       "dragon-knight->dark-willow overlaps dimmed:bane",
       "enigma->dark-willow overlaps dimmed:ogre-magi",
       "juggernaut->dark-willow overlaps dimmed:outworld-destroyer",
+      "leshrac->dark-willow overlaps dimmed:alchemist",
       "leshrac->dark-willow overlaps dimmed:tidehunter"
     ]
   }
