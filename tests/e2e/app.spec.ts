@@ -492,30 +492,38 @@ test("dense focus keeps win-rate badges on their own lines and clear of portrait
         const source = label.dataset.sourceHero ?? "";
         const target = label.dataset.targetHero ?? "";
         const edge = document.querySelector<SVGElement>(
-          `.edge[data-source-hero="${source}"][data-target-hero="${target}"]`
+          `.edge.edge-active[data-source-hero="${source}"][data-target-hero="${target}"]`
         );
         const labelMatrix = label.getScreenCTM();
         const edgeMatrix = edge?.getScreenCTM();
         if (!edge || !labelMatrix || !edgeMatrix) return null;
 
-        let firstPoint: { x: number; y: number } | undefined;
-        let secondPoint: { x: number; y: number } | undefined;
-
+        const localPoints: Array<{ x: number; y: number }> = [];
         if (edge instanceof SVGLineElement) {
-          firstPoint = { x: edge.x1.baseVal.value, y: edge.y1.baseVal.value };
-          secondPoint = { x: edge.x2.baseVal.value, y: edge.y2.baseVal.value };
-        } else if (edge instanceof SVGPolylineElement && edge.points.numberOfItems >= 2) {
-          const first = edge.points.getItem(0);
-          const second = edge.points.getItem(1);
-          firstPoint = { x: first.x, y: first.y };
-          secondPoint = { x: second.x, y: second.y };
+          localPoints.push(
+            { x: edge.x1.baseVal.value, y: edge.y1.baseVal.value },
+            { x: edge.x2.baseVal.value, y: edge.y2.baseVal.value }
+          );
+        } else if (edge instanceof SVGPolylineElement) {
+          for (let index = 0; index < edge.points.numberOfItems; index += 1) {
+            const point = edge.points.getItem(index);
+            localPoints.push({ x: point.x, y: point.y });
+          }
         }
 
-        if (!firstPoint || !secondPoint) return null;
+        if (localPoints.length < 2) return null;
 
-        const start = transformPoint(firstPoint.x, firstPoint.y, edgeMatrix);
-        const end = transformPoint(secondPoint.x, secondPoint.y, edgeMatrix);
+        const screenPoints = localPoints.map((point) =>
+          transformPoint(point.x, point.y, edgeMatrix)
+        );
         const center = transformPoint(0, 0, labelMatrix);
+        const distanceToRoute = Math.min(
+          ...screenPoints
+            .slice(1)
+            .map((point, index) =>
+              pointToLineDistance(center, screenPoints[index], point)
+            )
+        );
         const badge = label.getBoundingClientRect();
 
         const overlapsPortrait = activePortraits.some(portrait => {
@@ -539,7 +547,7 @@ test("dense focus keeps win-rate badges on their own lines and clear of portrait
           offset: Number(label.dataset.labelOffset),
           external,
           leaderExists,
-          distanceToLine: pointToLineDistance(center, start, end),
+          distanceToLine: distanceToRoute,
           overlapsPortrait
         };
       }).filter((row): row is NonNullable<typeof row> => row !== null);
