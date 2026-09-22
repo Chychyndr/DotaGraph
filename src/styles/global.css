@@ -984,6 +984,16 @@ button:focus-visible, input:focus-visible, [role="button"]:focus-visible {
     padding: 12px;
     overscroll-behavior: contain;
   }
+
+  .population-evidence-stat span,
+  .population-evidence-meta dt,
+  .population-evidence-meta dd {
+    font-size: 10px;
+  }
+
+  .population-evidence-note {
+    font-size: 11px;
+  }
 }
 
 @media (max-width: 380px) {
