@@ -913,6 +913,27 @@ test("matchup details keep Immortal evidence separate from the headline", async 
     "Separate population; excluded from the Ancient+ headline and cross-source consensus."
   );
   await expect(details.getByText("STRATZ", { exact: true })).toHaveCount(0);
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await details.scrollIntoViewIfNeeded();
+
+  const mobileTypography = await details.evaluate((element) => {
+    const metadataTerm = element.querySelector(".population-evidence-meta dt");
+    const metadataValue = element.querySelector(".population-evidence-meta dd");
+    const note = element.querySelector(".population-evidence-note");
+    if (!metadataTerm || !metadataValue || !note) return null;
+
+    return {
+      term: Number.parseFloat(getComputedStyle(metadataTerm).fontSize),
+      value: Number.parseFloat(getComputedStyle(metadataValue).fontSize),
+      note: Number.parseFloat(getComputedStyle(note).fontSize)
+    };
+  });
+
+  expect(mobileTypography).not.toBeNull();
+  expect(mobileTypography!.term).toBeGreaterThanOrEqual(10);
+  expect(mobileTypography!.value).toBeGreaterThanOrEqual(10);
+  expect(mobileTypography!.note).toBeGreaterThanOrEqual(11);
 });
 
 test("clicking empty graph space exits the selected hero", async ({ page }) => {
