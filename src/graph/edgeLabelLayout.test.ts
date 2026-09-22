@@ -95,6 +95,18 @@ describe("layoutSourceAnchoredEdgeLabels", () => {
     expect(Math.abs(placement.x - 236)).toBeGreaterThan(34 + 23);
   });
 
+  it("keeps badges clear of hero-label rectangle obstacles", () => {
+    const segment = { x1: 100, y1: 200, x2: 500, y2: 200 };
+    const placement = layoutSourceAnchoredEdgeLabels(
+      [{ id: "edge", segment, preferredT: 0.34 }],
+      [],
+      [{ x: 236, y: 200, width: 96, height: 24 }]
+    ).get("edge")!;
+
+    expect(placement.y).toBeCloseTo(200, 6);
+    expect(Math.abs(placement.x - 236)).toBeGreaterThan(48 + 23);
+  });
+
   it("separates near-parallel labels from the same source", () => {
     const placements = layoutSourceAnchoredEdgeLabels([
       { id: "a", segment: { x1: 40, y1: 100, x2: 380, y2: 100 } },
