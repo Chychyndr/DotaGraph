@@ -624,7 +624,9 @@ export function GraphView({
       return {
         x: point.x,
         y: point.y,
-        radius: (radiusFor(hero.id) + 7) * cameraScale
+        radius:
+          (radiusFor(hero.id) + (activeIds.has(hero.id) ? 7 : 2)) *
+          cameraScale
       };
     }),
     heroLabelObstacles
