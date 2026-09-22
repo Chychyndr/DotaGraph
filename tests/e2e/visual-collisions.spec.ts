@@ -75,36 +75,57 @@ const scanVisualCollisions = async (page: import("@playwright/test").Page) =>
     });
 
     const activeEdges = Array.from(
-      document.querySelectorAll<SVGLineElement>(".edge.edge-active")
+      document.querySelectorAll<SVGElement>(".edge.edge-active")
     );
 
     for (const edge of activeEdges) {
       const ctm = edge.getScreenCTM();
       if (!ctm) continue;
 
-      const start = new DOMPoint(
-        Number(edge.getAttribute("x1") ?? 0),
-        Number(edge.getAttribute("y1") ?? 0)
-      ).matrixTransform(ctm);
-      const end = new DOMPoint(
-        Number(edge.getAttribute("x2") ?? 0),
-        Number(edge.getAttribute("y2") ?? 0)
-      ).matrixTransform(ctm);
+      const localPoints: DOMPoint[] = [];
+      if (edge instanceof SVGLineElement) {
+        localPoints.push(
+          new DOMPoint(
+            Number(edge.getAttribute("x1") ?? 0),
+            Number(edge.getAttribute("y1") ?? 0)
+          ),
+          new DOMPoint(
+            Number(edge.getAttribute("x2") ?? 0),
+            Number(edge.getAttribute("y2") ?? 0)
+          )
+        );
+      } else if (edge instanceof SVGPolylineElement) {
+        for (let index = 0; index < edge.points.numberOfItems; index += 1) {
+          const point = edge.points.getItem(index);
+          localPoints.push(new DOMPoint(point.x, point.y));
+        }
+      }
+
+      if (localPoints.length < 2) continue;
+
+      const screenPoints = localPoints.map((point) =>
+        point.matrixTransform(ctm)
+      );
       const source = edge.dataset.sourceHero ?? "unknown";
       const target = edge.dataset.targetHero ?? "unknown";
 
       for (const node of activeNodes) {
         if (node.hero === source || node.hero === target) continue;
 
-        const distance = distanceToSegment(
-          node.x,
-          node.y,
-          start.x,
-          start.y,
-          end.x,
-          end.y
-        );
-        if (distance >= node.radius - 1) continue;
+        const crosses = screenPoints
+          .slice(1)
+          .some(
+            (point, index) =>
+              distanceToSegment(
+                node.x,
+                node.y,
+                screenPoints[index].x,
+                screenPoints[index].y,
+                point.x,
+                point.y
+              ) < node.radius - 1
+          );
+        if (!crosses) continue;
 
         activeEdgeForeignPortrait.push(
           `${source}->${target} crosses portrait:${node.hero}`
