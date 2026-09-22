@@ -619,16 +619,13 @@ export function GraphView({
         }
       }];
     }),
-    [...activeIds].flatMap((heroId) => {
-      const hero = byId.get(heroId);
-      if (!hero) return [];
-
+    heroes.map((hero) => {
       const point = projectGraphPoint(hero.x, hero.y);
-      return [{
+      return {
         x: point.x,
         y: point.y,
         radius: (radiusFor(hero.id) + 7) * cameraScale
-      }];
+      };
     }),
     heroLabelObstacles
   );
