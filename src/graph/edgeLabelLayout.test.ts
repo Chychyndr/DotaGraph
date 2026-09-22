@@ -85,6 +85,27 @@ describe("layoutSourceAnchoredEdgeLabels", () => {
     expect(placement.x).toBeLessThan(-20);
   });
 
+  it("fans a source leader around a blocked straight continuation", () => {
+    const source = { x: 100, y: 100, radius: 18 };
+    const straightBlockers = [55, 37, 19, 1, -17, -41, -65, -95, -125, -165]
+      .map((x) => ({ x, y: 100, radius: 12 }));
+    const placement = layoutSourceAnchoredEdgeLabels(
+      [{
+        id: "fan",
+        segment: { x1: 120, y1: 100, x2: 136, y2: 100 },
+        source
+      }],
+      [
+        source,
+        { x: 154, y: 100, radius: 18 },
+        ...straightBlockers
+      ]
+    ).get("fan")!;
+
+    expect(placement.leader).toBeDefined();
+    expect(Math.abs(placement.y - 100)).toBeGreaterThan(5);
+  });
+
   it("keeps every badge center on its own relationship segment", () => {
     const inputs = [
       { id: "horizontal", segment: { x1: 80, y1: 120, x2: 420, y2: 120 } },
