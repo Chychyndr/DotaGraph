@@ -34,6 +34,10 @@ export interface EdgeLabelPlacement {
   leader?: EdgeSegment;
 }
 
+export interface EdgeLabelLayoutOptions {
+  sizeScale?: number;
+}
+
 export const EDGE_LABEL_WIDTH = 46;
 export const EDGE_LABEL_HEIGHT = 18;
 
@@ -50,11 +54,16 @@ const safeEndMargin = (scale: number) =>
     EDGE_LABEL_HEIGHT * scale / 2 + LABEL_GAP
   );
 
-const scaleForLength = (length: number) => {
-  for (let scale = 1; scale >= MIN_LABEL_SCALE; scale -= 0.05) {
+const scaleForLength = (length: number, sizeScale: number) => {
+  const minimumScale = MIN_LABEL_SCALE * sizeScale;
+  for (
+    let scale = sizeScale;
+    scale >= minimumScale;
+    scale -= 0.05 * sizeScale
+  ) {
     if (safeEndMargin(scale) * 2 <= length) return scale;
   }
-  return MIN_LABEL_SCALE;
+  return minimumScale;
 };
 
 interface Rect {
@@ -162,8 +171,11 @@ const candidateScore = (
 export function layoutSourceAnchoredEdgeLabels(
   inputs: EdgeLabelInput[],
   obstacles: EdgeLabelObstacle[],
-  rectObstacles: EdgeLabelRectObstacle[] = []
+  rectObstacles: EdgeLabelRectObstacle[] = [],
+  options: EdgeLabelLayoutOptions = {}
 ) {
+  const sizeScale = clamp(options.sizeScale ?? 1, 0.7, 1);
+  const minimumScale = MIN_LABEL_SCALE * sizeScale;
   const placements = new Map<string, EdgeLabelPlacement>();
   const placedRects: Rect[] = [];
   const orderedInputs = [...inputs].sort((a, b) => {
@@ -181,7 +193,7 @@ export function layoutSourceAnchoredEdgeLabels(
   for (const input of orderedInputs) {
     const { segment } = input;
     const length = Math.hypot(segment.x2 - segment.x1, segment.y2 - segment.y1) || 1;
-    const scale = scaleForLength(length);
+    const scale = scaleForLength(length, sizeScale);
     const margin = safeEndMargin(scale);
     const safeMinT = clamp(margin / length, MIN_T, 0.46);
     const safeMaxT = clamp(1 - margin / length, 0.54, MAX_T);
@@ -204,8 +216,11 @@ export function layoutSourceAnchoredEdgeLabels(
 
     const candidateScales = [...new Set([
       scale,
-      Math.max(MIN_LABEL_SCALE, Number((scale - 0.1).toFixed(2))),
-      MIN_LABEL_SCALE
+      Math.max(
+        minimumScale,
+        Number((scale - 0.1 * sizeScale).toFixed(3))
+      ),
+      minimumScale
     ])];
 
     const candidates = candidateScales.flatMap((candidateScale) =>
@@ -240,7 +255,7 @@ export function layoutSourceAnchoredEdgeLabels(
       const segmentLength = Math.hypot(dx, dy) || 1;
       const ux = dx / segmentLength;
       const uy = dy / segmentLength;
-      const externalScale = 1;
+      const externalScale = sizeScale;
       const angleOffsets = [0, 15, -15, 30, -30, 45, -45, 60, -60, 75, -75];
       const extraDistances = [0, 18, 36, 54, 72, 96, 120, 150, 180, 220];
 
