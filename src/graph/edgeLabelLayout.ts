@@ -18,6 +18,13 @@ export interface EdgeLabelObstacle {
   radius: number;
 }
 
+export interface EdgeLabelRectObstacle {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 export interface EdgeLabelPlacement {
   x: number;
   y: number;
@@ -85,6 +92,13 @@ const circleTouchesRect = (obstacle: EdgeLabelObstacle, rect: Rect) => {
   return Math.hypot(obstacle.x - closestX, obstacle.y - closestY) < obstacle.radius;
 };
 
+const rectObstacleFor = (obstacle: EdgeLabelRectObstacle): Rect => ({
+  left: obstacle.x - obstacle.width / 2,
+  right: obstacle.x + obstacle.width / 2,
+  top: obstacle.y - obstacle.height / 2,
+  bottom: obstacle.y + obstacle.height / 2
+});
+
 const candidateFor = (
   segment: EdgeSegment,
   t: number,
@@ -110,6 +124,7 @@ const candidateScore = (
   placement: EdgeLabelPlacement,
   placedRects: Rect[],
   obstacles: EdgeLabelObstacle[],
+  rectObstacles: EdgeLabelRectObstacle[],
   preferenceIndex: number,
   preferredT: number
 ) => {
@@ -134,12 +149,19 @@ const candidateScore = (
     if (circleTouchesRect(obstacle, paddedRect)) score += 5_000;
   }
 
+  for (const obstacle of rectObstacles) {
+    if (rectanglesOverlap(paddedRect, rectObstacleFor(obstacle))) {
+      score += 20_000;
+    }
+  }
+
   return score;
 };
 
 export function layoutSourceAnchoredEdgeLabels(
   inputs: EdgeLabelInput[],
-  obstacles: EdgeLabelObstacle[]
+  obstacles: EdgeLabelObstacle[],
+  rectObstacles: EdgeLabelRectObstacle[] = []
 ) {
   const placements = new Map<string, EdgeLabelPlacement>();
   const placedRects: Rect[] = [];
@@ -187,7 +209,14 @@ export function layoutSourceAnchoredEdgeLabels(
     let bestScore = Number.POSITIVE_INFINITY;
 
     candidates.forEach((candidate, index) => {
-      const score = candidateScore(candidate, placedRects, obstacles, index, preferredT);
+      const score = candidateScore(
+        candidate,
+        placedRects,
+        obstacles,
+        rectObstacles,
+        index,
+        preferredT
+      );
       if (score < bestScore) {
         best = candidate;
         bestScore = score;
@@ -234,6 +263,7 @@ export function layoutSourceAnchoredEdgeLabels(
             candidate,
             placedRects,
             obstacles,
+            rectObstacles,
             candidates.length + extraDistance,
             t
           ) + 150;

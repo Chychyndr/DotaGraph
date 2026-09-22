@@ -538,6 +538,19 @@ export function GraphView({
     heroLabelBounds
   );
 
+  const heroLabelObstacles = labelHeroes.flatMap((hero) => {
+    const placement = heroLabelPlacements.get(hero.id);
+    if (!placement) return [];
+
+    const point = projectGraphPoint(placement.x, placement.y);
+    return [{
+      x: point.x,
+      y: point.y,
+      width: labelWidthFor(hero) * cameraScale,
+      height: 20 * cameraScale
+    }];
+  });
+
   const edgeLabelPlacements = layoutSourceAnchoredEdgeLabels(
     activeRelationships.flatMap((relationship) => {
       const source = byId.get(relationship.sourceHeroId);
@@ -575,7 +588,8 @@ export function GraphView({
         y: point.y,
         radius: (radiusFor(hero.id) + 7) * cameraScale
       }];
-    })
+    }),
+    heroLabelObstacles
   );
 
   const handlePointerDown = (event: ReactPointerEvent<SVGSVGElement>) => {
