@@ -174,71 +174,51 @@ const knownCollisionBaseline: Record<string, VisualCollisionAudit> = {
   // geometry change receives an explicit visual review.
   viper: {
     badgeHeroLabel: [],
-    activeEdgeForeignPortrait: [
-      "arc-warden->viper crosses portrait:dark-seer",
-      "arc-warden->viper crosses portrait:huskar",
-      "viper->gyrocopter crosses portrait:bristleback",
-      "viper->silencer crosses portrait:dark-seer"
-    ],
+    activeEdgeForeignPortrait: [],
     badgeDimmedPortrait: [
       "arc-warden->viper overlaps dimmed:natures-prophet",
       "chaos-knight->viper overlaps dimmed:invoker",
       "chaos-knight->viper overlaps dimmed:medusa",
-      "dark-seer->viper overlaps dimmed:wraith-king",
       "enigma->viper overlaps dimmed:terrorblade",
-      "viper->gyrocopter overlaps dimmed:lycan",
-      "viper->huskar overlaps dimmed:bounty-hunter",
-      "viper->silencer overlaps dimmed:troll-warlord"
+      "viper->gyrocopter overlaps dimmed:dragon-knight",
+      "viper->gyrocopter overlaps dimmed:treant-protector",
+      "viper->huskar overlaps dimmed:treant-protector",
+      "viper->shadow-fiend overlaps dimmed:bounty-hunter",
+      "viper->silencer overlaps dimmed:leshrac"
     ]
   },
   spectre: {
     badgeHeroLabel: [],
-    activeEdgeForeignPortrait: [
-      "undying->spectre crosses portrait:drow-ranger"
-    ],
+    activeEdgeForeignPortrait: [],
     badgeDimmedPortrait: [
       "io->spectre overlaps dimmed:razor",
       "meepo->spectre overlaps dimmed:elder-titan",
       "phantom-lancer->spectre overlaps dimmed:chaos-knight",
-      "spectre->axe overlaps dimmed:oracle",
-      "spectre->natures-prophet overlaps dimmed:clockwerk",
-      "spectre->templar-assassin overlaps dimmed:clinkz",
-      "undying->spectre overlaps dimmed:sven"
+      "undying->spectre overlaps dimmed:storm-spirit"
     ]
   },
   rubick: {
     badgeHeroLabel: [],
-    activeEdgeForeignPortrait: [
-      "night-stalker->rubick crosses portrait:legion-commander",
-      "spectre->rubick crosses portrait:legion-commander"
-    ],
+    activeEdgeForeignPortrait: [],
     badgeDimmedPortrait: [
       "night-stalker->rubick overlaps dimmed:kunkka",
-      "phoenix->rubick overlaps dimmed:phantom-lancer",
+      "phoenix->rubick overlaps dimmed:enigma",
       "rubick->jakiro overlaps dimmed:doom",
       "rubick->shadow-fiend overlaps dimmed:juggernaut",
-      "rubick->weaver overlaps dimmed:spirit-breaker",
-      "spectre->rubick overlaps dimmed:arc-warden"
+      "spectre->rubick overlaps dimmed:anti-mage"
     ]
   },
   "dark-willow": {
     badgeHeroLabel: [],
-    activeEdgeForeignPortrait: [
-      "dark-willow->bristleback crosses portrait:bounty-hunter",
-      "dark-willow->treant-protector crosses portrait:enigma",
-      "dark-willow->underlord crosses portrait:leshrac",
-      "juggernaut->dark-willow crosses portrait:bounty-hunter",
-      "juggernaut->dark-willow crosses portrait:bristleback"
-    ],
+    activeEdgeForeignPortrait: [],
     badgeDimmedPortrait: [
       "bounty-hunter->dark-willow overlaps dimmed:mirana",
       "dark-willow->shadow-fiend overlaps dimmed:mirana",
-      "dark-willow->treant-protector overlaps dimmed:terrorblade",
-      "dark-willow->underlord overlaps dimmed:lifestealer",
+      "dark-willow->treant-protector overlaps dimmed:ogre-magi",
+      "dark-willow->underlord overlaps dimmed:alchemist",
       "dragon-knight->dark-willow overlaps dimmed:bane",
       "enigma->dark-willow overlaps dimmed:ogre-magi",
-      "juggernaut->dark-willow overlaps dimmed:outworld-destroyer",
-      "leshrac->dark-willow overlaps dimmed:alchemist",
+      "juggernaut->dark-willow overlaps dimmed:vengeful-spirit",
       "leshrac->dark-willow overlaps dimmed:tidehunter"
     ]
   }
