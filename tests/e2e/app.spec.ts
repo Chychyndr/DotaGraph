@@ -558,8 +558,14 @@ test("dense focus keeps win-rate badges on their own lines and clear of portrait
     expect(geometry.rows.length).toBeGreaterThan(0);
     for (const row of geometry.rows) {
       expect(row.offset).toBe(0);
-      expect(row.distanceToLine).toBeLessThan(1.25);
-      if (row.external) expect(row.leaderExists).toBe(true);
+      if (row.external) {
+        expect(row.leaderExists).toBe(true);
+      } else {
+        expect(
+          row.distanceToLine,
+          `${heroId}: ${row.source}->${row.target}`
+        ).toBeLessThan(1.25);
+      }
       expect(row.overlapsPortrait).toBe(false);
     }
   }
