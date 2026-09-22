@@ -68,6 +68,33 @@ describe("routeEdgeAroundObstacles", () => {
     }
   });
 
+  it("finds a safe outer detour through a dense obstacle corridor", () => {
+    const obstacles = [
+      { id: "near-start", x: 45, y: 0, radius: 24 },
+      { id: "middle", x: 100, y: 0, radius: 24 },
+      { id: "near-end", x: 155, y: 0, radius: 24 },
+      { id: "upper", x: 100, y: 38, radius: 24 }
+    ];
+    const route = routeEdgeAroundObstacles(
+      { x: 0, y: 0 },
+      { x: 200, y: 0 },
+      obstacles
+    );
+
+    expect(route.detoured).toBe(true);
+    for (const segment of routeSegments(route)) {
+      for (const obstacle of obstacles) {
+        expect(
+          distanceToSegment(
+            obstacle,
+            { x: segment.x1, y: segment.y1 },
+            { x: segment.x2, y: segment.y2 }
+          )
+        ).toBeGreaterThanOrEqual(29);
+      }
+    }
+  });
+
   it("is deterministic", () => {
     const obstacles = [
       { id: "first", x: 80, y: 0, radius: 20 },
