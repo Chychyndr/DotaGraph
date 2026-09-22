@@ -230,49 +230,61 @@ export function layoutSourceAnchoredEdgeLabels(
       const ux = dx / segmentLength;
       const uy = dy / segmentLength;
       const externalScale = 1;
-      const support =
-        Math.abs(ux) * EDGE_LABEL_WIDTH * externalScale / 2 +
-        Math.abs(uy) * EDGE_LABEL_HEIGHT * externalScale / 2;
-      const sourceEdge = {
-        x: input.source.x - ux * (input.source.radius + LABEL_GAP),
-        y: input.source.y - uy * (input.source.radius + LABEL_GAP)
-      };
+      const angleOffsets = [0, 15, -15, 30, -30, 45, -45, 60, -60, 75, -75];
+      const extraDistances = [0, 18, 36, 54, 72, 96, 120, 150, 180, 220];
 
-      for (const extraDistance of [0, 18, 36, 54, 72, 96, 120, 150, 180, 220]) {
-        const distance = support + LABEL_GAP + extraDistance;
-        const x = sourceEdge.x - ux * distance;
-        const y = sourceEdge.y - uy * distance;
-        const t =
-          ((x - segment.x1) * dx + (y - segment.y1) * dy) /
-          (segmentLength * segmentLength);
-        const candidate: EdgeLabelPlacement = {
-          x,
-          y,
-          t,
-          offset: 0,
-          scale: externalScale,
-          leader: {
-            x1: sourceEdge.x,
-            y1: sourceEdge.y,
-            x2: x + ux * (support + 1),
-            y2: y + uy * (support + 1)
-          }
+      angleOffsets.forEach((angleDegrees, angleIndex) => {
+        const angle = angleDegrees * Math.PI / 180;
+        const cos = Math.cos(angle);
+        const sin = Math.sin(angle);
+        const outwardX = -ux * cos + uy * sin;
+        const outwardY = -ux * sin - uy * cos;
+        const support =
+          Math.abs(outwardX) * EDGE_LABEL_WIDTH * externalScale / 2 +
+          Math.abs(outwardY) * EDGE_LABEL_HEIGHT * externalScale / 2;
+        const sourceEdge = {
+          x: input.source!.x + outwardX * (input.source!.radius + LABEL_GAP),
+          y: input.source!.y + outwardY * (input.source!.radius + LABEL_GAP)
         };
-        const score =
-          candidateScore(
-            candidate,
-            placedRects,
-            obstacles,
-            rectObstacles,
-            candidates.length + extraDistance,
-            t
-          ) + 150;
 
-        if (score < bestScore) {
-          best = candidate;
-          bestScore = score;
-        }
-      }
+        extraDistances.forEach((extraDistance, distanceIndex) => {
+          const distance = support + LABEL_GAP + extraDistance;
+          const x = sourceEdge.x + outwardX * distance;
+          const y = sourceEdge.y + outwardY * distance;
+          const t =
+            ((x - segment.x1) * dx + (y - segment.y1) * dy) /
+            (segmentLength * segmentLength);
+          const candidate: EdgeLabelPlacement = {
+            x,
+            y,
+            t,
+            offset: 0,
+            scale: externalScale,
+            leader: {
+              x1: sourceEdge.x,
+              y1: sourceEdge.y,
+              x2: x - outwardX * (support + 1),
+              y2: y - outwardY * (support + 1)
+            }
+          };
+          const score =
+            candidateScore(
+              candidate,
+              placedRects,
+              obstacles,
+              rectObstacles,
+              candidates.length + angleIndex * extraDistances.length + distanceIndex,
+              t
+            ) +
+            150 +
+            Math.abs(angleDegrees) * 0.8;
+
+          if (score < bestScore) {
+            best = candidate;
+            bestScore = score;
+          }
+        });
+      });
     }
 
     placements.set(input.id, best);
