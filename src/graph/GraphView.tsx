@@ -625,7 +625,7 @@ export function GraphView({
         x: point.x,
         y: point.y,
         radius:
-          (radiusFor(hero.id) + (activeIds.has(hero.id) ? 7 : 2)) *
+          (radiusFor(hero.id) + (activeIds.has(hero.id) ? 7 : 0)) *
           cameraScale
       };
     }),
