@@ -175,52 +175,22 @@ const knownCollisionBaseline: Record<string, VisualCollisionAudit> = {
   viper: {
     badgeHeroLabel: [],
     activeEdgeForeignPortrait: [],
-    badgeDimmedPortrait: [
-      "arc-warden->viper overlaps dimmed:natures-prophet",
-      "chaos-knight->viper overlaps dimmed:invoker",
-      "chaos-knight->viper overlaps dimmed:medusa",
-      "enigma->viper overlaps dimmed:terrorblade",
-      "viper->gyrocopter overlaps dimmed:dragon-knight",
-      "viper->gyrocopter overlaps dimmed:treant-protector",
-      "viper->huskar overlaps dimmed:treant-protector",
-      "viper->shadow-fiend overlaps dimmed:bounty-hunter",
-      "viper->silencer overlaps dimmed:leshrac"
-    ]
+    badgeDimmedPortrait: []
   },
   spectre: {
     badgeHeroLabel: [],
     activeEdgeForeignPortrait: [],
-    badgeDimmedPortrait: [
-      "io->spectre overlaps dimmed:razor",
-      "meepo->spectre overlaps dimmed:elder-titan",
-      "phantom-lancer->spectre overlaps dimmed:chaos-knight",
-      "undying->spectre overlaps dimmed:storm-spirit"
-    ]
+    badgeDimmedPortrait: []
   },
   rubick: {
     badgeHeroLabel: [],
     activeEdgeForeignPortrait: [],
-    badgeDimmedPortrait: [
-      "night-stalker->rubick overlaps dimmed:kunkka",
-      "phoenix->rubick overlaps dimmed:enigma",
-      "rubick->jakiro overlaps dimmed:doom",
-      "rubick->shadow-fiend overlaps dimmed:juggernaut",
-      "spectre->rubick overlaps dimmed:anti-mage"
-    ]
+    badgeDimmedPortrait: []
   },
   "dark-willow": {
     badgeHeroLabel: [],
     activeEdgeForeignPortrait: [],
-    badgeDimmedPortrait: [
-      "bounty-hunter->dark-willow overlaps dimmed:mirana",
-      "dark-willow->shadow-fiend overlaps dimmed:mirana",
-      "dark-willow->treant-protector overlaps dimmed:ogre-magi",
-      "dark-willow->underlord overlaps dimmed:alchemist",
-      "dragon-knight->dark-willow overlaps dimmed:bane",
-      "enigma->dark-willow overlaps dimmed:ogre-magi",
-      "juggernaut->dark-willow overlaps dimmed:vengeful-spirit",
-      "leshrac->dark-willow overlaps dimmed:tidehunter"
-    ]
+    badgeDimmedPortrait: []
   }
 };
 
