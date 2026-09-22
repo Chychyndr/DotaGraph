@@ -210,7 +210,7 @@ test("focus keeps the same graph and only highlights selected relationships", as
     nodes: [...document.querySelectorAll<SVGGElement>(".hero-node")]
       .map((node) => [node.id, node.getAttribute("transform") ?? ""] as const)
       .sort(([a], [b]) => a.localeCompare(b)),
-    edges: [...document.querySelectorAll<SVGLineElement>(".edges .edge")]
+    edges: [...document.querySelectorAll<SVGElement>(".edges .edge")]
       .map((edge) => `${edge.dataset.sourceHero}->${edge.dataset.targetHero}`)
       .sort()
   }));
