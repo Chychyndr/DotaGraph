@@ -829,7 +829,7 @@ button:focus-visible, input:focus-visible, [role="button"]:focus-visible {
 }
 
 .population-evidence-heading strong {
-  color: var(--primary);
+  color: var(--text);
   font-size: 10px;
 }
 
@@ -848,7 +848,7 @@ button:focus-visible, input:focus-visible, [role="button"]:focus-visible {
 }
 
 .population-evidence-stat strong {
-  color: var(--primary);
+  color: var(--text);
   font-size: 17px;
 }
 
