@@ -22,7 +22,7 @@ export interface EdgeRouteSegment {
 }
 
 const DEFAULT_CLEARANCE = 5;
-const OFFSET_STEPS = [28, 38, 50, 64, 80, 98, 118, 140];
+const OFFSET_STEPS = [28, 38, 50, 64, 80, 98, 118, 140, 180, 240];
 
 const clamp = (value: number, min: number, max: number) =>
   Math.min(max, Math.max(min, value));
@@ -202,6 +202,27 @@ export function routeEdgeAroundObstacles(
         y: start.y + dy * afterT - ny * offset
       };
       consider([start, beforeMirror, afterMirror, end], offset * 0.1 + 2.01);
+    }
+  }
+
+  if (!best) {
+    for (const offset of [80, 120, 180, 240, 320, 440]) {
+      for (const side of [1, -1]) {
+        const shiftedStart = {
+          x: start.x + nx * offset * side,
+          y: start.y + ny * offset * side
+        };
+        const shiftedEnd = {
+          x: end.x + nx * offset * side,
+          y: end.y + ny * offset * side
+        };
+        consider(
+          [start, shiftedStart, shiftedEnd, end],
+          offset * 0.2 + (side < 0 ? 0.01 : 0)
+        );
+      }
+
+      if (best) break;
     }
   }
 
