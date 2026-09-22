@@ -146,23 +146,99 @@ const scanVisualCollisions = async (page: import("@playwright/test").Page) =>
     };
   });
 
-const focusHeroes = ["viper", "spectre", "rubick", "dark-willow"] as const;
+const knownCollisionBaseline: Record<string, VisualCollisionAudit> = {
+  // #54 badge ↔ hero-name, #55 edge ↔ unrelated active portrait,
+  // #56 badge ↔ dimmed portrait. Keep every exception exact: generated-data
+  // changes must fail CI when they add, remove, or move a collision so the
+  // geometry change receives an explicit visual review.
+  viper: {
+    badgeHeroLabel: [
+      "arc-warden->viper overlaps label:huskar",
+      "chaos-knight->viper overlaps label:chaos-knight",
+      "phantom-lancer->viper overlaps label:phantom-lancer",
+      "viper->bristleback overlaps label:viper"
+    ],
+    activeEdgeForeignPortrait: [
+      "arc-warden->viper crosses portrait:dark-seer",
+      "arc-warden->viper crosses portrait:huskar",
+      "viper->gyrocopter crosses portrait:bristleback",
+      "viper->silencer crosses portrait:dark-seer"
+    ],
+    badgeDimmedPortrait: [
+      "chaos-knight->viper overlaps dimmed:invoker",
+      "chaos-knight->viper overlaps dimmed:medusa",
+      "dark-seer->viper overlaps dimmed:wraith-king",
+      "enigma->viper overlaps dimmed:terrorblade",
+      "phantom-lancer->viper overlaps dimmed:lifestealer",
+      "viper->bristleback overlaps dimmed:treant-protector",
+      "viper->gyrocopter overlaps dimmed:lycan",
+      "viper->huskar overlaps dimmed:bounty-hunter",
+      "viper->silencer overlaps dimmed:troll-warlord"
+    ]
+  },
+  spectre: {
+    badgeHeroLabel: [
+      "primal-beast->spectre overlaps label:primal-beast"
+    ],
+    activeEdgeForeignPortrait: [
+      "undying->spectre crosses portrait:drow-ranger"
+    ],
+    badgeDimmedPortrait: [
+      "io->spectre overlaps dimmed:razor",
+      "meepo->spectre overlaps dimmed:elder-titan",
+      "phantom-lancer->spectre overlaps dimmed:chaos-knight",
+      "spectre->axe overlaps dimmed:oracle",
+      "spectre->natures-prophet overlaps dimmed:clockwerk",
+      "spectre->templar-assassin overlaps dimmed:clinkz",
+      "undying->spectre overlaps dimmed:sven"
+    ]
+  },
+  rubick: {
+    badgeHeroLabel: [
+      "phoenix->rubick overlaps label:bounty-hunter"
+    ],
+    activeEdgeForeignPortrait: [
+      "night-stalker->rubick crosses portrait:legion-commander",
+      "spectre->rubick crosses portrait:legion-commander"
+    ],
+    badgeDimmedPortrait: [
+      "night-stalker->rubick overlaps dimmed:kunkka",
+      "rubick->jakiro overlaps dimmed:doom",
+      "rubick->shadow-fiend overlaps dimmed:juggernaut",
+      "rubick->weaver overlaps dimmed:spirit-breaker",
+      "spectre->rubick overlaps dimmed:arc-warden"
+    ]
+  },
+  "dark-willow": {
+    badgeHeroLabel: [
+      "leshrac->dark-willow overlaps label:enigma"
+    ],
+    activeEdgeForeignPortrait: [
+      "dark-willow->bristleback crosses portrait:bounty-hunter",
+      "dark-willow->treant-protector crosses portrait:enigma",
+      "dark-willow->underlord crosses portrait:leshrac",
+      "juggernaut->dark-willow crosses portrait:bounty-hunter",
+      "juggernaut->dark-willow crosses portrait:bristleback"
+    ],
+    badgeDimmedPortrait: [
+      "bounty-hunter->dark-willow overlaps dimmed:mirana",
+      "dark-willow->shadow-fiend overlaps dimmed:mirana",
+      "dark-willow->treant-protector overlaps dimmed:terrorblade",
+      "dark-willow->underlord overlaps dimmed:tiny",
+      "dragon-knight->dark-willow overlaps dimmed:bane",
+      "enigma->dark-willow overlaps dimmed:ogre-magi",
+      "juggernaut->dark-willow overlaps dimmed:outworld-destroyer",
+      "leshrac->dark-willow overlaps dimmed:tidehunter"
+    ]
+  }
+};
 
-for (const hero of focusHeroes) {
+for (const [hero, baseline] of Object.entries(knownCollisionBaseline)) {
   test(`visual collision baseline stays stable for ${hero}`, async ({ page }) => {
     await page.setViewportSize({ width: 1366, height: 768 });
     await page.goto(`/?hero=${hero}`, { waitUntil: "networkidle" });
     await page.waitForTimeout(520);
 
-    const audit = await scanVisualCollisions(page);
-
-    // Initial strict baseline. If this fails, inspect the received geometry,
-    // tie every existing exception to a focused bug issue, and keep the
-    // allowlist exact so any new collision still fails CI.
-    expect(audit).toEqual({
-      badgeHeroLabel: [],
-      activeEdgeForeignPortrait: [],
-      badgeDimmedPortrait: []
-    });
+    expect(await scanVisualCollisions(page)).toEqual(baseline);
   });
 }
