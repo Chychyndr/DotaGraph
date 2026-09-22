@@ -61,6 +61,30 @@ describe("layoutSourceAnchoredEdgeLabels", () => {
     expect(placement.y).toBeCloseTo(100, 6);
   });
 
+  it("extends farther on the source side when nearby portraits crowd the fallback", () => {
+    const source = { x: 100, y: 100, radius: 18 };
+    const placement = layoutSourceAnchoredEdgeLabels(
+      [{
+        id: "crowded",
+        segment: { x1: 120, y1: 100, x2: 136, y2: 100 },
+        source
+      }],
+      [
+        source,
+        { x: 154, y: 100, radius: 18 },
+        { x: 55, y: 100, radius: 10 },
+        { x: 37, y: 100, radius: 10 },
+        { x: 19, y: 100, radius: 10 },
+        { x: 1, y: 100, radius: 10 },
+        { x: -17, y: 100, radius: 10 }
+      ]
+    ).get("crowded")!;
+
+    expect(placement.leader).toBeDefined();
+    expect(placement.t).toBeLessThan(0);
+    expect(placement.x).toBeLessThan(-20);
+  });
+
   it("keeps every badge center on its own relationship segment", () => {
     const inputs = [
       { id: "horizontal", segment: { x1: 80, y1: 120, x2: 420, y2: 120 } },
