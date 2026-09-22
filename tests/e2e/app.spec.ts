@@ -310,12 +310,39 @@ test("focused hero names stay clear of active relationship lines", async ({ page
   await page.waitForTimeout(520);
 
   const intersections = await page.evaluate(() => {
-    const lines = [...document.querySelectorAll<SVGLineElement>(".edge-active")];
+    const edges = [...document.querySelectorAll<SVGElement>(".edge-active")];
 
     const transformPoint = (x: number, y: number, matrix: DOMMatrix) => ({
       x: matrix.a * x + matrix.c * y + matrix.e,
       y: matrix.b * x + matrix.d * y + matrix.f
     });
+
+    const screenSegmentsFor = (edge: SVGElement) => {
+      const matrix = edge.getScreenCTM();
+      if (!matrix) return [];
+
+      const localPoints: Array<{ x: number; y: number }> = [];
+      if (edge instanceof SVGLineElement) {
+        localPoints.push(
+          { x: edge.x1.baseVal.value, y: edge.y1.baseVal.value },
+          { x: edge.x2.baseVal.value, y: edge.y2.baseVal.value }
+        );
+      } else if (edge instanceof SVGPolylineElement) {
+        for (let index = 0; index < edge.points.numberOfItems; index += 1) {
+          const point = edge.points.getItem(index);
+          localPoints.push({ x: point.x, y: point.y });
+        }
+      }
+
+      const screenPoints = localPoints.map((point) =>
+        transformPoint(point.x, point.y, matrix)
+      );
+
+      return screenPoints.slice(1).map((point, index) => ({
+        start: screenPoints[index],
+        end: point
+      }));
+    };
 
     const segmentIntersectsRect = (
       start: { x: number; y: number },
@@ -356,16 +383,17 @@ test("focused hero names stay clear of active relationship lines", async ({ page
     const result: string[] = [];
     const labels = [...document.querySelectorAll<SVGGElement>(".hero-label-group")];
 
-    for (const line of lines) {
-      const matrix = line.getScreenCTM();
-      if (!matrix) continue;
-      const start = transformPoint(line.x1.baseVal.value, line.y1.baseVal.value, matrix);
-      const end = transformPoint(line.x2.baseVal.value, line.y2.baseVal.value, matrix);
+    for (const edge of edges) {
+      const segments = screenSegmentsFor(edge);
 
       for (const label of labels) {
         const rect = label.getBoundingClientRect();
-        if (segmentIntersectsRect(start, end, rect)) {
-          result.push(`${line.dataset.sourceHero}->${line.dataset.targetHero} crosses ${label.dataset.heroLabel}`);
+        if (
+          segments.some(({ start, end }) =>
+            segmentIntersectsRect(start, end, rect)
+          )
+        ) {
+          result.push(`${edge.dataset.sourceHero}->${edge.dataset.targetHero} crosses ${label.dataset.heroLabel}`);
         }
       }
     }
@@ -463,15 +491,30 @@ test("dense focus keeps win-rate badges on their own lines and clear of portrait
       const rows = labels.map(label => {
         const source = label.dataset.sourceHero ?? "";
         const target = label.dataset.targetHero ?? "";
-        const line = document.querySelector<SVGLineElement>(
+        const edge = document.querySelector<SVGElement>(
           `.edge[data-source-hero="${source}"][data-target-hero="${target}"]`
         );
         const labelMatrix = label.getScreenCTM();
-        const lineMatrix = line?.getScreenCTM();
-        if (!line || !labelMatrix || !lineMatrix) return null;
+        const edgeMatrix = edge?.getScreenCTM();
+        if (!edge || !labelMatrix || !edgeMatrix) return null;
 
-        const start = transformPoint(line.x1.baseVal.value, line.y1.baseVal.value, lineMatrix);
-        const end = transformPoint(line.x2.baseVal.value, line.y2.baseVal.value, lineMatrix);
+        let firstPoint: { x: number; y: number } | undefined;
+        let secondPoint: { x: number; y: number } | undefined;
+
+        if (edge instanceof SVGLineElement) {
+          firstPoint = { x: edge.x1.baseVal.value, y: edge.y1.baseVal.value };
+          secondPoint = { x: edge.x2.baseVal.value, y: edge.y2.baseVal.value };
+        } else if (edge instanceof SVGPolylineElement && edge.points.numberOfItems >= 2) {
+          const first = edge.points.getItem(0);
+          const second = edge.points.getItem(1);
+          firstPoint = { x: first.x, y: first.y };
+          secondPoint = { x: second.x, y: second.y };
+        }
+
+        if (!firstPoint || !secondPoint) return null;
+
+        const start = transformPoint(firstPoint.x, firstPoint.y, edgeMatrix);
+        const end = transformPoint(secondPoint.x, secondPoint.y, edgeMatrix);
         const center = transformPoint(0, 0, labelMatrix);
         const badge = label.getBoundingClientRect();
 
