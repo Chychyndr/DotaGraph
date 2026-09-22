@@ -35,6 +35,8 @@
 - Hero names sit outside active relationship paths, stay clear of the desktop HeroCard, and have an opaque canvas backing so edges cannot visually cut through the text.
 - Tiny arrowheads clarify direction.
 - Win-rate pills remain source-associated and on the relationship line whenever the fixed geometry has enough room. A cramped edge may use a smaller pill or a short source-side continuation of the same line so the badge never covers a portrait.
+- Win-rate pills must not overlap any visible hero-name label or visible hero portrait.
+- Active relationship lines must not cross unrelated active hero portraits; blocked straight segments must use deterministic collision-free routing.
 - Focus never creates a second node arrangement or moves heroes into a separate ring/arc layout.
 - The HeroCard section headings do not show “x/5” counters.
 - HeroCard appears.
