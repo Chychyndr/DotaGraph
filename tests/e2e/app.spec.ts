@@ -571,6 +571,30 @@ test("dense focus keeps win-rate badges on their own lines and clear of portrait
   }
 });
 
+test("mobile Focus uses compact win-rate badges", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/?hero=viper", { waitUntil: "networkidle" });
+  await page.waitForTimeout(520);
+
+  const geometry = await page.locator(".edge-label").evaluateAll((labels) =>
+    labels.map((label) => {
+      const box = label.getBoundingClientRect();
+      return {
+        width: box.width,
+        height: box.height,
+        scale: Number((label as SVGGElement).dataset.labelScale)
+      };
+    })
+  );
+
+  expect(geometry.length).toBeGreaterThan(0);
+  for (const badge of geometry) {
+    expect(badge.width).toBeLessThanOrEqual(38.5);
+    expect(badge.height).toBeLessThanOrEqual(15.5);
+    expect(badge.scale).toBeLessThanOrEqual(0.8);
+  }
+});
+
 test("hero artwork loads from one local atlas without Steamstatic requests", async ({ page }) => {
   let atlasResponses = 0;
   let steamstaticRequests = 0;

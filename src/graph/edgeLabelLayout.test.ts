@@ -29,6 +29,17 @@ describe("layoutSourceAnchoredEdgeLabels", () => {
     expect(placement.y).toBeCloseTo(160, 6);
   });
 
+  it("uses the requested compact badge size scale", () => {
+    const placement = layoutSourceAnchoredEdgeLabels(
+      [{ id: "compact", segment: { x1: 100, y1: 100, x2: 500, y2: 100 } }],
+      [],
+      [],
+      { sizeScale: 0.8 }
+    ).get("compact")!;
+
+    expect(placement.scale).toBeCloseTo(0.8, 3);
+  });
+
   it("shrinks a badge when a stable graph edge is too short for the normal pill", () => {
     const placement = layoutSourceAnchoredEdgeLabels([
       { id: "short", segment: { x1: 100, y1: 100, x2: 140, y2: 100 } }
