@@ -257,7 +257,7 @@ export function layoutSourceAnchoredEdgeLabels(
       const uy = dy / segmentLength;
       const externalScale = sizeScale;
       const angleOffsets = [0, 15, -15, 30, -30, 45, -45, 60, -60, 75, -75];
-      const extraDistances = [0, 18, 36, 54, 72, 96, 120, 150, 180, 220, 260, 320, 380, 440];
+      const extraDistances = [0, 18, 36, 54, 72, 96, 120, 150, 180, 220];
 
       angleOffsets.forEach((angleDegrees, angleIndex) => {
         const angle = angleDegrees * Math.PI / 180;
