@@ -9,7 +9,7 @@ The public graph uses generated current-patch matchup statistics. The headline p
 ## Run locally
 
 ```bash
-npm install
+npm ci
 npm run dev
 ```
 

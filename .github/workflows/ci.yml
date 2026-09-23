@@ -24,13 +24,13 @@ jobs:
           enable-cache: true
 
       - name: Run data pipeline unit tests
-        run: uv run --project pipeline python -m unittest discover -s pipeline/tests -v
+        run: uv run --locked --project pipeline python -m unittest discover -s pipeline/tests -v
 
       - uses: actions/setup-node@v7
         with:
           node-version: "22"
 
-      - run: npm install
+      - run: npm ci
 
       - name: Audit npm dependencies
         shell: bash
