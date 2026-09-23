@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   quality:
@@ -23,54 +23,12 @@ jobs:
         with:
           enable-cache: true
 
-      - name: Generate Python lockfile
-        run: uv lock --project pipeline
-
       - name: Run data pipeline unit tests
         run: uv run --locked --project pipeline python -m unittest discover -s pipeline/tests -v
 
       - uses: actions/setup-node@v7
         with:
           node-version: "22"
-
-      - name: Generate JavaScript lockfile
-        run: npm install --package-lock-only --ignore-scripts
-
-      - name: Upload generated lockfiles
-        uses: actions/upload-artifact@v7
-        with:
-          name: generated-lockfiles
-          path: |
-            package-lock.json
-            pipeline/uv.lock
-          if-no-files-found: error
-          retention-days: 7
-
-      - name: Commit generated lockfiles to PR branch
-        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
-        shell: bash
-        env:
-          HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
-        run: |
-          set -euo pipefail
-
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-          git fetch origin "$HEAD_BRANCH"
-          git checkout -B "$HEAD_BRANCH" "origin/$HEAD_BRANCH"
-
-          git add package-lock.json
-          if ! git diff --cached --quiet; then
-            git commit -m "build: lock npm dependencies"
-          fi
-
-          git add pipeline/uv.lock
-          if ! git diff --cached --quiet; then
-            git commit -m "build: lock uv dependencies"
-          fi
-
-          git push origin "HEAD:$HEAD_BRANCH"
 
       - run: npm ci
 
