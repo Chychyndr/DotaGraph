@@ -7,7 +7,7 @@ Read `AGENTS.md` before making changes. It contains the product contract, graph 
 ## Local setup
 
 ```bash
-npm install
+npm ci
 npm run dev
 ```
 
