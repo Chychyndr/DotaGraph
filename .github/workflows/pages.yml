@@ -101,7 +101,7 @@ jobs:
         with:
           node-version: "22"
 
-      - run: npm install
+      - run: npm ci
       - name: Cache generated hero atlas
         uses: actions/cache@v6
         with:
@@ -161,7 +161,7 @@ jobs:
         with:
           node-version: "22"
 
-      - run: npm install
+      - run: npm ci
       - run: npx playwright install --with-deps chromium
 
       - name: Verify deployed site in Chromium
