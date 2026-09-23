@@ -1,10 +1,17 @@
 name: Deploy GitHub Pages
+run-name: >-
+  Deploy GitHub Pages ${{ github.event.inputs.target_sha || github.event.workflow_run.head_sha || github.sha }}
 
 on:
   workflow_run:
     workflows: ["CI"]
     types: [completed]
   workflow_dispatch:
+    inputs:
+      target_sha:
+        description: Exact tested commit SHA to deploy
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -15,8 +22,11 @@ concurrency:
   group: pages
   cancel-in-progress: true
 
+env:
+  TARGET_SHA: ${{ github.event.inputs.target_sha || github.event.workflow_run.head_sha || github.sha }}
+
 jobs:
-  build:
+  deployment-guard:
     if: >-
       github.event_name == 'workflow_dispatch' ||
       (
@@ -24,11 +34,68 @@ jobs:
         github.event.workflow_run.head_branch == 'main'
       )
     runs-on: ubuntu-latest
+    outputs:
+      deploy: ${{ steps.guard.outputs.deploy }}
     steps:
       - name: Checkout tested revision
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          ref: ${{ env.TARGET_SHA }}
+          fetch-depth: 2
+
+      - name: Guard data-sensitive revisions
+        id: guard
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "deploy=true" >> "$GITHUB_OUTPUT"
+            echo "Explicit deployment requested for $TARGET_SHA." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          if ! git rev-parse "${TARGET_SHA}^1" >/dev/null 2>&1; then
+            echo "deploy=true" >> "$GITHUB_OUTPUT"
+            echo "No parent revision is available; allowing deployment." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          mapfile -t changed_paths < <(
+            git diff --name-only "${TARGET_SHA}^1" "$TARGET_SHA"
+          )
+
+          data_sensitive=false
+          for path in "${changed_paths[@]}"; do
+            case "$path" in
+              pipeline/*|src/data/productionSnapshot.ts|src/data/dataset.ts|src/data/heroCatalog.json|src/domain/types.ts|.github/workflows/update-current-data.yml)
+                data_sensitive=true
+                ;;
+            esac
+          done
+
+          if [ "$data_sensitive" = true ]; then
+            echo "deploy=false" >> "$GITHUB_OUTPUT"
+            {
+              echo "## Pages deployment deferred"
+              echo
+              echo "Commit `$TARGET_SHA` changes data-sensitive code."
+              echo "The current-data workflow must regenerate/validate the production bundle and explicitly deploy the resulting exact SHA."
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          echo "deploy=true" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: deployment-guard
+    if: needs.deployment-guard.outputs.deploy == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout tested revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TARGET_SHA }}
 
       - uses: actions/setup-node@v4
         with:
@@ -50,12 +117,12 @@ jobs:
         run: npm run build
         env:
           DOTAGRAPH_PAGES: "1"
-          VITE_BUILD_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+          VITE_BUILD_SHA: ${{ env.TARGET_SHA }}
 
       - name: Verify Pages artifact
         run: npm run verify:pages
         env:
-          EXPECTED_BUILD_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+          EXPECTED_BUILD_SHA: ${{ env.TARGET_SHA }}
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
@@ -88,7 +155,7 @@ jobs:
       - name: Checkout tested revision
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          ref: ${{ env.TARGET_SHA }}
 
       - uses: actions/setup-node@v4
         with:
@@ -100,7 +167,7 @@ jobs:
       - name: Verify deployed site in Chromium
         env:
           SITE_URL: ${{ needs.deploy.outputs.page_url }}
-          EXPECTED_BUILD_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+          EXPECTED_BUILD_SHA: ${{ env.TARGET_SHA }}
         run: node scripts/verify-live-browser.mjs
 
       - name: Upload live verification screenshot
