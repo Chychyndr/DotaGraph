@@ -161,7 +161,7 @@ const candidateScore = (
 
   for (const obstacle of rectObstacles) {
     if (rectanglesOverlap(paddedRect, rectObstacleFor(obstacle))) {
-      score += 20_000;
+      return Number.POSITIVE_INFINITY;
     }
   }
 

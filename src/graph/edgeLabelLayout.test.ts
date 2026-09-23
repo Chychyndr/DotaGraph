@@ -163,6 +163,32 @@ describe("layoutSourceAnchoredEdgeLabels", () => {
     expect(Math.abs(placement.x - 236)).toBeGreaterThan(48 + 23);
   });
 
+  it("escapes a hard portrait rectangle when every inline position is blocked", () => {
+    const source = { x: 100, y: 100, radius: 18 };
+    const obstacle = { x: 150, y: 100, width: 180, height: 60 };
+    const placement = layoutSourceAnchoredEdgeLabels(
+      [{
+        id: "hard-rect",
+        segment: { x1: 120, y1: 100, x2: 180, y2: 100 },
+        source
+      }],
+      [source],
+      [obstacle]
+    ).get("hard-rect")!;
+
+    const gap = 2;
+    const halfWidth = 46 * placement.scale / 2 + gap;
+    const halfHeight = 18 * placement.scale / 2 + gap;
+    const overlaps =
+      placement.x - halfWidth < obstacle.x + obstacle.width / 2 &&
+      placement.x + halfWidth > obstacle.x - obstacle.width / 2 &&
+      placement.y - halfHeight < obstacle.y + obstacle.height / 2 &&
+      placement.y + halfHeight > obstacle.y - obstacle.height / 2;
+
+    expect(placement.leader).toBeDefined();
+    expect(overlaps).toBe(false);
+  });
+
   it("separates near-parallel labels from the same source", () => {
     const placements = layoutSourceAnchoredEdgeLabels([
       { id: "a", segment: { x1: 40, y1: 100, x2: 380, y2: 100 } },
