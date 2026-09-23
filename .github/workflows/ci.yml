@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   quality:
@@ -45,6 +45,32 @@ jobs:
             pipeline/uv.lock
           if-no-files-found: error
           retention-days: 7
+
+      - name: Commit generated lockfiles to PR branch
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        shell: bash
+        env:
+          HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
+        run: |
+          set -euo pipefail
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git fetch origin "$HEAD_BRANCH"
+          git checkout -B "$HEAD_BRANCH" "origin/$HEAD_BRANCH"
+
+          git add package-lock.json
+          if ! git diff --cached --quiet; then
+            git commit -m "build: lock npm dependencies"
+          fi
+
+          git add pipeline/uv.lock
+          if ! git diff --cached --quiet; then
+            git commit -m "build: lock uv dependencies"
+          fi
+
+          git push origin "HEAD:$HEAD_BRANCH"
 
       - run: npm ci
 
