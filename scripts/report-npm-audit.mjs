@@ -32,8 +32,26 @@ const escapeCell = (value) =>
     .trim();
 
 const audit = JSON.parse(readFileSync(reportPath, "utf8"));
-const counts = audit.metadata?.vulnerabilities ?? {};
-const vulnerabilities = audit.vulnerabilities ?? {};
+
+if (audit.error) {
+  const message =
+    typeof audit.error === "string"
+      ? audit.error
+      : audit.error.summary ?? audit.error.message ?? JSON.stringify(audit.error);
+  console.log("## npm dependency audit");
+  console.log();
+  console.log(`Audit failed to produce a vulnerability report: ${escapeCell(message)}`);
+  console.error(`npm audit infrastructure error: ${message}`);
+  process.exit(2);
+}
+
+if (!audit.metadata?.vulnerabilities || typeof audit.vulnerabilities !== "object") {
+  console.error("npm audit JSON is missing vulnerability metadata.");
+  process.exit(2);
+}
+
+const counts = audit.metadata.vulnerabilities;
+const vulnerabilities = audit.vulnerabilities;
 
 const normalizedCounts = {
   info: Number(counts.info ?? 0),
