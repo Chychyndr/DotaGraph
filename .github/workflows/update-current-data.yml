@@ -8,6 +8,11 @@ on:
     branches:
       - main
     paths:
+      - pipeline/**
+      - src/data/productionSnapshot.ts
+      - src/data/dataset.ts
+      - src/data/heroCatalog.json
+      - src/domain/types.ts
       - .github/workflows/update-current-data.yml
 
 permissions:
@@ -22,12 +27,17 @@ concurrency:
 jobs:
   update:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
 
     steps:
       - uses: actions/checkout@v4
         with:
           ref: main
+
+      - name: Record source main revision
+        id: source
+        shell: bash
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
       - uses: actions/setup-python@v5
         with:
@@ -166,6 +176,7 @@ jobs:
           gh run watch "$RUN_ID" --repo "$GITHUB_REPOSITORY" --exit-status
 
       - name: Merge validated data pull request
+        id: merge
         if: steps.publish.outputs.changed == 'true'
         shell: bash
         env:
@@ -177,10 +188,132 @@ jobs:
             --merge \
             --delete-branch
 
-      - name: Dispatch main CI for deployment
-        if: steps.publish.outputs.changed == 'true'
+          MERGE_SHA=""
+          for attempt in {1..30}; do
+            MERGE_SHA="$(gh pr view "$PR_URL" \
+              --repo "$GITHUB_REPOSITORY" \
+              --json mergeCommit \
+              --jq '.mergeCommit.oid // empty')"
+            if [ -n "$MERGE_SHA" ]; then
+              break
+            fi
+            sleep 2
+          done
+
+          if [ -z "$MERGE_SHA" ]; then
+            echo "Unable to resolve the merged data revision." >&2
+            exit 1
+          fi
+
+          echo "sha=$MERGE_SHA" >> "$GITHUB_OUTPUT"
+
+      - name: Resolve deployment target
+        id: target
+        if: steps.publish.outputs.changed == 'true' || github.event_name == 'push'
+        shell: bash
+        env:
+          CHANGED: ${{ steps.publish.outputs.changed }}
+          MERGE_SHA: ${{ steps.merge.outputs.sha }}
+          SOURCE_SHA: ${{ steps.source.outputs.sha }}
+        run: |
+          if [ "$CHANGED" = "true" ]; then
+            TARGET_SHA="$MERGE_SHA"
+          else
+            TARGET_SHA="$SOURCE_SHA"
+          fi
+
+          if [ -z "$TARGET_SHA" ]; then
+            echo "Unable to resolve deployment target." >&2
+            exit 1
+          fi
+
+          echo "sha=$TARGET_SHA" >> "$GITHUB_OUTPUT"
+          echo "Deployment target: `$TARGET_SHA`" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Ensure deployment target is current main
+        if: steps.target.outputs.sha != ''
+        shell: bash
+        env:
+          TARGET_SHA: ${{ steps.target.outputs.sha }}
+        run: |
+          REMOTE_MAIN="$(git ls-remote origin refs/heads/main | awk '{print $1}')"
+          if [ "$REMOTE_MAIN" != "$TARGET_SHA" ]; then
+            echo "main moved from deployment target $TARGET_SHA to $REMOTE_MAIN; refusing to deploy a stale revision." >&2
+            exit 1
+          fi
+
+      - name: Validate merged main revision with CI
+        if: steps.target.outputs.sha != ''
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
+          TARGET_SHA: ${{ steps.target.outputs.sha }}
         run: |
           gh workflow run ci.yml --repo "$GITHUB_REPOSITORY" --ref main
+
+          RUN_ID=""
+          for attempt in {1..30}; do
+            RUN_ID="$(gh run list \
+              --repo "$GITHUB_REPOSITORY" \
+              --workflow ci.yml \
+              --event workflow_dispatch \
+              --limit 20 \
+              --json databaseId,headSha \
+              --jq ".[] | select(.headSha == \"$TARGET_SHA\") | .databaseId" \
+              | head -n 1)"
+            if [ -n "$RUN_ID" ]; then
+              break
+            fi
+            sleep 2
+          done
+
+          if [ -z "$RUN_ID" ]; then
+            echo "Unable to find dispatched main CI for $TARGET_SHA." >&2
+            exit 1
+          fi
+
+          gh run watch "$RUN_ID" --repo "$GITHUB_REPOSITORY" --exit-status
+
+      - name: Deploy validated main revision to Pages
+        if: steps.target.outputs.sha != ''
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_SHA: ${{ steps.target.outputs.sha }}
+        run: |
+          gh workflow run pages.yml \
+            --repo "$GITHUB_REPOSITORY" \
+            --ref main \
+            -f target_sha="$TARGET_SHA"
+
+          RUN_ID=""
+          EXPECTED_TITLE="Deploy GitHub Pages $TARGET_SHA"
+          for attempt in {1..30}; do
+            RUN_ID="$(gh run list \
+              --repo "$GITHUB_REPOSITORY" \
+              --workflow pages.yml \
+              --event workflow_dispatch \
+              --limit 20 \
+              --json databaseId,displayTitle \
+              --jq ".[] | select(.displayTitle == \"$EXPECTED_TITLE\") | .databaseId" \
+              | head -n 1)"
+            if [ -n "$RUN_ID" ]; then
+              break
+            fi
+            sleep 2
+          done
+
+          if [ -z "$RUN_ID" ]; then
+            echo "Unable to find exact-SHA Pages deployment for $TARGET_SHA." >&2
+            exit 1
+          fi
+
+          gh run watch "$RUN_ID" --repo "$GITHUB_REPOSITORY" --exit-status
+
+          {
+            echo
+            echo "## Deployment synchronization"
+            echo
+            echo "- Main CI: passed for `$TARGET_SHA`"
+            echo "- Pages + live Chromium verification: passed for `$TARGET_SHA`"
+          } >> "$GITHUB_STEP_SUMMARY"
