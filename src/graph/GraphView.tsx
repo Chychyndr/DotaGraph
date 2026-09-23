@@ -175,6 +175,15 @@ export function GraphView({
     ),
     [isCompactViewport, svgViewport]
   );
+  const edgeLabelBounds = useMemo(
+    () => ({
+      left: (WIDTH - visibleGraphSpan.width) / 2,
+      right: (WIDTH + visibleGraphSpan.width) / 2,
+      top: (HEIGHT - visibleGraphSpan.height) / 2,
+      bottom: (HEIGHT + visibleGraphSpan.height) / 2
+    }),
+    [visibleGraphSpan.height, visibleGraphSpan.width]
+  );
 
   const overviewCamera = useMemo(
     () =>
@@ -644,7 +653,10 @@ export function GraphView({
       };
     }),
     [...heroLabelObstacles, ...portraitRectObstacles],
-    { sizeScale: isCompactViewport ? 0.8 : 1 }
+    {
+      sizeScale: isCompactViewport ? 0.8 : 1,
+      bounds: edgeLabelBounds
+    }
   );
 
   const handlePointerDown = (event: ReactPointerEvent<SVGSVGElement>) => {
