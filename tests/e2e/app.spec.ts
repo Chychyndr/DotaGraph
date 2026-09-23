@@ -1145,6 +1145,27 @@ for (const viewport of [
       const selectedBox = await selectedNode.boundingBox();
       expect(selectedBox).not.toBeNull();
       expect(selectedBox!.y + selectedBox!.height).toBeLessThan(cardBox!.y + 4);
+
+      await expect.poll(() =>
+        graph.evaluate((element) => {
+          const graphRect = element.getBoundingClientRect();
+          const tolerance = 1;
+
+          return Array.from(element.querySelectorAll<SVGGElement>(".edge-label"))
+            .flatMap((label) => {
+              const rect = label.getBoundingClientRect();
+              const clipped =
+                rect.left < graphRect.left - tolerance ||
+                rect.right > graphRect.right + tolerance ||
+                rect.top < graphRect.top - tolerance ||
+                rect.bottom > graphRect.bottom + tolerance;
+
+              return clipped
+                ? [`${label.dataset.sourceHero}->${label.dataset.targetHero}`]
+                : [];
+            });
+        })
+      ).toEqual([]);
     }
   });
 }

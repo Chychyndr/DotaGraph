@@ -34,8 +34,16 @@ export interface EdgeLabelPlacement {
   leader?: EdgeSegment;
 }
 
+export interface EdgeLabelBounds {
+  left: number;
+  right: number;
+  top: number;
+  bottom: number;
+}
+
 export interface EdgeLabelLayoutOptions {
   sizeScale?: number;
+  bounds?: EdgeLabelBounds;
 }
 
 export const EDGE_LABEL_WIDTH = 46;
@@ -89,6 +97,12 @@ const rectanglesOverlap = (a: Rect, b: Rect) =>
   a.top < b.bottom &&
   a.bottom > b.top;
 
+const rectWithinBounds = (rect: Rect, bounds: EdgeLabelBounds) =>
+  rect.left >= bounds.left &&
+  rect.right <= bounds.right &&
+  rect.top >= bounds.top &&
+  rect.bottom <= bounds.bottom;
+
 const rectangleOverlapArea = (a: Rect, b: Rect) => {
   const width = Math.min(a.right, b.right) - Math.max(a.left, b.left);
   const height = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
@@ -134,6 +148,7 @@ const candidateScore = (
   placedRects: Rect[],
   obstacles: EdgeLabelObstacle[],
   rectObstacles: EdgeLabelRectObstacle[],
+  bounds: EdgeLabelBounds | undefined,
   preferenceIndex: number,
   preferredT: number
 ) => {
@@ -143,6 +158,10 @@ const candidateScore = (
     placement.scale,
     LABEL_GAP
   );
+
+  if (bounds && !rectWithinBounds(paddedRect, bounds)) {
+    return Number.POSITIVE_INFINITY;
+  }
 
   let score =
     Math.abs(placement.t - preferredT) * 40 +
@@ -240,6 +259,7 @@ export function layoutSourceAnchoredEdgeLabels(
         placedRects,
         obstacles,
         rectObstacles,
+        options.bounds,
         index,
         preferredT
       );
@@ -256,7 +276,21 @@ export function layoutSourceAnchoredEdgeLabels(
       const ux = dx / segmentLength;
       const uy = dy / segmentLength;
       const externalScale = sizeScale;
-      const angleOffsets = [0, 15, -15, 30, -30, 45, -45, 60, -60, 75, -75];
+      const angleOffsets = [
+        0,
+        15, -15,
+        30, -30,
+        45, -45,
+        60, -60,
+        75, -75,
+        90, -90,
+        105, -105,
+        120, -120,
+        135, -135,
+        150, -150,
+        165, -165,
+        180
+      ];
       const extraDistances = [0, 18, 36, 54, 72, 96, 120, 150, 180, 220];
 
       angleOffsets.forEach((angleDegrees, angleIndex) => {
@@ -299,6 +333,7 @@ export function layoutSourceAnchoredEdgeLabels(
               placedRects,
               obstacles,
               rectObstacles,
+              options.bounds,
               candidates.length + angleIndex * extraDistances.length + distanceIndex,
               t
             ) +
@@ -311,6 +346,35 @@ export function layoutSourceAnchoredEdgeLabels(
           }
         });
       });
+    }
+
+    if (options.bounds && !Number.isFinite(bestScore)) {
+      const halfWidth = EDGE_LABEL_WIDTH * best.scale / 2 + LABEL_GAP;
+      const halfHeight = EDGE_LABEL_HEIGHT * best.scale / 2 + LABEL_GAP;
+      const minX = options.bounds.left + halfWidth;
+      const maxX = options.bounds.right - halfWidth;
+      const minY = options.bounds.top + halfHeight;
+      const maxY = options.bounds.bottom - halfHeight;
+
+      if (minX <= maxX && minY <= maxY) {
+        const x = clamp(best.x, minX, maxX);
+        const y = clamp(best.y, minY, maxY);
+        const dx = x - best.x;
+        const dy = y - best.y;
+
+        best = {
+          ...best,
+          x,
+          y,
+          leader: best.leader
+            ? {
+                ...best.leader,
+                x2: best.leader.x2 + dx,
+                y2: best.leader.y2 + dy
+              }
+            : undefined
+        };
+      }
     }
 
     placements.set(input.id, best);

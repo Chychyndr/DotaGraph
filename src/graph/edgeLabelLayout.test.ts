@@ -40,6 +40,34 @@ describe("layoutSourceAnchoredEdgeLabels", () => {
     expect(placement.scale).toBeCloseTo(0.8, 3);
   });
 
+  it("keeps a source fallback inside hard viewport bounds", () => {
+    const bounds = { left: 0, right: 240, top: 0, bottom: 200 };
+    const source = { x: 18, y: 100, radius: 18 };
+    const placement = layoutSourceAnchoredEdgeLabels(
+      [{
+        id: "bounded",
+        segment: { x1: 36, y1: 100, x2: 52, y2: 100 },
+        source
+      }],
+      [
+        source,
+        { x: 54, y: 100, radius: 22 }
+      ],
+      [],
+      { sizeScale: 0.8, bounds }
+    ).get("bounded")!;
+
+    const gap = 2;
+    const halfWidth = 46 * placement.scale / 2 + gap;
+    const halfHeight = 18 * placement.scale / 2 + gap;
+
+    expect(placement.leader).toBeDefined();
+    expect(placement.x - halfWidth).toBeGreaterThanOrEqual(bounds.left);
+    expect(placement.x + halfWidth).toBeLessThanOrEqual(bounds.right);
+    expect(placement.y - halfHeight).toBeGreaterThanOrEqual(bounds.top);
+    expect(placement.y + halfHeight).toBeLessThanOrEqual(bounds.bottom);
+  });
+
   it("shrinks a badge when a stable graph edge is too short for the normal pill", () => {
     const placement = layoutSourceAnchoredEdgeLabels([
       { id: "short", segment: { x1: 100, y1: 100, x2: 140, y2: 100 } }
