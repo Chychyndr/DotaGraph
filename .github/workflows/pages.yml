@@ -19,7 +19,7 @@ permissions:
   id-token: write
 
 concurrency:
-  group: pages
+  group: pages-${{ github.event.inputs.target_sha || github.event.workflow_run.head_sha || github.sha }}
   cancel-in-progress: true
 
 env:

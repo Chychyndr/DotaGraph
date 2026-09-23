@@ -42,6 +42,13 @@ class WorkflowSynchronizationTests(unittest.TestCase):
         self.assertIn("Pages deployment deferred", self.pages)
         self.assertIn("deploy=false", self.pages)
 
+    def test_pages_concurrency_is_scoped_to_target_sha(self) -> None:
+        self.assertIn(
+            "group: pages-${{ github.event.inputs.target_sha || github.event.workflow_run.head_sha || github.sha }}",
+            self.pages,
+        )
+        self.assertNotIn("group: pages\n", self.pages)
+
     def test_pages_manual_dispatch_accepts_and_verifies_exact_sha(self) -> None:
         self.assertIn("target_sha:", self.pages)
         self.assertIn("TARGET_SHA:", self.pages)
