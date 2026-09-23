@@ -52,7 +52,7 @@ jobs:
         run: |
           set -o pipefail
           mkdir -p artifacts/pipeline
-          uv run --project pipeline \
+          uv run --locked --project pipeline \
             python -m unittest discover -s pipeline/tests -v \
             2>&1 | tee artifacts/pipeline/pipeline-tests.log
 
@@ -63,7 +63,7 @@ jobs:
         run: |
           set -o pipefail
           mkdir -p artifacts/pipeline
-          uv run --project pipeline \
+          uv run --locked --project pipeline \
             python -m dotagraph_pipeline.generate_current_bundle \
             --output public/data/current-matchups.json \
             --verbose \
@@ -72,7 +72,7 @@ jobs:
       - name: Summarize generated data
         shell: bash
         run: |
-          uv run --project pipeline python - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          uv run --locked --project pipeline python - <<'PY' >> "$GITHUB_STEP_SUMMARY"
           import json
           from pathlib import Path
 
@@ -117,7 +117,7 @@ jobs:
             exit 0
           fi
 
-          PATCH="$(uv run --project pipeline python - <<'PY'
+          PATCH="$(uv run --locked --project pipeline python - <<'PY'
           import json
           from pathlib import Path
           print(json.loads(Path("public/data/current-matchups.json").read_text())["patch"])
