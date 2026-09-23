@@ -589,6 +589,20 @@ export function GraphView({
     }];
   });
 
+  const portraitRectObstacles = heroes.map((hero) => {
+    const point = projectGraphPoint(hero.x, hero.y);
+    const diameter =
+      (radiusFor(hero.id) * 2 + (activeIds.has(hero.id) ? 8 : 2)) *
+      cameraScale;
+
+    return {
+      x: point.x,
+      y: point.y,
+      width: diameter,
+      height: diameter
+    };
+  });
+
   const edgeLabelPlacements = layoutSourceAnchoredEdgeLabels(
     activeRelationships.flatMap((relationship) => {
       const source = byId.get(relationship.sourceHeroId);
@@ -629,7 +643,7 @@ export function GraphView({
           cameraScale
       };
     }),
-    heroLabelObstacles,
+    [...heroLabelObstacles, ...portraitRectObstacles],
     { sizeScale: isCompactViewport ? 0.8 : 1 }
   );
 
