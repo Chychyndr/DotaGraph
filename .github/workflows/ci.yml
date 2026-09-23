@@ -31,6 +31,26 @@ jobs:
           node-version: "22"
 
       - run: npm install
+
+      - name: Audit npm dependencies
+        shell: bash
+        run: |
+          mkdir -p artifacts/security
+          npm audit --json > artifacts/security/npm-audit.json || true
+          node scripts/report-npm-audit.mjs \
+            artifacts/security/npm-audit.json \
+            --fail-on=high \
+            >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload npm audit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: npm-audit-report
+          path: artifacts/security/npm-audit.json
+          if-no-files-found: error
+          retention-days: 30
+
       - name: Cache generated hero atlas
         uses: actions/cache@v4
         with:
