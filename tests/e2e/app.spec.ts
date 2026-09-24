@@ -603,6 +603,7 @@ test("focus win-rate badges stay attached to rendered relationship paths", async
         });
 
         const external = label.dataset.labelExternal === "true";
+        const labelT = Number(label.dataset.labelT);
         const leader = label
           .closest(".edge-label-entry")
           ?.querySelector<SVGLineElement>(".edge-label-leader");
@@ -621,20 +622,35 @@ test("focus win-rate badges stay attached to rendered relationship paths", async
             leader.y2.baseVal.value,
             leaderMatrix
           );
+          const continuationStart = labelT > 1
+            ? screenPoints[screenPoints.length - 2]
+            : screenPoints[0];
+          const continuationEnd = labelT > 1
+            ? screenPoints[screenPoints.length - 1]
+            : screenPoints[1];
+
           leaderLength = Math.hypot(
             leaderEnd.x - leaderStart.x,
             leaderEnd.y - leaderStart.y
           );
           leaderLineDistance = Math.max(
-            pointToLineDistance(leaderStart, screenPoints[0], screenPoints[1]),
-            pointToLineDistance(leaderEnd, screenPoints[0], screenPoints[1])
+            pointToLineDistance(
+              leaderStart,
+              continuationStart,
+              continuationEnd
+            ),
+            pointToLineDistance(
+              leaderEnd,
+              continuationStart,
+              continuationEnd
+            )
           );
         }
 
         return {
           source,
           target,
-          t: Number(label.dataset.labelT),
+          t: labelT,
           offset: Number(label.dataset.labelOffset),
           external,
           leaderExists: Boolean(leader),
@@ -659,7 +675,7 @@ test("focus win-rate badges stay attached to rendered relationship paths", async
         ).toBe(true);
         expect(
           row.leaderLineDistance,
-          `${heroId}: ${row.source}->${row.target} leader left the source-edge continuation`
+          `${heroId}: ${row.source}->${row.target} leader left the relationship continuation`
         ).toBeLessThan(1.25);
         expect(
           row.leaderLength,
