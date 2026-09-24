@@ -79,6 +79,27 @@ describe("layoutSourceAnchoredEdgeLabels", () => {
     expect(placement.y).toBeCloseTo(100, 6);
   });
 
+  it("uses an emergency compact pill on the edge before leaving the relationship", () => {
+    const source = { x: 100, y: 100, radius: 16 };
+    const placement = layoutSourceAnchoredEdgeLabels(
+      [{
+        id: "tight-inline",
+        segment: { x1: 116, y1: 100, x2: 154, y2: 100 },
+        source
+      }],
+      [
+        source,
+        { x: 170, y: 100, radius: 16 }
+      ]
+    ).get("tight-inline")!;
+
+    expect(placement.leader).toBeUndefined();
+    expect(placement.scale).toBe(0.7);
+    expect(placement.t).toBeGreaterThanOrEqual(0.12);
+    expect(placement.t).toBeLessThanOrEqual(0.88);
+    expect(placement.y).toBeCloseTo(100, 6);
+  });
+
   it("moves an impossible short-edge badge onto a source-side line extension", () => {
     const source = { x: 100, y: 100, radius: 18 };
     const placement = layoutSourceAnchoredEdgeLabels(
