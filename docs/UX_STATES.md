@@ -9,6 +9,7 @@
 - Search remains visible.
 - Most hero names stay hidden until hover/focus.
 - Layout is deterministic and generated offline from real current-patch matchup affinity.
+- The stable hero field is uniformly expanded to use more of the available canvas, keeping portraits the same size while increasing space between nodes.
 - Dragging empty graph space pans the viewport.
 - The mouse wheel zooms around the pointer.
 
