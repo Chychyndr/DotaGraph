@@ -155,6 +155,19 @@ test("capture dense Dragon Knight and Rubick focus geometry", async ({ page }) =
   }
 });
 
+test("capture reported attached-badge regression cases", async ({ page }) => {
+  await page.setViewportSize({ width: 1366, height: 768 });
+
+  for (const heroId of ["ancient-apparition", "spirit-breaker", "chen"]) {
+    await page.goto(`/?hero=${heroId}`, { waitUntil: "networkidle" });
+    await page.waitForTimeout(520);
+    await page.screenshot({
+      path: `${output}/focus-${heroId}-attached-badges.png`,
+      fullPage: true
+    });
+  }
+});
+
 test("capture clean directional Focus regression cases", async ({ page }) => {
   await page.setViewportSize({ width: 1366, height: 768 });
 
