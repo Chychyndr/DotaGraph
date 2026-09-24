@@ -42,16 +42,16 @@ describe("layoutSourceAnchoredEdgeLabels", () => {
 
   it("keeps a source fallback inside hard viewport bounds", () => {
     const bounds = { left: 0, right: 240, top: 0, bottom: 200 };
-    const source = { x: 18, y: 100, radius: 18 };
+    const source = { x: 60, y: 100, radius: 18 };
     const placement = layoutSourceAnchoredEdgeLabels(
       [{
         id: "bounded",
-        segment: { x1: 36, y1: 100, x2: 52, y2: 100 },
+        segment: { x1: 78, y1: 100, x2: 94, y2: 100 },
         source
       }],
       [
         source,
-        { x: 54, y: 100, radius: 22 }
+        { x: 112, y: 100, radius: 22 }
       ],
       [],
       { sizeScale: 0.8, bounds }
@@ -100,49 +100,50 @@ describe("layoutSourceAnchoredEdgeLabels", () => {
     expect(placement.y).toBeCloseTo(100, 6);
   });
 
-  it("extends farther on the source side when nearby portraits crowd the fallback", () => {
+  it("keeps an external fallback collinear with the source edge", () => {
     const source = { x: 100, y: 100, radius: 18 };
     const placement = layoutSourceAnchoredEdgeLabels(
       [{
-        id: "crowded",
+        id: "collinear",
         segment: { x1: 120, y1: 100, x2: 136, y2: 100 },
         source
       }],
       [
         source,
-        { x: 154, y: 100, radius: 18 },
-        { x: 55, y: 100, radius: 10 },
-        { x: 37, y: 100, radius: 10 },
-        { x: 19, y: 100, radius: 10 },
-        { x: 1, y: 100, radius: 10 },
-        { x: -17, y: 100, radius: 10 }
+        { x: 154, y: 100, radius: 18 }
       ]
-    ).get("crowded")!;
+    ).get("collinear")!;
 
     expect(placement.leader).toBeDefined();
     expect(placement.t).toBeLessThan(0);
-    expect(placement.x).toBeLessThan(-20);
+    expect(placement.y).toBeCloseTo(100, 6);
+    expect(placement.leader?.y1).toBeCloseTo(100, 6);
+    expect(placement.leader?.y2).toBeCloseTo(100, 6);
   });
 
-  it("fans a source leader around a blocked straight continuation", () => {
+  it("uses the complete routed relationship before falling back externally", () => {
     const source = { x: 100, y: 100, radius: 18 };
-    const straightBlockers = [55, 37, 19, 1, -17, -41, -65, -95, -125, -165]
-      .map((x) => ({ x, y: 100, radius: 12 }));
+    const segments = [
+      { x1: 120, y1: 100, x2: 150, y2: 100 },
+      { x1: 150, y1: 100, x2: 150, y2: 220 },
+      { x1: 150, y1: 220, x2: 420, y2: 220 }
+    ];
     const placement = layoutSourceAnchoredEdgeLabels(
       [{
-        id: "fan",
-        segment: { x1: 120, y1: 100, x2: 136, y2: 100 },
+        id: "routed",
+        segment: segments[0],
+        segments,
         source
       }],
-      [
-        source,
-        { x: 154, y: 100, radius: 18 },
-        ...straightBlockers
-      ]
-    ).get("fan")!;
+      [source],
+      [{ x: 135, y: 100, width: 70, height: 36 }]
+    ).get("routed")!;
 
-    expect(placement.leader).toBeDefined();
-    expect(Math.abs(placement.y - 100)).toBeGreaterThan(5);
+    expect(placement.leader).toBeUndefined();
+    expect(placement.t).toBeGreaterThanOrEqual(0.12);
+    expect(placement.t).toBeLessThanOrEqual(0.88);
+    expect(placement.offset).toBe(0);
+    expect(placement.y).toBeGreaterThan(120);
   });
 
   it("keeps every badge center on its own relationship segment", () => {
