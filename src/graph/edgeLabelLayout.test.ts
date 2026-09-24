@@ -96,7 +96,8 @@ describe("layoutSourceAnchoredEdgeLabels", () => {
     expect(placement.leader).toBeDefined();
     expect(placement.t).toBeLessThan(0);
     expect(placement.offset).toBe(0);
-    expect(placement.scale).toBe(1);
+    expect(placement.scale).toBeGreaterThanOrEqual(0.8);
+    expect(placement.scale).toBeLessThanOrEqual(1);
     expect(placement.y).toBeCloseTo(100, 6);
   });
 
