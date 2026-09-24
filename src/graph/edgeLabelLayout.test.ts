@@ -122,6 +122,29 @@ describe("layoutSourceAnchoredEdgeLabels", () => {
     expect(placement.y).toBeCloseTo(100, 6);
   });
 
+  it("uses the target-side continuation when the source side is unavailable", () => {
+    const source = { x: 100, y: 100, radius: 18 };
+    const placement = layoutSourceAnchoredEdgeLabels(
+      [{
+        id: "target-fallback",
+        segment: { x1: 120, y1: 100, x2: 150, y2: 100 },
+        source
+      }],
+      [source],
+      [{ x: 135, y: 100, width: 80, height: 36 }],
+      {
+        bounds: { left: 100, right: 400, top: 0, bottom: 200 }
+      }
+    ).get("target-fallback")!;
+
+    expect(placement.leader).toBeDefined();
+    expect(placement.t).toBeGreaterThan(1);
+    expect(placement.offset).toBe(0);
+    expect(placement.y).toBeCloseTo(100, 6);
+    expect(placement.leader?.y1).toBeCloseTo(100, 6);
+    expect(placement.leader?.y2).toBeCloseTo(100, 6);
+  });
+
   it("keeps an external fallback collinear with the source edge", () => {
     const source = { x: 100, y: 100, radius: 18 };
     const placement = layoutSourceAnchoredEdgeLabels(
