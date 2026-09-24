@@ -238,7 +238,7 @@ export function layoutSourceAnchoredEdgeLabels(
   const sizeScale = clamp(options.sizeScale ?? 1, 0.7, 1);
   const minimumScale = MIN_LABEL_SCALE * sizeScale;
   const beamWidth = 96;
-  const candidateLimit = 96;
+  const candidateLimit = 128;
 
   const candidateSets = inputs.map((input) => {
     const segments = segmentsFor(input);
