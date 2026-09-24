@@ -8,6 +8,7 @@ export interface EdgeSegment {
 export interface EdgeLabelInput {
   id: string;
   segment: EdgeSegment;
+  segments?: EdgeSegment[];
   preferredT?: number;
   source?: EdgeLabelObstacle;
 }
@@ -73,6 +74,16 @@ const scaleForLength = (length: number, sizeScale: number) => {
   }
   return minimumScale;
 };
+
+const segmentsFor = (input: EdgeLabelInput) =>
+  input.segments?.length ? input.segments : [input.segment];
+
+const pathLength = (segments: EdgeSegment[]) =>
+  segments.reduce(
+    (total, segment) =>
+      total + Math.hypot(segment.x2 - segment.x1, segment.y2 - segment.y1),
+    0
+  );
 
 interface Rect {
   left: number;
@@ -143,6 +154,38 @@ const candidateFor = (
   };
 };
 
+const candidateForPath = (
+  segments: EdgeSegment[],
+  t: number,
+  scale: number
+): EdgeLabelPlacement => {
+  const totalLength = pathLength(segments) || 1;
+  let remaining = clamp(t, 0, 1) * totalLength;
+
+  for (let index = 0; index < segments.length; index += 1) {
+    const segment = segments[index];
+    const length = Math.hypot(
+      segment.x2 - segment.x1,
+      segment.y2 - segment.y1
+    );
+
+    if (remaining <= length || index === segments.length - 1) {
+      const localT = length > 0 ? clamp(remaining / length, 0, 1) : 0;
+      return {
+        ...candidateFor(segment, localT, 0, scale),
+        t
+      };
+    }
+
+    remaining -= length;
+  }
+
+  return {
+    ...candidateFor(segments[segments.length - 1], 1, 0, scale),
+    t
+  };
+};
+
 const candidateScore = (
   placement: EdgeLabelPlacement,
   placedRects: Rect[],
@@ -198,20 +241,15 @@ export function layoutSourceAnchoredEdgeLabels(
   const placements = new Map<string, EdgeLabelPlacement>();
   const placedRects: Rect[] = [];
   const orderedInputs = [...inputs].sort((a, b) => {
-    const aLength = Math.hypot(
-      a.segment.x2 - a.segment.x1,
-      a.segment.y2 - a.segment.y1
-    );
-    const bLength = Math.hypot(
-      b.segment.x2 - b.segment.x1,
-      b.segment.y2 - b.segment.y1
-    );
+    const aLength = pathLength(segmentsFor(a));
+    const bLength = pathLength(segmentsFor(b));
     return aLength - bLength || a.id.localeCompare(b.id);
   });
 
   for (const input of orderedInputs) {
-    const { segment } = input;
-    const length = Math.hypot(segment.x2 - segment.x1, segment.y2 - segment.y1) || 1;
+    const segments = segmentsFor(input);
+    const segment = segments[0];
+    const length = pathLength(segments) || 1;
     const scale = scaleForLength(length, sizeScale);
     const margin = safeEndMargin(scale);
     const safeMinT = clamp(margin / length, MIN_T, 0.46);
@@ -243,11 +281,7 @@ export function layoutSourceAnchoredEdgeLabels(
     ])];
 
     const candidates = candidateScales.flatMap((candidateScale) =>
-      uniqueTs.flatMap((t) =>
-        NORMAL_OFFSETS.map((offset) =>
-          candidateFor(segment, t, offset, candidateScale)
-        )
-      )
+      uniqueTs.map((t) => candidateForPath(segments, t, candidateScale))
     );
 
     let best = candidates[0];
@@ -275,30 +309,11 @@ export function layoutSourceAnchoredEdgeLabels(
       const segmentLength = Math.hypot(dx, dy) || 1;
       const ux = dx / segmentLength;
       const uy = dy / segmentLength;
-      const externalScale = sizeScale;
-      const angleOffsets = [
-        0,
-        15, -15,
-        30, -30,
-        45, -45,
-        60, -60,
-        75, -75,
-        90, -90,
-        105, -105,
-        120, -120,
-        135, -135,
-        150, -150,
-        165, -165,
-        180
-      ];
-      const extraDistances = [0, 18, 36, 54, 72, 96, 120, 150, 180, 220];
+      const outwardX = -ux;
+      const outwardY = -uy;
+      const extraDistances = [0, 12, 24, 36, 48, 60, 72];
 
-      angleOffsets.forEach((angleDegrees, angleIndex) => {
-        const angle = angleDegrees * Math.PI / 180;
-        const cos = Math.cos(angle);
-        const sin = Math.sin(angle);
-        const outwardX = -ux * cos + uy * sin;
-        const outwardY = -ux * sin - uy * cos;
+      candidateScales.forEach((externalScale, scaleIndex) => {
         const support =
           Math.abs(outwardX) * EDGE_LABEL_WIDTH * externalScale / 2 +
           Math.abs(outwardY) * EDGE_LABEL_HEIGHT * externalScale / 2;
@@ -334,11 +349,9 @@ export function layoutSourceAnchoredEdgeLabels(
               obstacles,
               rectObstacles,
               options.bounds,
-              candidates.length + angleIndex * extraDistances.length + distanceIndex,
+              candidates.length + scaleIndex * extraDistances.length + distanceIndex,
               t
-            ) +
-            150 +
-            Math.abs(angleDegrees) * 0.8;
+            ) + 150;
 
           if (score < bestScore) {
             best = candidate;
