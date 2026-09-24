@@ -31,6 +31,8 @@ Approximate portrait sizes:
 
 Focus preserves the Overview portrait footprint so highlighting relationships never forces a second layout.
 
+The stable hero field should use the graph canvas generously. Keep the topology recognizable, but avoid compressing the full roster into a dense central knot when there is unused viewport space. Portrait size stays constant; breathing room comes from the committed node coordinates and camera framing.
+
 ## Interaction
 
 Overview keeps the whole graph as a weak spiderweb.
