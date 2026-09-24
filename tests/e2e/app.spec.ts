@@ -418,6 +418,9 @@ test("focused win-rate labels stay source-anchored and do not overlap", async ({
     source: string;
     target: string;
     text: string;
+    t: number;
+    scale: number;
+    external: boolean;
     box: { x: number; y: number; width: number; height: number };
   }> = [];
   for (let index = 0; index < labelCount; index += 1) {
@@ -444,6 +447,9 @@ test("focused win-rate labels stay source-anchored and do not overlap", async ({
       source: await label.getAttribute("data-source-hero") ?? "unknown",
       target: await label.getAttribute("data-target-hero") ?? "unknown",
       text: (await label.textContent())?.trim() ?? "",
+      t,
+      scale: Number(await label.getAttribute("data-label-scale")),
+      external: external === "true",
       box: box!
     });
   }
@@ -463,8 +469,8 @@ test("focused win-rate labels stay source-anchored and do not overlap", async ({
 
       expect(
         overlapWidth > 0 && overlapHeight > 0,
-        `${first.source}->${first.target} (${first.text}) overlaps ` +
-          `${second.source}->${second.target} (${second.text})`
+        `${first.source}->${first.target} (${first.text}, t=${first.t.toFixed(3)}, scale=${first.scale.toFixed(2)}, external=${first.external}, box=${JSON.stringify(first.box)}) overlaps ` +
+          `${second.source}->${second.target} (${second.text}, t=${second.t.toFixed(3)}, scale=${second.scale.toFixed(2)}, external=${second.external}, box=${JSON.stringify(second.box)})`
       ).toBe(false);
     }
   }
