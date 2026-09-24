@@ -455,10 +455,16 @@ test("focused win-rate labels stay source-anchored and do not overlap", async ({
   });
 });
 
-test("dense focus keeps win-rate badges on their own lines and clear of portraits", async ({ page }) => {
+test("focus win-rate badges stay attached to rendered relationship paths", async ({ page }) => {
   await page.setViewportSize({ width: 1366, height: 768 });
 
-  for (const heroId of ["dragon-knight", "rubick"]) {
+  for (const heroId of [
+    "dragon-knight",
+    "rubick",
+    "ancient-apparition",
+    "spirit-breaker",
+    "chen"
+  ]) {
     await page.goto(`/?hero=${heroId}`);
     await page.waitForTimeout(520);
 
@@ -495,6 +501,32 @@ test("dense focus keeps win-rate badges on their own lines and clear of portrait
         ) / length;
       };
 
+      const pointToSegmentDistance = (
+        point: { x: number; y: number },
+        start: { x: number; y: number },
+        end: { x: number; y: number }
+      ) => {
+        const dx = end.x - start.x;
+        const dy = end.y - start.y;
+        const lengthSquared = dx * dx + dy * dy;
+        if (lengthSquared <= 1e-9) {
+          return Math.hypot(point.x - start.x, point.y - start.y);
+        }
+
+        const t = Math.max(
+          0,
+          Math.min(
+            1,
+            ((point.x - start.x) * dx + (point.y - start.y) * dy) /
+              lengthSquared
+          )
+        );
+        return Math.hypot(
+          point.x - (start.x + dx * t),
+          point.y - (start.y + dy * t)
+        );
+      };
+
       const rows = labels.map(label => {
         const source = label.dataset.sourceHero ?? "";
         const target = label.dataset.targetHero ?? "";
@@ -528,7 +560,7 @@ test("dense focus keeps win-rate badges on their own lines and clear of portrait
           ...screenPoints
             .slice(1)
             .map((point, index) =>
-              pointToLineDistance(center, screenPoints[index], point)
+              pointToSegmentDistance(center, screenPoints[index], point)
             )
         );
         const badge = label.getBoundingClientRect();
@@ -544,17 +576,44 @@ test("dense focus keeps win-rate badges on their own lines and clear of portrait
         });
 
         const external = label.dataset.labelExternal === "true";
-        const leaderExists = Boolean(
-          label.closest(".edge-label-entry")?.querySelector(".edge-label-leader")
-        );
+        const leader = label
+          .closest(".edge-label-entry")
+          ?.querySelector<SVGLineElement>(".edge-label-leader");
+        const leaderMatrix = leader?.getScreenCTM();
+        let leaderLength = 0;
+        let leaderLineDistance = 0;
+
+        if (leader && leaderMatrix) {
+          const leaderStart = transformPoint(
+            leader.x1.baseVal.value,
+            leader.y1.baseVal.value,
+            leaderMatrix
+          );
+          const leaderEnd = transformPoint(
+            leader.x2.baseVal.value,
+            leader.y2.baseVal.value,
+            leaderMatrix
+          );
+          leaderLength = Math.hypot(
+            leaderEnd.x - leaderStart.x,
+            leaderEnd.y - leaderStart.y
+          );
+          leaderLineDistance = Math.max(
+            pointToLineDistance(leaderStart, screenPoints[0], screenPoints[1]),
+            pointToLineDistance(leaderEnd, screenPoints[0], screenPoints[1])
+          );
+        }
 
         return {
           source,
           target,
+          t: Number(label.dataset.labelT),
           offset: Number(label.dataset.labelOffset),
           external,
-          leaderExists,
-          distanceToLine: distanceToRoute,
+          leaderExists: Boolean(leader),
+          leaderLength,
+          leaderLineDistance,
+          distanceToRoute,
           overlapsPortrait
         };
       }).filter((row): row is NonNullable<typeof row> => row !== null);
@@ -567,9 +626,18 @@ test("dense focus keeps win-rate badges on their own lines and clear of portrait
       expect(row.offset).toBe(0);
       if (row.external) {
         expect(row.leaderExists).toBe(true);
+        expect(row.t, `${heroId}: ${row.source}->${row.target}`).toBeLessThan(0);
+        expect(
+          row.leaderLineDistance,
+          `${heroId}: ${row.source}->${row.target} leader left the source-edge continuation`
+        ).toBeLessThan(1.25);
+        expect(
+          row.leaderLength,
+          `${heroId}: ${row.source}->${row.target} leader became too long`
+        ).toBeLessThanOrEqual(80);
       } else {
         expect(
-          row.distanceToLine,
+          row.distanceToRoute,
           `${heroId}: ${row.source}->${row.target}`
         ).toBeLessThan(1.25);
       }
