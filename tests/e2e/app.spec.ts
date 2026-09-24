@@ -434,7 +434,7 @@ test("focused win-rate labels stay source-anchored and do not overlap", async ({
     if (external === "true") {
       await expect(leader).toHaveCount(1);
       expect(await leader.boundingBox()).not.toBeNull();
-      expect(t).toBeLessThan(0);
+      expect(t < 0 || t > 1).toBe(true);
     } else {
       await expect(leader).toHaveCount(0);
       expect(t).toBeGreaterThanOrEqual(0.12);
@@ -653,7 +653,10 @@ test("focus win-rate badges stay attached to rendered relationship paths", async
       expect(row.offset).toBe(0);
       if (row.external) {
         expect(row.leaderExists).toBe(true);
-        expect(row.t, `${heroId}: ${row.source}->${row.target}`).toBeLessThan(0);
+        expect(
+          row.t < 0 || row.t > 1,
+          `${heroId}: ${row.source}->${row.target}`
+        ).toBe(true);
         expect(
           row.leaderLineDistance,
           `${heroId}: ${row.source}->${row.target} leader left the source-edge continuation`
