@@ -303,50 +303,70 @@ export function layoutSourceAnchoredEdgeLabels(
     }
 
     if (input.source) {
-      const dx = segment.x2 - segment.x1;
-      const dy = segment.y2 - segment.y1;
-      const segmentLength = Math.hypot(dx, dy) || 1;
-      const outwardX = -dx / segmentLength;
-      const outwardY = -dy / segmentLength;
       const extraDistances = [
         0, 12, 24, 36, 48, 60, 72, 84, 96, 108, 120
       ];
+      const targetSegment = segments[segments.length - 1];
+      const totalLength = pathLength(segments) || 1;
 
-      candidateScales.forEach((externalScale) => {
-        const support =
-          Math.abs(outwardX) * EDGE_LABEL_WIDTH * externalScale / 2 +
-          Math.abs(outwardY) * EDGE_LABEL_HEIGHT * externalScale / 2;
-        const sourceEdge = {
-          x: segment.x1,
-          y: segment.y1
-        };
+      const addExternalCandidates = (
+        edge: { x: number; y: number },
+        directionX: number,
+        directionY: number,
+        tForDistance: (distance: number) => number,
+        basePenalty: number
+      ) => {
+        candidateScales.forEach((externalScale) => {
+          const support =
+            Math.abs(directionX) * EDGE_LABEL_WIDTH * externalScale / 2 +
+            Math.abs(directionY) * EDGE_LABEL_HEIGHT * externalScale / 2;
 
-        extraDistances.forEach((extraDistance) => {
-          const distance = support + LABEL_GAP + extraDistance;
-          const x = sourceEdge.x + outwardX * distance;
-          const y = sourceEdge.y + outwardY * distance;
-          const t =
-            ((x - segment.x1) * dx + (y - segment.y1) * dy) /
-            (segmentLength * segmentLength);
+          extraDistances.forEach((extraDistance) => {
+            const distance = support + LABEL_GAP + extraDistance;
+            const x = edge.x + directionX * distance;
+            const y = edge.y + directionY * distance;
 
-          rawCandidates.push({
-            placement: {
-              x,
-              y,
-              t,
-              offset: 0,
-              scale: externalScale,
-              leader: {
-                x1: sourceEdge.x,
-                y1: sourceEdge.y,
-                x2: x - outwardX * (support + 1),
-                y2: y - outwardY * (support + 1)
-              }
-            },
-            extraPenalty: 150 + extraDistance * 1.5
+            rawCandidates.push({
+              placement: {
+                x,
+                y,
+                t: tForDistance(distance),
+                offset: 0,
+                scale: externalScale,
+                leader: {
+                  x1: edge.x,
+                  y1: edge.y,
+                  x2: x - directionX * (support + 1),
+                  y2: y - directionY * (support + 1)
+                }
+              },
+              extraPenalty: basePenalty + extraDistance * 1.5
+            });
           });
         });
-      });
+      };
+
+      const sourceDx = segment.x2 - segment.x1;
+      const sourceDy = segment.y2 - segment.y1;
+      const sourceLength = Math.hypot(sourceDx, sourceDy) || 1;
+      addExternalCandidates(
+        { x: segment.x1, y: segment.y1 },
+        -sourceDx / sourceLength,
+        -sourceDy / sourceLength,
+        (distance) => -distance / totalLength,
+        150
+      );
+
+      const targetDx = targetSegment.x2 - targetSegment.x1;
+      const targetDy = targetSegment.y2 - targetSegment.y1;
+      const targetLength = Math.hypot(targetDx, targetDy) || 1;
+      addExternalCandidates(
+        { x: targetSegment.x2, y: targetSegment.y2 },
+        targetDx / targetLength,
+        targetDy / targetLength,
+        (distance) => 1 + distance / totalLength,
+        220
+      );
     }
 
     const candidates = rawCandidates
