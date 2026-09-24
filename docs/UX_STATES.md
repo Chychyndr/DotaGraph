@@ -35,7 +35,7 @@
 - Up to five outgoing relationships in cyan.
 - Hero names sit outside active relationship paths, stay clear of the desktop HeroCard, and have an opaque canvas backing so edges cannot visually cut through the text.
 - Tiny arrowheads clarify direction.
-- Win-rate pills remain source-associated and on the relationship line whenever the fixed geometry has enough room. A cramped edge may use a smaller pill or a short source-side continuation of the same line so the badge never covers a portrait.
+- Win-rate pills remain attached to their relationship line whenever the fixed geometry has enough room. A cramped edge may use a smaller pill or a short collinear continuation. The source side is preferred; the target side is allowed when the source-side ray would conflict with another active relationship or badge.
 - Win-rate pills must not overlap any visible hero-name label or visible hero portrait.
 - Active relationship lines must not cross unrelated active hero portraits; blocked straight segments must use deterministic collision-free routing.
 - Focus never creates a second node arrangement or moves heroes into a separate ring/arc layout.
