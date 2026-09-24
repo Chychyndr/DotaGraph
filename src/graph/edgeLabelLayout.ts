@@ -302,6 +302,27 @@ export function layoutSourceAnchoredEdgeLabels(
       }
     });
 
+    if (bestScore >= 5_000 && sizeScale >= 1) {
+      const emergencyScale = 0.7;
+      uniqueTs.forEach((t, index) => {
+        const candidate = candidateForPath(segments, t, emergencyScale);
+        const score = candidateScore(
+          candidate,
+          placedRects,
+          obstacles,
+          rectObstacles,
+          options.bounds,
+          candidates.length + index,
+          preferredT
+        );
+
+        if (score < bestScore) {
+          best = candidate;
+          bestScore = score;
+        }
+      });
+    }
+
     if (bestScore >= 5_000 && input.source) {
       const dx = segment.x2 - segment.x1;
       const dy = segment.y2 - segment.y1;
