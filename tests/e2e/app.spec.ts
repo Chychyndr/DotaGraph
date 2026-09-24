@@ -406,6 +406,7 @@ test("focused hero names stay clear of active relationship lines", async ({ page
 
 test("focused win-rate labels stay source-anchored and do not overlap", async ({ page }) => {
   await page.goto("/?hero=viper");
+  await page.waitForTimeout(520);
 
   const labels = page.locator(".edge-label");
   await expect(labels.first()).toBeVisible();
