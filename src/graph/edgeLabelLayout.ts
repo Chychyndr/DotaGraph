@@ -237,15 +237,10 @@ export function layoutSourceAnchoredEdgeLabels(
 ) {
   const sizeScale = clamp(options.sizeScale ?? 1, 0.7, 1);
   const minimumScale = MIN_LABEL_SCALE * sizeScale;
-  const placements = new Map<string, EdgeLabelPlacement>();
-  const placedRects: Rect[] = [];
-  const orderedInputs = [...inputs].sort((a, b) => {
-    const aLength = pathLength(segmentsFor(a));
-    const bLength = pathLength(segmentsFor(b));
-    return aLength - bLength || a.id.localeCompare(b.id);
-  });
+  const beamWidth = 96;
+  const candidateLimit = 96;
 
-  for (const input of orderedInputs) {
+  const candidateSets = inputs.map((input) => {
     const segments = segmentsFor(input);
     const segment = segments[0];
     const length = pathLength(segments) || 1;
@@ -253,7 +248,11 @@ export function layoutSourceAnchoredEdgeLabels(
     const margin = safeEndMargin(scale);
     const safeMinT = clamp(margin / length, MIN_T, 0.46);
     const safeMaxT = clamp(1 - margin / length, 0.54, MAX_T);
-    const preferredT = clamp(input.preferredT ?? PREFERRED_T, safeMinT, safeMaxT);
+    const preferredT = clamp(
+      input.preferredT ?? PREFERRED_T,
+      safeMinT,
+      safeMaxT
+    );
     const step = 0.04;
     const sampledTs: number[] = [];
 
@@ -279,64 +278,41 @@ export function layoutSourceAnchoredEdgeLabels(
       minimumScale
     ])];
 
-    const candidates = candidateScales.flatMap((candidateScale) =>
-      uniqueTs.map((t) => candidateForPath(segments, t, candidateScale))
-    );
+    const rawCandidates: Array<{
+      placement: EdgeLabelPlacement;
+      extraPenalty: number;
+    }> = [];
 
-    let best = candidates[0];
-    let bestScore = Number.POSITIVE_INFINITY;
-
-    candidates.forEach((candidate, index) => {
-      const score = candidateScore(
-        candidate,
-        placedRects,
-        obstacles,
-        rectObstacles,
-        options.bounds,
-        index,
-        preferredT
-      );
-      if (score < bestScore) {
-        best = candidate;
-        bestScore = score;
+    for (const candidateScale of candidateScales) {
+      for (const t of uniqueTs) {
+        rawCandidates.push({
+          placement: candidateForPath(segments, t, candidateScale),
+          extraPenalty: 0
+        });
       }
-    });
-
-    if (bestScore >= 5_000 && sizeScale >= 1) {
-      const emergencyScale = 0.7;
-      uniqueTs.forEach((t, index) => {
-        const candidate = candidateForPath(segments, t, emergencyScale);
-        const score = candidateScore(
-          candidate,
-          placedRects,
-          obstacles,
-          rectObstacles,
-          options.bounds,
-          candidates.length + index,
-          preferredT
-        );
-
-        if (score < bestScore) {
-          best = candidate;
-          bestScore = score;
-        }
-      });
     }
 
-    if (bestScore >= 5_000 && input.source) {
+    if (sizeScale >= 1) {
+      const emergencyScale = 0.7;
+      for (const t of uniqueTs) {
+        rawCandidates.push({
+          placement: candidateForPath(segments, t, emergencyScale),
+          extraPenalty: 25
+        });
+      }
+    }
+
+    if (input.source) {
       const dx = segment.x2 - segment.x1;
       const dy = segment.y2 - segment.y1;
       const segmentLength = Math.hypot(dx, dy) || 1;
-      const ux = dx / segmentLength;
-      const uy = dy / segmentLength;
-      const outwardX = -ux;
-      const outwardY = -uy;
+      const outwardX = -dx / segmentLength;
+      const outwardY = -dy / segmentLength;
       const extraDistances = [
-        0, 12, 24, 36, 48, 60, 72, 90, 108, 126, 144,
-        168, 192, 220, 252, 288, 324, 360, 396, 420
+        0, 12, 24, 36, 48, 60, 72, 84, 96, 108, 120
       ];
 
-      candidateScales.forEach((externalScale, scaleIndex) => {
+      candidateScales.forEach((externalScale) => {
         const support =
           Math.abs(outwardX) * EDGE_LABEL_WIDTH * externalScale / 2 +
           Math.abs(outwardY) * EDGE_LABEL_HEIGHT * externalScale / 2;
@@ -345,79 +321,149 @@ export function layoutSourceAnchoredEdgeLabels(
           y: segment.y1
         };
 
-        extraDistances.forEach((extraDistance, distanceIndex) => {
+        extraDistances.forEach((extraDistance) => {
           const distance = support + LABEL_GAP + extraDistance;
           const x = sourceEdge.x + outwardX * distance;
           const y = sourceEdge.y + outwardY * distance;
           const t =
             ((x - segment.x1) * dx + (y - segment.y1) * dy) /
             (segmentLength * segmentLength);
-          const candidate: EdgeLabelPlacement = {
-            x,
-            y,
-            t,
-            offset: 0,
-            scale: externalScale,
-            leader: {
-              x1: sourceEdge.x,
-              y1: sourceEdge.y,
-              x2: x - outwardX * (support + 1),
-              y2: y - outwardY * (support + 1)
-            }
-          };
-          const score =
-            candidateScore(
-              candidate,
-              placedRects,
-              obstacles,
-              rectObstacles,
-              options.bounds,
-              candidates.length + scaleIndex * extraDistances.length + distanceIndex,
-              t
-            ) + 150;
 
-          if (score < bestScore) {
-            best = candidate;
-            bestScore = score;
-          }
+          rawCandidates.push({
+            placement: {
+              x,
+              y,
+              t,
+              offset: 0,
+              scale: externalScale,
+              leader: {
+                x1: sourceEdge.x,
+                y1: sourceEdge.y,
+                x2: x - outwardX * (support + 1),
+                y2: y - outwardY * (support + 1)
+              }
+            },
+            extraPenalty: 150 + extraDistance * 1.5
+          });
         });
       });
     }
 
-    if (options.bounds && !Number.isFinite(bestScore)) {
-      const halfWidth = EDGE_LABEL_WIDTH * best.scale / 2 + LABEL_GAP;
-      const halfHeight = EDGE_LABEL_HEIGHT * best.scale / 2 + LABEL_GAP;
-      const minX = options.bounds.left + halfWidth;
-      const maxX = options.bounds.right - halfWidth;
-      const minY = options.bounds.top + halfHeight;
-      const maxY = options.bounds.bottom - halfHeight;
+    const candidates = rawCandidates
+      .map(({ placement, extraPenalty }, index) => ({
+        placement,
+        score:
+          candidateScore(
+            placement,
+            [],
+            obstacles,
+            rectObstacles,
+            options.bounds,
+            index,
+            placement.leader ? placement.t : preferredT
+          ) + extraPenalty
+      }))
+      .filter(({ score }) => Number.isFinite(score) && score < 5_000)
+      .sort(
+        (left, right) =>
+          left.score - right.score ||
+          Number(Boolean(left.placement.leader)) -
+            Number(Boolean(right.placement.leader)) ||
+          left.placement.scale - right.placement.scale ||
+          left.placement.t - right.placement.t ||
+          left.placement.x - right.placement.x ||
+          left.placement.y - right.placement.y
+      )
+      .slice(0, candidateLimit);
 
-      if (minX <= maxX && minY <= maxY) {
-        const x = clamp(best.x, minX, maxX);
-        const y = clamp(best.y, minY, maxY);
-        const dx = x - best.x;
-        const dy = y - best.y;
+    return {
+      input,
+      length,
+      candidates
+    };
+  });
 
-        best = {
-          ...best,
-          x,
-          y,
-          leader: best.leader
-            ? {
-                ...best.leader,
-                x2: best.leader.x2 + dx,
-                y2: best.leader.y2 + dy
-              }
-            : undefined
-        };
-      }
-    }
+  const solveOrder = [...candidateSets].sort(
+    (left, right) =>
+      left.candidates.length - right.candidates.length ||
+      left.length - right.length ||
+      left.input.id.localeCompare(right.input.id)
+  );
 
-    placements.set(input.id, best);
-    placedRects.push(rectFor(best.x, best.y, best.scale, LABEL_GAP));
+  interface LayoutState {
+    score: number;
+    key: string;
+    placements: Map<string, EdgeLabelPlacement>;
+    rects: Rect[];
   }
 
-  return placements;
+  let states: LayoutState[] = [{
+    score: 0,
+    key: "",
+    placements: new Map(),
+    rects: []
+  }];
+
+  for (const set of solveOrder) {
+    const nextStates: LayoutState[] = [];
+
+    states.forEach((state) => {
+      set.candidates.forEach((candidate, candidateIndex) => {
+        const rect = rectFor(
+          candidate.placement.x,
+          candidate.placement.y,
+          candidate.placement.scale,
+          LABEL_GAP
+        );
+        if (state.rects.some((placed) => rectanglesOverlap(rect, placed))) {
+          return;
+        }
+
+        const placements = new Map(state.placements);
+        placements.set(set.input.id, candidate.placement);
+        nextStates.push({
+          score: state.score + candidate.score,
+          key: `${state.key}:${candidateIndex.toString().padStart(3, "0")}`,
+          placements,
+          rects: [...state.rects, rect]
+        });
+      });
+    });
+
+    if (!nextStates.length) {
+      const fallback = set.candidates[0];
+      if (!fallback) continue;
+
+      states = states.map((state, stateIndex) => {
+        const placements = new Map(state.placements);
+        placements.set(set.input.id, fallback.placement);
+        return {
+          score: state.score + fallback.score + 50_000,
+          key: `${state.key}:fallback-${stateIndex}`,
+          placements,
+          rects: [
+            ...state.rects,
+            rectFor(
+              fallback.placement.x,
+              fallback.placement.y,
+              fallback.placement.scale,
+              LABEL_GAP
+            )
+          ]
+        };
+      });
+      continue;
+    }
+
+    nextStates.sort(
+      (left, right) =>
+        left.score - right.score ||
+        left.key.localeCompare(right.key)
+    );
+    states = nextStates.slice(0, beamWidth);
+  }
+
+  return states[0]?.placements ?? new Map<string, EdgeLabelPlacement>();
 }
 
 export function edgeLabelRectsOverlap(
