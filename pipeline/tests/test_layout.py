@@ -3,7 +3,12 @@ from __future__ import annotations
 import math
 import unittest
 
-from dotagraph_pipeline.layout import WeightedEdge, compute_layout, layout_metrics
+from dotagraph_pipeline.layout import (
+    WeightedEdge,
+    compute_layout,
+    layout_metrics,
+    spread_layout_positions,
+)
 
 
 class LayoutTests(unittest.TestCase):
@@ -98,6 +103,59 @@ class LayoutTests(unittest.TestCase):
 
         self.assertGreaterEqual(metrics["minimumNodeDistance"], 39.8)
         self.assertLessEqual(metrics["maxNearestNodeDistance"], 70.1)
+
+    def test_spread_layout_uses_more_canvas_without_changing_topology(self) -> None:
+        positions = {
+            "left": (100.0, 200.0),
+            "center": (600.0, 380.0),
+            "right": (1100.0, 560.0),
+        }
+
+        spread = spread_layout_positions(positions)
+        before = math.hypot(
+            positions["right"][0] - positions["left"][0],
+            positions["right"][1] - positions["left"][1],
+        )
+        after = math.hypot(
+            spread["right"][0] - spread["left"][0],
+            spread["right"][1] - spread["left"][1],
+        )
+
+        self.assertGreater(after, before)
+        self.assertAlmostEqual(spread["center"][0], 600.0, places=2)
+        self.assertAlmostEqual(spread["center"][1], 380.0, places=2)
+        self.assertGreaterEqual(min(x for x, _ in spread.values()), 24.0)
+        self.assertLessEqual(max(x for x, _ in spread.values()), 1176.0)
+        self.assertGreaterEqual(min(y for _, y in spread.values()), 24.0)
+        self.assertLessEqual(max(y for _, y in spread.values()), 736.0)
+
+    def test_spread_layout_preserves_relative_angles(self) -> None:
+        positions = {
+            "origin": (400.0, 300.0),
+            "a": (500.0, 340.0),
+            "b": (360.0, 420.0),
+        }
+        spread = spread_layout_positions(positions)
+
+        before_a = math.atan2(
+            positions["a"][1] - positions["origin"][1],
+            positions["a"][0] - positions["origin"][0],
+        )
+        after_a = math.atan2(
+            spread["a"][1] - spread["origin"][1],
+            spread["a"][0] - spread["origin"][0],
+        )
+        before_b = math.atan2(
+            positions["b"][1] - positions["origin"][1],
+            positions["b"][0] - positions["origin"][0],
+        )
+        after_b = math.atan2(
+            spread["b"][1] - spread["origin"][1],
+            spread["b"][0] - spread["origin"][0],
+        )
+
+        self.assertAlmostEqual(before_a, after_a, places=3)
+        self.assertAlmostEqual(before_b, after_b, places=3)
 
     def test_metrics_cover_layout_edges(self) -> None:
         positions = compute_layout(self.nodes, self.edges, iterations=180)
