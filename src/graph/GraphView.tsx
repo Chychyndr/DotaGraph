@@ -619,21 +619,25 @@ export function GraphView({
       if (!source || !target) return [];
 
       const route = activeEdgeRoutes.get(relationship.id);
-      const sourceSegment = route ? routeSegments(route)[0] : undefined;
-      if (!sourceSegment) return [];
+      const routePath = route ? routeSegments(route) : [];
+      if (!routePath.length) return [];
 
-      const start = projectGraphPoint(sourceSegment.x1, sourceSegment.y1);
-      const end = projectGraphPoint(sourceSegment.x2, sourceSegment.y2);
-      const sourcePoint = projectGraphPoint(source.x, source.y);
-
-      return [{
-        id: relationship.id,
-        segment: {
+      const projectedPath = routePath.map((segment) => {
+        const start = projectGraphPoint(segment.x1, segment.y1);
+        const end = projectGraphPoint(segment.x2, segment.y2);
+        return {
           x1: start.x,
           y1: start.y,
           x2: end.x,
           y2: end.y
-        },
+        };
+      });
+      const sourcePoint = projectGraphPoint(source.x, source.y);
+
+      return [{
+        id: relationship.id,
+        segment: projectedPath[0],
+        segments: projectedPath,
         preferredT: relationship.sourceHeroId === selectedHeroId ? 0.46 : 0.34,
         source: {
           x: sourcePoint.x,
