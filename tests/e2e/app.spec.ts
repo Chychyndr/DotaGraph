@@ -425,6 +425,7 @@ test("focused win-rate labels stay source-anchored and do not overlap", async ({
     if (external === "true") {
       await expect(leader).toHaveCount(1);
       expect(await leader.boundingBox()).not.toBeNull();
+      expect(t).toBeLessThan(0);
     } else {
       await expect(leader).toHaveCount(0);
       expect(t).toBeGreaterThanOrEqual(0.12);
