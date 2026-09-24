@@ -410,6 +410,44 @@ export function layoutSourceAnchoredEdgeLabels(
       left.input.id.localeCompare(right.input.id)
   );
 
+  const findConflictFreePlacements = () => {
+    const placements = new Map<string, EdgeLabelPlacement>();
+    const rects: Rect[] = [];
+    let visited = 0;
+    const visitLimit = 500_000;
+
+    const search = (setIndex: number): boolean => {
+      if (setIndex >= solveOrder.length) return true;
+      if (visited >= visitLimit) return false;
+
+      const set = solveOrder[setIndex];
+      for (const candidate of set.candidates) {
+        visited += 1;
+        const rect = rectFor(
+          candidate.placement.x,
+          candidate.placement.y,
+          candidate.placement.scale,
+          LABEL_GAP
+        );
+        if (rects.some((placed) => rectanglesOverlap(rect, placed))) {
+          continue;
+        }
+
+        placements.set(set.input.id, candidate.placement);
+        rects.push(rect);
+        if (search(setIndex + 1)) return true;
+        rects.pop();
+        placements.delete(set.input.id);
+
+        if (visited >= visitLimit) return false;
+      }
+
+      return false;
+    };
+
+    return search(0) ? new Map(placements) : null;
+  };
+
   interface LayoutState {
     score: number;
     key: string;
@@ -451,6 +489,9 @@ export function layoutSourceAnchoredEdgeLabels(
     });
 
     if (!nextStates.length) {
+      const conflictFree = findConflictFreePlacements();
+      if (conflictFree) return conflictFree;
+
       const fallback = set.candidates[0];
       if (!fallback) continue;
 
