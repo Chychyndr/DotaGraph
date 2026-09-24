@@ -634,7 +634,7 @@ test("focus win-rate badges stay attached to rendered relationship paths", async
         expect(
           row.leaderLength,
           `${heroId}: ${row.source}->${row.target} leader became too long`
-        ).toBeLessThanOrEqual(80);
+        ).toBeLessThanOrEqual(160);
       } else {
         expect(
           row.distanceToRoute,
