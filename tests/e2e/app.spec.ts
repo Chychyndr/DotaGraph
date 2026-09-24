@@ -413,7 +413,12 @@ test("focused win-rate labels stay source-anchored and do not overlap", async ({
   expect(labelCount).toBeGreaterThan(0);
   expect(labelCount).toBeLessThanOrEqual(10);
 
-  const boxes = [];
+  const boxes: Array<{
+    source: string;
+    target: string;
+    text: string;
+    box: { x: number; y: number; width: number; height: number };
+  }> = [];
   for (let index = 0; index < labelCount; index += 1) {
     const label = labels.nth(index);
     const t = Number(await label.getAttribute("data-label-t"));
@@ -434,17 +439,32 @@ test("focused win-rate labels stay source-anchored and do not overlap", async ({
 
     const box = await label.boundingBox();
     expect(box).not.toBeNull();
-    boxes.push(box!);
+    boxes.push({
+      source: await label.getAttribute("data-source-hero") ?? "unknown",
+      target: await label.getAttribute("data-target-hero") ?? "unknown",
+      text: (await label.textContent())?.trim() ?? "",
+      box: box!
+    });
   }
 
   for (let a = 0; a < boxes.length; a += 1) {
     for (let b = a + 1; b < boxes.length; b += 1) {
-      const overlapWidth = Math.min(boxes[a].x + boxes[a].width, boxes[b].x + boxes[b].width)
-        - Math.max(boxes[a].x, boxes[b].x);
-      const overlapHeight = Math.min(boxes[a].y + boxes[a].height, boxes[b].y + boxes[b].height)
-        - Math.max(boxes[a].y, boxes[b].y);
+      const first = boxes[a];
+      const second = boxes[b];
+      const overlapWidth = Math.min(
+        first.box.x + first.box.width,
+        second.box.x + second.box.width
+      ) - Math.max(first.box.x, second.box.x);
+      const overlapHeight = Math.min(
+        first.box.y + first.box.height,
+        second.box.y + second.box.height
+      ) - Math.max(first.box.y, second.box.y);
 
-      expect(overlapWidth > 0 && overlapHeight > 0).toBe(false);
+      expect(
+        overlapWidth > 0 && overlapHeight > 0,
+        `${first.source}->${first.target} (${first.text}) overlaps ` +
+          `${second.source}->${second.target} (${second.text})`
+      ).toBe(false);
     }
   }
 
