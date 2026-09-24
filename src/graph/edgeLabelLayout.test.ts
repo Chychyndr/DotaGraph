@@ -169,11 +169,13 @@ describe("layoutSourceAnchoredEdgeLabels", () => {
   });
 
   it("coordinates a dense source fan without badge overlap", () => {
-    const inputs = [80, 92, 104, 116, 128, 140].map((targetY, index) => ({
-      id: `fan-${index}`,
-      segment: { x1: 120, y1: 110, x2: 460, y2: targetY },
-      preferredT: 0.46
-    }));
+    const inputs = [62, 74, 86, 98, 110, 122, 134, 146, 158, 170].map(
+      (targetY, index) => ({
+        id: `fan-${index}`,
+        segment: { x1: 120, y1: 110, x2: 520, y2: targetY },
+        preferredT: 0.46
+      })
+    );
     const placements = layoutSourceAnchoredEdgeLabels(inputs, []);
 
     expect(placements.size).toBe(inputs.length);
