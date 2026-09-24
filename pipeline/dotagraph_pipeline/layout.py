@@ -286,6 +286,57 @@ def compute_layout(
     }
 
 
+def spread_layout_positions(
+    positions: dict[str, tuple[float, float]],
+    *,
+    width: float = 1200.0,
+    height: float = 760.0,
+    margin: float = 24.0,
+    max_scale: float = 1.18,
+) -> dict[str, tuple[float, float]]:
+    """Expand an already-stable layout uniformly into more of the graph canvas.
+
+    This pass preserves topology and all relative angles. It only changes the
+    presentation scale around the current bounds center, so Overview, Hover,
+    Focus, and Matchup can keep one stable coordinate system while gaining more
+    breathing room between portraits.
+    """
+
+    if not positions:
+        return {}
+
+    xs = [point[0] for point in positions.values()]
+    ys = [point[1] for point in positions.values()]
+    min_x = min(xs)
+    max_x = max(xs)
+    min_y = min(ys)
+    max_y = max(ys)
+    span_x = max(max_x - min_x, 1e-8)
+    span_y = max(max_y - min_y, 1e-8)
+
+    available_width = max(1.0, width - margin * 2)
+    available_height = max(1.0, height - margin * 2)
+    scale = min(
+        max_scale,
+        available_width / span_x,
+        available_height / span_y,
+    )
+    scale = max(1.0, scale)
+
+    center_x = (min_x + max_x) / 2.0
+    center_y = (min_y + max_y) / 2.0
+    target_x = width / 2.0
+    target_y = height / 2.0
+
+    return {
+        node_id: (
+            round(target_x + (point[0] - center_x) * scale, 2),
+            round(target_y + (point[1] - center_y) * scale, 2),
+        )
+        for node_id, point in positions.items()
+    }
+
+
 def layout_metrics(
     positions: dict[str, tuple[float, float]],
     edges: Iterable[WeightedEdge],
