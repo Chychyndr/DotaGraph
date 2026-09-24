@@ -168,6 +168,24 @@ describe("layoutSourceAnchoredEdgeLabels", () => {
     expect(placement.y).toBeGreaterThan(120);
   });
 
+  it("coordinates a dense source fan without badge overlap", () => {
+    const inputs = [80, 92, 104, 116, 128, 140].map((targetY, index) => ({
+      id: `fan-${index}`,
+      segment: { x1: 120, y1: 110, x2: 460, y2: targetY },
+      preferredT: 0.46
+    }));
+    const placements = layoutSourceAnchoredEdgeLabels(inputs, []);
+
+    expect(placements.size).toBe(inputs.length);
+    const values = [...placements.values()];
+    for (let left = 0; left < values.length; left += 1) {
+      expect(values[left].leader).toBeUndefined();
+      for (let right = left + 1; right < values.length; right += 1) {
+        expect(edgeLabelRectsOverlap(values[left], values[right])).toBe(false);
+      }
+    }
+  });
+
   it("keeps every badge center on its own relationship segment", () => {
     const inputs = [
       { id: "horizontal", segment: { x1: 80, y1: 120, x2: 420, y2: 120 } },
