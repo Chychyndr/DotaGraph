@@ -544,6 +544,7 @@ Before editing:
 - understand existing conventions;
 - check whether docs/tests must change too.
 
+Always work in a separate branch and pull request, never merge pull request by yourself.
 Do not mix unrelated refactors with feature work.
 Do not rewrite history or force-push unless explicitly asked.
 Never commit secrets.
