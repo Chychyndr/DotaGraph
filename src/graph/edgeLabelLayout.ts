@@ -311,7 +311,8 @@ export function layoutSourceAnchoredEdgeLabels(
       const outwardX = -ux;
       const outwardY = -uy;
       const extraDistances = [
-        0, 12, 24, 36, 48, 60, 72, 90, 108, 126, 144
+        0, 12, 24, 36, 48, 60, 72, 90, 108, 126, 144,
+        168, 192, 220, 252, 288, 324, 360, 396, 420
       ];
 
       candidateScales.forEach((externalScale, scaleIndex) => {
