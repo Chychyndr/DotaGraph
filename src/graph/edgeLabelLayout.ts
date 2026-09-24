@@ -310,15 +310,17 @@ export function layoutSourceAnchoredEdgeLabels(
       const uy = dy / segmentLength;
       const outwardX = -ux;
       const outwardY = -uy;
-      const extraDistances = [0, 12, 24, 36, 48, 60, 72];
+      const extraDistances = [
+        0, 12, 24, 36, 48, 60, 72, 90, 108, 126, 144
+      ];
 
       candidateScales.forEach((externalScale, scaleIndex) => {
         const support =
           Math.abs(outwardX) * EDGE_LABEL_WIDTH * externalScale / 2 +
           Math.abs(outwardY) * EDGE_LABEL_HEIGHT * externalScale / 2;
         const sourceEdge = {
-          x: input.source!.x + outwardX * (input.source!.radius + LABEL_GAP),
-          y: input.source!.y + outwardY * (input.source!.radius + LABEL_GAP)
+          x: segment.x1,
+          y: segment.y1
         };
 
         extraDistances.forEach((extraDistance, distanceIndex) => {
