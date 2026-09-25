@@ -31,6 +31,8 @@ Approximate portrait sizes:
 
 Focus preserves the Overview portrait footprint so highlighting relationships never forces a second layout.
 
+The stable hero field should use the graph canvas generously. Keep the topology recognizable, but avoid compressing the full roster into a dense central knot when there is unused viewport space. Portrait size stays constant; breathing room comes from the committed node coordinates and camera framing.
+
 ## Interaction
 
 Overview keeps the whole graph as a weak spiderweb.
@@ -49,7 +51,7 @@ Matchup keeps the graph visible, emphasizes one pair, and changes the compact ca
 
 The percentage belongs to the source hero of the arrow.
 
-The accepted current behavior is source-anchored, collision-aware placement on the active edge itself. Labels normally stay on the source half of the edge; when the selected hero is the source, the badge may sit farther down that half so dense outgoing fans remain readable. On short fixed-layout edges, the badge may scale down to stay on the line without covering a portrait. If the gap is still physically too short, the full badge moves onto a short source-side continuation of that same line, preserving its visual attachment to the relationship without moving either hero. Hero names use collision-aware placement outside active relationship paths and render on an opaque canvas backing.
+The accepted current behavior is source-anchored, collision-aware placement on the active edge itself. Labels normally stay on the source half of the edge; when the selected hero is the source, the badge may sit farther down that half so dense outgoing fans remain readable. On short fixed-layout edges, the badge may scale down to stay on the line without covering a portrait. If the gap is still physically too short, the full badge moves onto a short collinear continuation of that same relationship. Source-side continuation is preferred; target-side continuation is allowed when the source-side ray conflicts with another active relationship or badge. Hero names use collision-aware placement outside active relationship paths and render on an opaque canvas backing.
 
 ## Product chrome decisions
 

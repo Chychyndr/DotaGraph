@@ -13,7 +13,12 @@ from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
 from .config import CURRENT_SCOPE, generation_end_epoch
-from .layout import WeightedEdge, compute_layout, layout_metrics
+from .layout import (
+    WeightedEdge,
+    compute_layout,
+    layout_metrics,
+    spread_layout_positions,
+)
 from .logging_utils import configure_logging, log_event
 from .ranking import PairObservation, RankedRelationship, hero_totals, rank_relationships
 
@@ -566,6 +571,7 @@ def generate(
     )
     weighted_edges = _layout_edges(layout_relationships)
     positions = compute_layout(catalog_slugs, weighted_edges)
+    positions = spread_layout_positions(positions)
     metrics = layout_metrics(positions, weighted_edges)
 
     qualifying_pair_count = sum(

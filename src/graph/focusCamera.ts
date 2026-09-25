@@ -69,8 +69,8 @@ export function calculateOverviewCamera(
   {
     width,
     height,
-    paddingX = 72,
-    paddingY = 60,
+    paddingX = 24,
+    paddingY = 28,
     minScale = 0.7,
     maxScale = 1
   }: OverviewCameraOptions

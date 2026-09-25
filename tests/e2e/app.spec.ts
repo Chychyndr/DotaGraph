@@ -406,6 +406,7 @@ test("focused hero names stay clear of active relationship lines", async ({ page
 
 test("focused win-rate labels stay source-anchored and do not overlap", async ({ page }) => {
   await page.goto("/?hero=viper");
+  await page.waitForTimeout(520);
 
   const labels = page.locator(".edge-label");
   await expect(labels.first()).toBeVisible();
@@ -413,7 +414,15 @@ test("focused win-rate labels stay source-anchored and do not overlap", async ({
   expect(labelCount).toBeGreaterThan(0);
   expect(labelCount).toBeLessThanOrEqual(10);
 
-  const boxes = [];
+  const boxes: Array<{
+    source: string;
+    target: string;
+    text: string;
+    t: number;
+    scale: number;
+    external: boolean;
+    box: { x: number; y: number; width: number; height: number };
+  }> = [];
   for (let index = 0; index < labelCount; index += 1) {
     const label = labels.nth(index);
     const t = Number(await label.getAttribute("data-label-t"));
@@ -425,7 +434,7 @@ test("focused win-rate labels stay source-anchored and do not overlap", async ({
     if (external === "true") {
       await expect(leader).toHaveCount(1);
       expect(await leader.boundingBox()).not.toBeNull();
-      expect(t).toBeLessThan(0);
+      expect(t < 0 || t > 1).toBe(true);
     } else {
       await expect(leader).toHaveCount(0);
       expect(t).toBeGreaterThanOrEqual(0.12);
@@ -434,17 +443,35 @@ test("focused win-rate labels stay source-anchored and do not overlap", async ({
 
     const box = await label.boundingBox();
     expect(box).not.toBeNull();
-    boxes.push(box!);
+    boxes.push({
+      source: await label.getAttribute("data-source-hero") ?? "unknown",
+      target: await label.getAttribute("data-target-hero") ?? "unknown",
+      text: (await label.textContent())?.trim() ?? "",
+      t,
+      scale: Number(await label.getAttribute("data-label-scale")),
+      external: external === "true",
+      box: box!
+    });
   }
 
   for (let a = 0; a < boxes.length; a += 1) {
     for (let b = a + 1; b < boxes.length; b += 1) {
-      const overlapWidth = Math.min(boxes[a].x + boxes[a].width, boxes[b].x + boxes[b].width)
-        - Math.max(boxes[a].x, boxes[b].x);
-      const overlapHeight = Math.min(boxes[a].y + boxes[a].height, boxes[b].y + boxes[b].height)
-        - Math.max(boxes[a].y, boxes[b].y);
+      const first = boxes[a];
+      const second = boxes[b];
+      const overlapWidth = Math.min(
+        first.box.x + first.box.width,
+        second.box.x + second.box.width
+      ) - Math.max(first.box.x, second.box.x);
+      const overlapHeight = Math.min(
+        first.box.y + first.box.height,
+        second.box.y + second.box.height
+      ) - Math.max(first.box.y, second.box.y);
 
-      expect(overlapWidth > 0 && overlapHeight > 0).toBe(false);
+      expect(
+        overlapWidth > 0 && overlapHeight > 0,
+        `${first.source}->${first.target} (${first.text}, t=${first.t.toFixed(3)}, scale=${first.scale.toFixed(2)}, external=${first.external}, box=${JSON.stringify(first.box)}) overlaps ` +
+          `${second.source}->${second.target} (${second.text}, t=${second.t.toFixed(3)}, scale=${second.scale.toFixed(2)}, external=${second.external}, box=${JSON.stringify(second.box)})`
+      ).toBe(false);
     }
   }
 
@@ -576,6 +603,7 @@ test("focus win-rate badges stay attached to rendered relationship paths", async
         });
 
         const external = label.dataset.labelExternal === "true";
+        const labelT = Number(label.dataset.labelT);
         const leader = label
           .closest(".edge-label-entry")
           ?.querySelector<SVGLineElement>(".edge-label-leader");
@@ -594,20 +622,35 @@ test("focus win-rate badges stay attached to rendered relationship paths", async
             leader.y2.baseVal.value,
             leaderMatrix
           );
+          const continuationStart = labelT > 1
+            ? screenPoints[screenPoints.length - 2]
+            : screenPoints[0];
+          const continuationEnd = labelT > 1
+            ? screenPoints[screenPoints.length - 1]
+            : screenPoints[1];
+
           leaderLength = Math.hypot(
             leaderEnd.x - leaderStart.x,
             leaderEnd.y - leaderStart.y
           );
           leaderLineDistance = Math.max(
-            pointToLineDistance(leaderStart, screenPoints[0], screenPoints[1]),
-            pointToLineDistance(leaderEnd, screenPoints[0], screenPoints[1])
+            pointToLineDistance(
+              leaderStart,
+              continuationStart,
+              continuationEnd
+            ),
+            pointToLineDistance(
+              leaderEnd,
+              continuationStart,
+              continuationEnd
+            )
           );
         }
 
         return {
           source,
           target,
-          t: Number(label.dataset.labelT),
+          t: labelT,
           offset: Number(label.dataset.labelOffset),
           external,
           leaderExists: Boolean(leader),
@@ -626,10 +669,13 @@ test("focus win-rate badges stay attached to rendered relationship paths", async
       expect(row.offset).toBe(0);
       if (row.external) {
         expect(row.leaderExists).toBe(true);
-        expect(row.t, `${heroId}: ${row.source}->${row.target}`).toBeLessThan(0);
+        expect(
+          row.t < 0 || row.t > 1,
+          `${heroId}: ${row.source}->${row.target}`
+        ).toBe(true);
         expect(
           row.leaderLineDistance,
-          `${heroId}: ${row.source}->${row.target} leader left the source-edge continuation`
+          `${heroId}: ${row.source}->${row.target} leader left the relationship continuation`
         ).toBeLessThan(1.25);
         expect(
           row.leaderLength,

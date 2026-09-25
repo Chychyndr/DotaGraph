@@ -238,7 +238,7 @@ export function layoutSourceAnchoredEdgeLabels(
   const sizeScale = clamp(options.sizeScale ?? 1, 0.7, 1);
   const minimumScale = MIN_LABEL_SCALE * sizeScale;
   const beamWidth = 96;
-  const candidateLimit = 96;
+  const candidateLimit = 128;
 
   const candidateSets = inputs.map((input) => {
     const segments = segmentsFor(input);
@@ -303,50 +303,70 @@ export function layoutSourceAnchoredEdgeLabels(
     }
 
     if (input.source) {
-      const dx = segment.x2 - segment.x1;
-      const dy = segment.y2 - segment.y1;
-      const segmentLength = Math.hypot(dx, dy) || 1;
-      const outwardX = -dx / segmentLength;
-      const outwardY = -dy / segmentLength;
       const extraDistances = [
         0, 12, 24, 36, 48, 60, 72, 84, 96, 108, 120
       ];
+      const targetSegment = segments[segments.length - 1];
+      const totalLength = pathLength(segments) || 1;
 
-      candidateScales.forEach((externalScale) => {
-        const support =
-          Math.abs(outwardX) * EDGE_LABEL_WIDTH * externalScale / 2 +
-          Math.abs(outwardY) * EDGE_LABEL_HEIGHT * externalScale / 2;
-        const sourceEdge = {
-          x: segment.x1,
-          y: segment.y1
-        };
+      const addExternalCandidates = (
+        edge: { x: number; y: number },
+        directionX: number,
+        directionY: number,
+        tForDistance: (distance: number) => number,
+        basePenalty: number
+      ) => {
+        candidateScales.forEach((externalScale) => {
+          const support =
+            Math.abs(directionX) * EDGE_LABEL_WIDTH * externalScale / 2 +
+            Math.abs(directionY) * EDGE_LABEL_HEIGHT * externalScale / 2;
 
-        extraDistances.forEach((extraDistance) => {
-          const distance = support + LABEL_GAP + extraDistance;
-          const x = sourceEdge.x + outwardX * distance;
-          const y = sourceEdge.y + outwardY * distance;
-          const t =
-            ((x - segment.x1) * dx + (y - segment.y1) * dy) /
-            (segmentLength * segmentLength);
+          extraDistances.forEach((extraDistance) => {
+            const distance = support + LABEL_GAP + extraDistance;
+            const x = edge.x + directionX * distance;
+            const y = edge.y + directionY * distance;
 
-          rawCandidates.push({
-            placement: {
-              x,
-              y,
-              t,
-              offset: 0,
-              scale: externalScale,
-              leader: {
-                x1: sourceEdge.x,
-                y1: sourceEdge.y,
-                x2: x - outwardX * (support + 1),
-                y2: y - outwardY * (support + 1)
-              }
-            },
-            extraPenalty: 150 + extraDistance * 1.5
+            rawCandidates.push({
+              placement: {
+                x,
+                y,
+                t: tForDistance(distance),
+                offset: 0,
+                scale: externalScale,
+                leader: {
+                  x1: edge.x,
+                  y1: edge.y,
+                  x2: x - directionX * (support + 1),
+                  y2: y - directionY * (support + 1)
+                }
+              },
+              extraPenalty: basePenalty + extraDistance * 1.5
+            });
           });
         });
-      });
+      };
+
+      const sourceDx = segment.x2 - segment.x1;
+      const sourceDy = segment.y2 - segment.y1;
+      const sourceLength = Math.hypot(sourceDx, sourceDy) || 1;
+      addExternalCandidates(
+        { x: segment.x1, y: segment.y1 },
+        -sourceDx / sourceLength,
+        -sourceDy / sourceLength,
+        (distance) => -distance / totalLength,
+        150
+      );
+
+      const targetDx = targetSegment.x2 - targetSegment.x1;
+      const targetDy = targetSegment.y2 - targetSegment.y1;
+      const targetLength = Math.hypot(targetDx, targetDy) || 1;
+      addExternalCandidates(
+        { x: targetSegment.x2, y: targetSegment.y2 },
+        targetDx / targetLength,
+        targetDy / targetLength,
+        (distance) => 1 + distance / totalLength,
+        220
+      );
     }
 
     const candidates = rawCandidates
@@ -390,6 +410,44 @@ export function layoutSourceAnchoredEdgeLabels(
       left.input.id.localeCompare(right.input.id)
   );
 
+  const findConflictFreePlacements = () => {
+    const placements = new Map<string, EdgeLabelPlacement>();
+    const rects: Rect[] = [];
+    let visited = 0;
+    const visitLimit = 500_000;
+
+    const search = (setIndex: number): boolean => {
+      if (setIndex >= solveOrder.length) return true;
+      if (visited >= visitLimit) return false;
+
+      const set = solveOrder[setIndex];
+      for (const candidate of set.candidates) {
+        visited += 1;
+        const rect = rectFor(
+          candidate.placement.x,
+          candidate.placement.y,
+          candidate.placement.scale,
+          LABEL_GAP
+        );
+        if (rects.some((placed) => rectanglesOverlap(rect, placed))) {
+          continue;
+        }
+
+        placements.set(set.input.id, candidate.placement);
+        rects.push(rect);
+        if (search(setIndex + 1)) return true;
+        rects.pop();
+        placements.delete(set.input.id);
+
+        if (visited >= visitLimit) return false;
+      }
+
+      return false;
+    };
+
+    return search(0) ? new Map(placements) : null;
+  };
+
   interface LayoutState {
     score: number;
     key: string;
@@ -431,6 +489,9 @@ export function layoutSourceAnchoredEdgeLabels(
     });
 
     if (!nextStates.length) {
+      const conflictFree = findConflictFreePlacements();
+      if (conflictFree) return conflictFree;
+
       const fallback = set.candidates[0];
       if (!fallback) continue;
 

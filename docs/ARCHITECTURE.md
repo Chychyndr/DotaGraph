@@ -33,9 +33,10 @@ The layout build:
 - runs a deterministic force-directed solver;
 - pulls low-degree heroes toward the centroid of their real affinity neighbors so they do not become detached hull islands;
 - performs deterministic collision relaxation with a 58 px minimum center distance;
+- applies a final uniform presentation-spread pass, capped at 1.18×, so the stable topology uses more of the 1200×760 graph canvas without changing relative angles;
 - writes fixed coordinates plus spacing, isolation, and edge-distance quality metrics.
 
-The browser never runs a force simulation. Overview, Hover, Focus, and Matchup all use the same committed stable hero coordinates. Desktop Focus keeps the Overview camera scale and anchor as well as the node positions; it may apply only a small translation to make room for the context card. Compact Focus may reframe that same coordinate system for the context card. No interaction state derives a second set of node positions.
+The browser never runs a force simulation. Overview, Hover, Focus, and Matchup all use the same committed stable hero coordinates after that spread pass. Desktop Focus keeps the Overview camera scale and anchor as well as the node positions; it may apply only a small translation to make room for the context card. Compact Focus may reframe that same coordinate system for the context card. No interaction state derives a second set of node positions.
 
 The SVG renderer keeps display density separate from the full production relationship corpus. Overview renders a sparse deterministic backbone. Focus keeps that backbone as low-contrast context and adds the selected hero's real active edges (up to five incoming and five outgoing), while unrelated heroes are dimmed in place. This preserves one continuous graph throughout the interaction without changing counter semantics.
 
