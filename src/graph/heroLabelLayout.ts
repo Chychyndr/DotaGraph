@@ -45,7 +45,7 @@ interface Rect {
 const TWO_PI = Math.PI * 2;
 const LABEL_GAP = 8;
 const EDGE_GAP = 3;
-const EXTRA_DISTANCES = [0, 18, 36, 54, 72, 90];
+const EXTRA_DISTANCES = [0, 18, 36, 54, 72, 90, 108, 126, 144, 162, 180];
 
 const normalizeAngle = (angle: number) => {
   const normalized = angle % TWO_PI;
@@ -140,7 +140,7 @@ const segmentIntersectsRect = (segment: HeroLabelSegment, rect: Rect) => {
 };
 
 const candidateAngles = (preferredAngle: number) =>
-  Array.from({ length: 16 }, (_, index) => index * TWO_PI / 16)
+  Array.from({ length: 32 }, (_, index) => index * TWO_PI / 32)
     .sort(
       (left, right) =>
         angularDistance(left, preferredAngle) -
@@ -192,6 +192,7 @@ export function layoutHeroLabels(
         const x = input.x + ux * distance;
         const y = input.y + uy * distance;
         const rect = rectFor(x, y, input.width, input.height, EDGE_GAP);
+        if (outsideBounds(rect, bounds)) continue;
 
         const edgeHits = segments.reduce(
           (count, segment) =>
@@ -211,7 +212,6 @@ export function layoutHeroLabels(
         );
 
         const score =
-          (outsideBounds(rect, bounds) ? 1_000_000 : 0) +
           edgeHits * 100_000 +
           portraitHits * 100_000 +
           labelHits * 100_000 +
