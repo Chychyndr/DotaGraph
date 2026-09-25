@@ -62,6 +62,39 @@ describe("layoutHeroLabels", () => {
     expect(placement.x - width / 2).toBeGreaterThanOrEqual(minX);
   });
 
+  it("treats viewport bounds as hard constraints even when in-bounds candidates collide", () => {
+    const width = 70;
+    const height = 20;
+    const bounds = { minX: 0, maxX: 400, minY: 0, maxY: 200 };
+    const blockers = Array.from({ length: 11 }, (_, index) => ({
+      id: `blocker-${index}`,
+      x: 300,
+      y: 100,
+      radius: 250
+    }));
+
+    const placement = layoutHeroLabels(
+      [{
+        id: "edge-hero",
+        x: 40,
+        y: 100,
+        radius: 20,
+        width,
+        height,
+        preferredAngle: Math.PI
+      }],
+      [],
+      [{ id: "edge-hero", x: 40, y: 100, radius: 23 }, ...blockers],
+      bounds
+    ).get("edge-hero")!;
+
+    expect(placement).toBeDefined();
+    expect(placement.x - width / 2 - 3).toBeGreaterThanOrEqual(bounds.minX);
+    expect(placement.x + width / 2 + 3).toBeLessThanOrEqual(bounds.maxX);
+    expect(placement.y - height / 2 - 3).toBeGreaterThanOrEqual(bounds.minY);
+    expect(placement.y + height / 2 + 3).toBeLessThanOrEqual(bounds.maxY);
+  });
+
   it("is deterministic", () => {
     const inputs = [
       {
