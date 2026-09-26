@@ -15,7 +15,11 @@ import {
   EDGE_LABEL_HEIGHT,
   EDGE_LABEL_WIDTH
 } from "./edgeLabelLayout";
-import { calculateOverviewCamera } from "./focusCamera";
+import {
+  calculateFocusScale,
+  calculateOverviewCamera,
+  visibleViewBoxForViewport
+} from "./focusCamera";
 import {
   mergeVisibleRelationships,
   selectHoverRelationships,
@@ -79,6 +83,36 @@ export function GraphView({
   const byId = useMemo(() => new Map(heroes.map((hero) => [hero.id, hero])), [heroes]);
   const initialCompactViewport = window.matchMedia(COMPACT_VIEWPORT_QUERY).matches;
   const [isCompactViewport, setIsCompactViewport] = useState(initialCompactViewport);
+  const [svgViewport, setSvgViewport] = useState({ width: WIDTH, height: HEIGHT });
+  const selectedHero = selectedHeroId ? byId.get(selectedHeroId) : undefined;
+  const relatedHeroes = useMemo(() => {
+    if (!selectedHeroId) return [];
+
+    const ids = new Set(
+      [...selectedRelations.incoming, ...selectedRelations.outgoing]
+        .flatMap((relationship) => [
+          relationship.sourceHeroId,
+          relationship.targetHeroId
+        ])
+        .filter((heroId) => heroId !== selectedHeroId)
+    );
+
+    return [...ids].flatMap((heroId) => {
+      const hero = byId.get(heroId);
+      return hero ? [hero] : [];
+    });
+  }, [byId, selectedHeroId, selectedRelations.incoming, selectedRelations.outgoing]);
+  const visibleGraphSpan = useMemo(
+    () =>
+      visibleViewBoxForViewport(
+        svgViewport.width,
+        svgViewport.height,
+        WIDTH,
+        HEIGHT,
+        isCompactViewport ? "slice" : "meet"
+      ),
+    [isCompactViewport, svgViewport.height, svgViewport.width]
+  );
   const overviewCamera = useMemo(
     () =>
       calculateOverviewCamera(heroes, {
@@ -89,13 +123,34 @@ export function GraphView({
     [heroes]
   );
 
+  const compactFocusScale =
+    selectedHero && initialCompactViewport
+      ? calculateFocusScale(selectedHero, relatedHeroes, {
+          ...visibleGraphSpan,
+          offsetY: -92,
+          paddingX: 52,
+          paddingY: 48,
+          minScale: 0.42,
+          maxScale: 0.9
+        })
+      : overviewCamera.scale;
+
   const initialCamera: CameraState = {
-    anchorX: overviewCamera.anchorX,
-    anchorY: overviewCamera.anchorY,
+    anchorX:
+      selectedHero && initialCompactViewport
+        ? selectedHero.x
+        : overviewCamera.anchorX,
+    anchorY:
+      selectedHero && initialCompactViewport
+        ? selectedHero.y
+        : overviewCamera.anchorY,
     panX: 0,
-    panY: 0,
+    panY: selectedHero && initialCompactViewport ? -92 : 0,
     zoom: 1,
-    focusScale: overviewCamera.scale
+    focusScale:
+      selectedHero && initialCompactViewport
+        ? compactFocusScale
+        : overviewCamera.scale
   };
 
   const [camera, setCameraState] = useState<CameraState>(initialCamera);
@@ -120,15 +175,69 @@ export function GraphView({
   const cancelCameraAnimation = () => {};
 
   useEffect(() => {
-    setCamera((current) => ({
-      ...current,
-      anchorX: overviewCamera.anchorX,
-      anchorY: overviewCamera.anchorY,
-      panX: 0,
-      panY: 0,
-      focusScale: overviewCamera.scale
-    }));
-  }, [overviewCamera]);
+    if (isCompactViewport && selectedHero) {
+      const nextScale = calculateFocusScale(selectedHero, relatedHeroes, {
+        ...visibleGraphSpan,
+        offsetY: -92,
+        paddingX: 52,
+        paddingY: 48,
+        minScale: 0.42,
+        maxScale: 0.9
+      });
+      setCamera((current) => ({
+        ...current,
+        anchorX: selectedHero.x,
+        anchorY: selectedHero.y,
+        panX: 0,
+        panY: -92,
+        zoom: 1,
+        focusScale: nextScale
+      }));
+      return;
+    }
+
+    if (!selectedHeroId) {
+      setCamera((current) => ({
+        ...current,
+        anchorX: overviewCamera.anchorX,
+        anchorY: overviewCamera.anchorY,
+        panX: 0,
+        panY: 0,
+        zoom: 1,
+        focusScale: overviewCamera.scale
+      }));
+    }
+  }, [
+    isCompactViewport,
+    overviewCamera,
+    relatedHeroes,
+    selectedHero,
+    selectedHeroId,
+    visibleGraphSpan
+  ]);
+
+  useEffect(() => {
+    const svg = svgRef.current;
+    if (!svg) return;
+
+    const updateViewport = () => {
+      const rect = svg.getBoundingClientRect();
+      if (rect.width <= 0 || rect.height <= 0) return;
+      setSvgViewport((current) =>
+        Math.abs(current.width - rect.width) < 0.5 &&
+        Math.abs(current.height - rect.height) < 0.5
+          ? current
+          : { width: rect.width, height: rect.height }
+      );
+    };
+
+    updateViewport();
+    if (typeof ResizeObserver === "undefined") return;
+
+    const observer = new ResizeObserver(updateViewport);
+    observer.observe(svg);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     const media = window.matchMedia(COMPACT_VIEWPORT_QUERY);
