@@ -392,43 +392,54 @@ def _normalize_immortal_pairs(
     ]
 
 
+def _relationship_sort_key(
+    item: RankedRelationship,
+) -> tuple[float, float, int, str, str]:
+    return (
+        -item.ranking_score,
+        -item.baseline_adjusted_delta,
+        -item.sample_size,
+        item.source,
+        item.target,
+    )
+
+
 def _select_layout_relationships(
     ranked: list[RankedRelationship],
     *,
     neighbors_per_hero: int = 5,
 ) -> list[RankedRelationship]:
-    incident: dict[str, list[RankedRelationship]] = {}
+    """Select exactly the relationship union that can become active in Focus.
+
+    The UI ranks incoming and outgoing relationships independently and can show
+    up to maxVisiblePerDirection from each side. The offline layout must use the
+    same candidate union; otherwise a line can become prominent even though its
+    endpoints never attracted each other during layout generation.
+    """
+
+    incoming: dict[str, list[RankedRelationship]] = {}
+    outgoing: dict[str, list[RankedRelationship]] = {}
 
     for relationship in ranked:
-        incident.setdefault(relationship.source, []).append(relationship)
-        incident.setdefault(relationship.target, []).append(relationship)
+        outgoing.setdefault(relationship.source, []).append(relationship)
+        incoming.setdefault(relationship.target, []).append(relationship)
 
     selected: dict[tuple[str, str], RankedRelationship] = {}
     limit = max(1, neighbors_per_hero)
+    hero_slugs = sorted(set(incoming) | set(outgoing))
 
-    for hero_slug in sorted(incident):
-        relationships = sorted(
-            incident[hero_slug],
-            key=lambda item: (
-                -item.baseline_adjusted_delta,
-                -item.sample_size,
-                item.source,
-                item.target,
-            ),
-        )
-        for relationship in relationships[:limit]:
-            pair_key = tuple(sorted((relationship.source, relationship.target)))
-            selected[pair_key] = relationship
+    for hero_slug in hero_slugs:
+        for relationships in (
+            outgoing.get(hero_slug, []),
+            incoming.get(hero_slug, []),
+        ):
+            for relationship in sorted(
+                relationships,
+                key=_relationship_sort_key,
+            )[:limit]:
+                selected[(relationship.source, relationship.target)] = relationship
 
-    return sorted(
-        selected.values(),
-        key=lambda item: (
-            -item.baseline_adjusted_delta,
-            -item.sample_size,
-            item.source,
-            item.target,
-        ),
-    )
+    return sorted(selected.values(), key=_relationship_sort_key)
 
 
 def _ensure_layout_neighbors(
