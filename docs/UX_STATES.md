@@ -3,7 +3,7 @@
 ## Overview
 
 - All validated current-patch heroes are visible.
-- The complete published relationship edge set is already present as a low-contrast spiderweb; Focus never inserts relationship geometry that was absent in Overview.
+- The persistent Focus-eligible edge union is already present as a low-contrast spiderweb; every edge that can become one of a hero's highlighted incoming/outgoing relationships exists before selection, and Focus never inserts new relationship geometry.
 - The initial camera fits and centers the actual hero bounds instead of assuming the fixed canvas center.
 - No win-rate labels.
 - Search remains visible.
