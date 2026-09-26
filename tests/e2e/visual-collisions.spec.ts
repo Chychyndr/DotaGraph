@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 
 interface VisualCollisionAudit {
   badgeHeroLabel: string[];
+  heroLabelHeroLabel: string[];
   activeEdgeForeignPortrait: string[];
   badgeDimmedPortrait: string[];
 }
@@ -43,6 +44,27 @@ const scanVisualCollisions = async (page: import("@playwright/test").Page) =>
     const heroLabels = Array.from(
       document.querySelectorAll<SVGGElement>(".hero-label-group")
     );
+
+    const heroLabelHeroLabel: string[] = [];
+    for (let leftIndex = 0; leftIndex < heroLabels.length; leftIndex += 1) {
+      const left = heroLabels[leftIndex];
+      const leftRect = left.getBoundingClientRect();
+      const leftHero = left.dataset.heroLabel ?? "unknown";
+
+      for (
+        let rightIndex = leftIndex + 1;
+        rightIndex < heroLabels.length;
+        rightIndex += 1
+      ) {
+        const right = heroLabels[rightIndex];
+        if (!overlap(leftRect, right.getBoundingClientRect(), 2)) continue;
+
+        const rightHero = right.dataset.heroLabel ?? "unknown";
+        heroLabelHeroLabel.push(
+          `${leftHero} overlaps label:${rightHero}`
+        );
+      }
+    }
 
     for (const badge of badges) {
       const badgeRect = badge.getBoundingClientRect();
@@ -168,6 +190,7 @@ const scanVisualCollisions = async (page: import("@playwright/test").Page) =>
 
     return {
       badgeHeroLabel: uniqueSorted(badgeHeroLabel),
+      heroLabelHeroLabel: uniqueSorted(heroLabelHeroLabel),
       activeEdgeForeignPortrait: uniqueSorted(activeEdgeForeignPortrait),
       badgeDimmedPortrait: uniqueSorted(badgeDimmedPortrait)
     };
@@ -180,21 +203,25 @@ const knownCollisionBaseline: Record<string, VisualCollisionAudit> = {
   // geometry change receives an explicit visual review.
   viper: {
     badgeHeroLabel: [],
+    heroLabelHeroLabel: [],
     activeEdgeForeignPortrait: [],
     badgeDimmedPortrait: []
   },
   spectre: {
     badgeHeroLabel: [],
+    heroLabelHeroLabel: [],
     activeEdgeForeignPortrait: [],
     badgeDimmedPortrait: []
   },
   rubick: {
     badgeHeroLabel: [],
+    heroLabelHeroLabel: [],
     activeEdgeForeignPortrait: [],
     badgeDimmedPortrait: []
   },
   "dark-willow": {
     badgeHeroLabel: [],
+    heroLabelHeroLabel: [],
     activeEdgeForeignPortrait: [],
     badgeDimmedPortrait: []
   }
@@ -325,6 +352,7 @@ test("every hero focus keeps the same global graph and collision-free direct lin
     expect(state.outsideLabels, `${heroId}: label left the graph viewport`).toEqual([]);
     expect(await scanVisualCollisions(page), heroId).toEqual({
       badgeHeroLabel: [],
+      heroLabelHeroLabel: [],
       activeEdgeForeignPortrait: [],
       badgeDimmedPortrait: []
     });
