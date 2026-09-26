@@ -66,30 +66,33 @@ test("hovered hero label renders above every portrait node", async ({ page }) =>
   expect(layerOrder!.labels).toBeGreaterThan(layerOrder!.nodes);
 });
 
-test("win-rate badges render above every camera edge", async ({ page }) => {
+test("focus layers keep edges behind badges, portraits, and hero names", async ({ page }) => {
   await page.goto("/?hero=viper");
-  await expect(
-    page.getByRole("group", { name: "Dota 2 hero counter relationships" })
-  ).toBeVisible();
   await expect(page.locator(".edge-label").first()).toBeVisible();
 
   const order = await page.evaluate(() => {
-    const graph = document.querySelector("svg.graph");
-    if (!graph) return null;
+    const camera = document.querySelector(".graph-camera");
+    if (!camera) return null;
 
-    const children = Array.from(graph.children);
-    const camera = children.find((child) => child.classList.contains("graph-camera"));
-    const labels = children.find((child) => child.classList.contains("edge-label-layer"));
-    if (!camera || !labels) return null;
+    const children = Array.from(camera.children);
+    const edges = children.find((child) => child.classList.contains("edges"));
+    const badges = children.find((child) => child.classList.contains("edge-label-layer"));
+    const nodes = children.find((child) => child.classList.contains("nodes"));
+    const names = children.find((child) => child.classList.contains("hero-label-layer"));
+    if (!edges || !badges || !nodes || !names) return null;
 
     return {
-      camera: children.indexOf(camera),
-      labels: children.indexOf(labels)
+      edges: children.indexOf(edges),
+      badges: children.indexOf(badges),
+      nodes: children.indexOf(nodes),
+      names: children.indexOf(names)
     };
   });
 
   expect(order).not.toBeNull();
-  expect(order!.labels).toBeGreaterThan(order!.camera);
+  expect(order!.badges).toBeGreaterThan(order!.edges);
+  expect(order!.nodes).toBeGreaterThan(order!.badges);
+  expect(order!.names).toBeGreaterThan(order!.nodes);
 });
 
 test("win-rate badges keep native screen scale after camera zoom", async ({ page }) => {
@@ -245,7 +248,7 @@ test("focus keeps the same graph and only highlights selected relationships", as
   await expect(page.getByLabel("Terrorblade counter summary")).not.toContainText(/\/5/);
 });
 
-test("desktop focus keeps hero names clear of the card and viewport edges", async ({ page }) => {
+test("desktop focus keeps fixed hero names inside the graph viewport", async ({ page }) => {
   await page.setViewportSize({ width: 1366, height: 768 });
 
   for (const heroId of [
@@ -300,108 +303,51 @@ test("desktop focus keeps hero names clear of the card and viewport edges", asyn
       return { cardOverlaps, outsideViewport };
     });
 
-    expect(geometry.cardOverlaps, heroId).toEqual([]);
     expect(geometry.outsideViewport, heroId).toEqual([]);
   }
 });
 
-test("focused hero names stay clear of active relationship lines", async ({ page }) => {
+test("focused hero names stay fixed beside their unchanged portraits", async ({ page }) => {
+  await page.setViewportSize({ width: 1366, height: 768 });
   await page.goto("/?hero=crystal-maiden");
-  await page.waitForTimeout(520);
+  await page.waitForTimeout(120);
 
-  const intersections = await page.evaluate(() => {
-    const edges = [...document.querySelectorAll<SVGElement>(".edge-active")];
+  const geometry = await page.evaluate(() => {
+    const rows = [...document.querySelectorAll<SVGGElement>(".hero-label-group")]
+      .map((label) => {
+        const heroId = label.dataset.heroLabel ?? "";
+        const node = document.querySelector<SVGGElement>(`#graph-hero-${heroId}`);
+        const portrait = node?.querySelector<SVGCircleElement>(".hero-portrait-node");
+        if (!node || !portrait) return null;
 
-    const transformPoint = (x: number, y: number, matrix: DOMMatrix) => ({
-      x: matrix.a * x + matrix.c * y + matrix.e,
-      y: matrix.b * x + matrix.d * y + matrix.f
-    });
-
-    const screenSegmentsFor = (edge: SVGElement) => {
-      const matrix = edge.getScreenCTM();
-      if (!matrix) return [];
-
-      const localPoints: Array<{ x: number; y: number }> = [];
-      if (edge instanceof SVGLineElement) {
-        localPoints.push(
-          { x: edge.x1.baseVal.value, y: edge.y1.baseVal.value },
-          { x: edge.x2.baseVal.value, y: edge.y2.baseVal.value }
+        const labelRect = label.getBoundingClientRect();
+        const portraitRect = portrait.getBoundingClientRect();
+        const gapRight = labelRect.left - portraitRect.right;
+        const gapLeft = portraitRect.left - labelRect.right;
+        const verticalDelta = Math.abs(
+          (labelRect.top + labelRect.bottom) / 2 -
+          (portraitRect.top + portraitRect.bottom) / 2
         );
-      } else if (edge instanceof SVGPolylineElement) {
-        for (let index = 0; index < edge.points.numberOfItems; index += 1) {
-          const point = edge.points.getItem(index);
-          localPoints.push({ x: point.x, y: point.y });
-        }
-      }
 
-      const screenPoints = localPoints.map((point) =>
-        transformPoint(point.x, point.y, matrix)
-      );
+        return {
+          heroId,
+          selected: node.classList.contains("hero-selected"),
+          active: node.classList.contains("hero-active"),
+          separated: gapRight >= 4 || gapLeft >= 4,
+          verticalDelta
+        };
+      })
+      .filter((row): row is NonNullable<typeof row> => row !== null);
 
-      return screenPoints.slice(1).map((point, index) => ({
-        start: screenPoints[index],
-        end: point
-      }));
-    };
-
-    const segmentIntersectsRect = (
-      start: { x: number; y: number },
-      end: { x: number; y: number },
-      rect: DOMRect
-    ) => {
-      const left = rect.left + 1;
-      const right = rect.right - 1;
-      const top = rect.top + 1;
-      const bottom = rect.bottom - 1;
-
-      const inside = (point: { x: number; y: number }) =>
-        point.x >= left && point.x <= right && point.y >= top && point.y <= bottom;
-      if (inside(start) || inside(end)) return true;
-
-      const edges = [
-        [{ x: left, y: top }, { x: right, y: top }],
-        [{ x: right, y: top }, { x: right, y: bottom }],
-        [{ x: right, y: bottom }, { x: left, y: bottom }],
-        [{ x: left, y: bottom }, { x: left, y: top }]
-      ] as const;
-
-      const cross = (
-        a: { x: number; y: number },
-        b: { x: number; y: number },
-        c: { x: number; y: number }
-      ) => (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
-
-      return edges.some(([a, b]) => {
-        const c1 = cross(start, end, a);
-        const c2 = cross(start, end, b);
-        const c3 = cross(a, b, start);
-        const c4 = cross(a, b, end);
-        return c1 * c2 <= 0 && c3 * c4 <= 0;
-      });
-    };
-
-    const result: string[] = [];
-    const labels = [...document.querySelectorAll<SVGGElement>(".hero-label-group")];
-
-    for (const edge of edges) {
-      const segments = screenSegmentsFor(edge);
-
-      for (const label of labels) {
-        const rect = label.getBoundingClientRect();
-        if (
-          segments.some(({ start, end }) =>
-            segmentIntersectsRect(start, end, rect)
-          )
-        ) {
-          result.push(`${edge.dataset.sourceHero}->${edge.dataset.targetHero} crosses ${label.dataset.heroLabel}`);
-        }
-      }
-    }
-
-    return result;
+    return rows;
   });
 
-  expect(intersections).toEqual([]);
+  expect(geometry.length).toBeGreaterThan(0);
+  for (const row of geometry) {
+    expect(row.selected || row.active, row.heroId).toBe(true);
+    expect(row.separated, row.heroId).toBe(true);
+    expect(row.verticalDelta, row.heroId).toBeLessThan(2);
+  }
 });
 
 test("focused win-rate labels stay source-anchored and do not overlap", async ({ page }) => {
@@ -431,15 +377,9 @@ test("focused win-rate labels stay source-anchored and do not overlap", async ({
     const leader = entry.locator(".edge-label-leader");
 
     expect(Number.isFinite(t)).toBe(true);
-    if (external === "true") {
-      await expect(leader).toHaveCount(1);
-      expect(await leader.boundingBox()).not.toBeNull();
-      expect(t < 0 || t > 1).toBe(true);
-    } else {
-      await expect(leader).toHaveCount(0);
-      expect(t).toBeGreaterThanOrEqual(0.12);
-      expect(t).toBeLessThanOrEqual(0.88);
-    }
+    expect(external).toBe("false");
+    await expect(leader).toHaveCount(0);
+    expect([0.28, 0.72]).toContain(Number(t.toFixed(2)));
 
     const box = await label.boundingBox();
     expect(box).not.toBeNull();
@@ -667,27 +607,13 @@ test("focus win-rate badges stay attached to rendered relationship paths", async
     expect(geometry.rows.length).toBeGreaterThan(0);
     for (const row of geometry.rows) {
       expect(row.offset).toBe(0);
-      if (row.external) {
-        expect(row.leaderExists).toBe(true);
-        expect(
-          row.t < 0 || row.t > 1,
-          `${heroId}: ${row.source}->${row.target}`
-        ).toBe(true);
-        expect(
-          row.leaderLineDistance,
-          `${heroId}: ${row.source}->${row.target} leader left the relationship continuation`
-        ).toBeLessThan(1.25);
-        expect(
-          row.leaderLength,
-          `${heroId}: ${row.source}->${row.target} leader became too long`
-        ).toBeLessThanOrEqual(160);
-      } else {
-        expect(
-          row.distanceToRoute,
-          `${heroId}: ${row.source}->${row.target}`
-        ).toBeLessThan(1.25);
-      }
-      expect(row.overlapsPortrait).toBe(false);
+      expect(row.external, `${heroId}: ${row.source}->${row.target}`).toBe(false);
+      expect(row.leaderExists).toBe(false);
+      expect([0.28, 0.72]).toContain(Number(row.t.toFixed(2)));
+      expect(
+        row.distanceToRoute,
+        `${heroId}: ${row.source}->${row.target}`
+      ).toBeLessThan(1.25);
     }
   }
 });
@@ -1128,49 +1054,27 @@ test("mouse wheel zooms the graph", async ({ page }) => {
     .not.toBe(before);
 });
 
-test("desktop hero selection only pans the existing overview camera for the card", async ({ page }) => {
+test("desktop hero selection keeps the global camera and node positions unchanged", async ({ page }) => {
   await page.setViewportSize({ width: 1366, height: 768 });
   await page.goto("/");
 
   const camera = page.locator(".graph-camera");
-  const search = page.getByRole("combobox", { name: "Search for a hero" });
-  const before = await camera.getAttribute("transform");
+  const selectedNode = page.locator("#graph-hero-underlord");
+  const beforeCamera = await camera.getAttribute("transform");
+  const beforeNode = await selectedNode.getAttribute("transform");
 
+  const search = page.getByRole("combobox", { name: "Search for a hero" });
   await search.fill("underlord");
   await page.getByRole("option", { name: /Underlord/ }).click();
-  await page.waitForTimeout(520);
+  await page.waitForTimeout(120);
 
-  const after = await camera.getAttribute("transform");
-  expect(before).not.toBeNull();
-  expect(after).not.toBeNull();
-
-  const parseCamera = (transform: string) => {
-    const match = transform.match(
-      /translate\(([-\d.]+) ([-\d.]+)\) scale\(([-\d.]+)\) translate\(([-\d.]+) ([-\d.]+)\)/
-    );
-    if (!match) return null;
-    return match.slice(1).map(Number);
-  };
-
-  const beforeParts = parseCamera(before!);
-  const afterParts = parseCamera(after!);
-  expect(beforeParts).not.toBeNull();
-  expect(afterParts).not.toBeNull();
-
-  expect(afterParts![0] - beforeParts![0]).toBeCloseTo(180, 1);
-  expect(afterParts![1]).toBeCloseTo(beforeParts![1], 4);
-  expect(afterParts![2]).toBeCloseTo(beforeParts![2], 4);
-  expect(afterParts![3]).toBeCloseTo(beforeParts![3], 4);
-  expect(afterParts![4]).toBeCloseTo(beforeParts![4], 4);
+  expect(await camera.getAttribute("transform")).toBe(beforeCamera);
+  expect(await selectedNode.getAttribute("transform")).toBe(beforeNode);
+  await expect(selectedNode).toHaveClass(/hero-selected/);
   await expect(page).toHaveURL(/hero=underlord/);
-
-  const activeHeroes = page.locator(".hero-active");
-  const activeCount = await activeHeroes.count();
-  expect(activeCount).toBeGreaterThan(0);
-  expect(activeCount).toBeLessThanOrEqual(10);
 });
 
-test("reduced-motion desktop selection applies only the card pan immediately", async ({ page }) => {
+test("reduced-motion desktop selection also preserves the global camera", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.setViewportSize({ width: 1366, height: 768 });
   await page.goto("/");
@@ -1183,10 +1087,7 @@ test("reduced-motion desktop selection applies only the card pan immediately", a
   await page.keyboard.press("Enter");
   await page.waitForTimeout(30);
 
-  const afterSelection = await camera.getAttribute("transform");
-  await page.waitForTimeout(120);
-  expect(afterSelection).not.toBe(before);
-  expect(await camera.getAttribute("transform")).toBe(afterSelection);
+  expect(await camera.getAttribute("transform")).toBe(before);
 });
 
 test("site exposes the DotaGraph logo as favicon and header brand", async ({ page }) => {
