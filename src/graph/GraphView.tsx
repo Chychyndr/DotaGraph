@@ -383,21 +383,51 @@ export function GraphView({
 
   const layoutMinX = Math.min(...heroes.map((hero) => hero.x), 0);
   const layoutMaxX = Math.max(...heroes.map((hero) => hero.x), WIDTH);
+  const stableIncidentRelationships = new Map<
+    string,
+    MatchupRelationship[]
+  >();
+
+  for (const relationship of relationships) {
+    stableIncidentRelationships.set(relationship.sourceHeroId, [
+      ...(stableIncidentRelationships.get(relationship.sourceHeroId) ?? []),
+      relationship
+    ]);
+    stableIncidentRelationships.set(relationship.targetHeroId, [
+      ...(stableIncidentRelationships.get(relationship.targetHeroId) ?? []),
+      relationship
+    ]);
+  }
+
   const stableLabelNeighbors = new Map<string, Hero[]>();
+  for (const hero of heroes) {
+    const strongest = [
+      ...(stableIncidentRelationships.get(hero.id) ?? [])
+    ]
+      .sort(
+        (left, right) =>
+          (right.rankingScore ?? Number.NEGATIVE_INFINITY) -
+            (left.rankingScore ?? Number.NEGATIVE_INFINITY) ||
+          (right.baselineAdjustedDelta ?? Number.NEGATIVE_INFINITY) -
+            (left.baselineAdjustedDelta ?? Number.NEGATIVE_INFINITY) ||
+          right.sampleSize - left.sampleSize ||
+          left.id.localeCompare(right.id)
+      )
+      .slice(0, 12);
 
-  for (const relationship of overviewRelationships) {
-    const source = byId.get(relationship.sourceHeroId);
-    const target = byId.get(relationship.targetHeroId);
-    if (!source || !target) continue;
+    const seen = new Set<string>();
+    const neighbors = strongest.flatMap((relationship) => {
+      const neighborId =
+        relationship.sourceHeroId === hero.id
+          ? relationship.targetHeroId
+          : relationship.sourceHeroId;
+      if (seen.has(neighborId)) return [];
+      seen.add(neighborId);
+      const neighbor = byId.get(neighborId);
+      return neighbor ? [neighbor] : [];
+    });
 
-    stableLabelNeighbors.set(source.id, [
-      ...(stableLabelNeighbors.get(source.id) ?? []),
-      target
-    ]);
-    stableLabelNeighbors.set(target.id, [
-      ...(stableLabelNeighbors.get(target.id) ?? []),
-      source
-    ]);
+    stableLabelNeighbors.set(hero.id, neighbors);
   }
 
   const fixedLabelPlacements = new Map(
