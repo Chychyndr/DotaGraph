@@ -564,12 +564,10 @@ def generate(
         pairs,
         minimum_sample=CURRENT_SCOPE.minimum_sample,
     )
-    layout_candidates = rank_relationships(
-        pairs,
-        minimum_sample=CURRENT_SCOPE.minimum_sample,
-        confidence_z=0.0,
+    layout_relationships = _select_layout_relationships(
+        ranked,
+        neighbors_per_hero=CURRENT_SCOPE.max_visible_per_direction,
     )
-    layout_relationships = _select_layout_relationships(layout_candidates)
     layout_fallback_candidates = rank_relationships(
         pairs,
         minimum_sample=CURRENT_SCOPE.layout_fallback_minimum_sample,
