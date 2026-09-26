@@ -61,6 +61,8 @@ const HEIGHT = 760;
 const MIN_ZOOM = 0.55;
 const MAX_ZOOM = 2.4;
 const DRAG_THRESHOLD = 5;
+const BASE_NODE_RADIUS = 14;
+const HOVER_NODE_RADIUS = 20;
 const COMPACT_VIEWPORT_QUERY = "(max-width: 640px)";
 
 const clamp = (value: number, min: number, max: number) =>
@@ -335,10 +337,8 @@ export function GraphView({
   );
 
   const radiusFor = (heroId: string) => {
-    if (heroId === selectedHeroId) return 38;
-    if (activeIds.has(heroId)) return 22;
-    if (heroId === hoveredHeroId) return 20;
-    return 14;
+    if (heroId === hoveredHeroId && !selectedHeroId) return HOVER_NODE_RADIUS;
+    return BASE_NODE_RADIUS;
   };
 
   const edgeGeometry = (source: Hero, target: Hero) => {
@@ -347,8 +347,10 @@ export function GraphView({
     const length = Math.hypot(dx, dy) || 1;
     const ux = dx / length;
     const uy = dy / length;
-    const sourcePadding = radiusFor(source.id) + 5;
-    const targetPadding = radiusFor(target.id) + 9;
+    // Relationship geometry is part of the persistent global graph. Focus may
+    // change styling, but it must never shorten or move an existing edge.
+    const sourcePadding = BASE_NODE_RADIUS + 5;
+    const targetPadding = BASE_NODE_RADIUS + 9;
 
     return {
       x1: source.x + ux * sourcePadding,
@@ -486,8 +488,8 @@ export function GraphView({
           Math.abs(cos) * halfWidth +
           Math.abs(sin) * halfHeight;
         const centerOffset =
-          38 +
-          10 / stableLabelScale +
+          BASE_NODE_RADIUS +
+          9 / stableLabelScale +
           support;
         const x = hero.x + cos * centerOffset;
         const y = hero.y + sin * centerOffset;
