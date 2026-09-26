@@ -202,18 +202,15 @@ test("hover reveals local relationships without moving or replacing the overview
   await expect(page.locator('[data-hero-label="viper"]')).toBeVisible();
 });
 
-test("focus keeps the same graph and only highlights selected relationships", async ({ page }) => {
+test("focus keeps Overview as background and moves only active presentation heroes", async ({ page }) => {
   await page.goto("/");
   await expect(page.locator(".hero-node")).toHaveCount(127);
 
-  const overviewState = await page.evaluate(() => ({
-    nodes: [...document.querySelectorAll<SVGGElement>(".hero-node")]
-      .map((node) => [node.id, node.getAttribute("transform") ?? ""] as const)
-      .sort(([a], [b]) => a.localeCompare(b)),
-    edges: [...document.querySelectorAll<SVGElement>(".edges .edge")]
-      .map((edge) => `${edge.dataset.sourceHero}->${edge.dataset.targetHero}`)
-      .sort()
-  }));
+  const overviewNodes = await page.locator(".hero-node").evaluateAll(nodes =>
+    Object.fromEntries(
+      nodes.map(node => [node.id, node.getAttribute("transform") ?? ""])
+    )
+  );
 
   const search = page.getByRole("combobox", { name: "Search for a hero" });
   await search.fill("terrorblade");
@@ -222,20 +219,33 @@ test("focus keeps the same graph and only highlights selected relationships", as
   await page.waitForTimeout(520);
 
   const focusState = await page.evaluate(() => ({
-    nodes: [...document.querySelectorAll<SVGGElement>(".hero-node")]
-      .map((node) => [node.id, node.getAttribute("transform") ?? ""] as const)
-      .sort(([a], [b]) => a.localeCompare(b)),
-    edges: [...document.querySelectorAll<SVGLineElement>(".edges .edge")]
-      .map((edge) => `${edge.dataset.sourceHero}->${edge.dataset.targetHero}`)
-      .sort(),
+    nodes: [...document.querySelectorAll<SVGGElement>(".hero-node")].map(node => ({
+      id: node.id,
+      transform: node.getAttribute("transform") ?? "",
+      active:
+        node.classList.contains("hero-active") ||
+        node.classList.contains("hero-selected")
+    })),
     activeEdges: document.querySelectorAll(".edge-active").length,
     activeHeroes: document.querySelectorAll(".hero-active").length,
     dimmedHeroes: document.querySelectorAll(".hero-dimmed").length
   }));
 
-  expect(focusState.nodes).toEqual(overviewState.nodes);
   expect(focusState.nodes).toHaveLength(127);
-  for (const edge of overviewState.edges) expect(focusState.edges).toContain(edge);
+
+  let movedActive = 0;
+  for (const node of focusState.nodes) {
+    const overviewTransform = overviewNodes[node.id];
+    expect(overviewTransform).toBeDefined();
+
+    if (node.active) {
+      if (node.transform !== overviewTransform) movedActive += 1;
+    } else {
+      expect(node.transform, node.id).toBe(overviewTransform);
+    }
+  }
+
+  expect(movedActive).toBeGreaterThan(0);
   expect(focusState.activeEdges).toBeGreaterThan(0);
   expect(focusState.activeEdges).toBeLessThanOrEqual(10);
   expect(focusState.activeHeroes).toBeGreaterThan(0);
@@ -387,13 +397,21 @@ test("focused hero names stay clear of active relationship lines", async ({ page
       const segments = screenSegmentsFor(edge);
 
       for (const label of labels) {
+        const labelHero = label.dataset.heroLabel ?? "";
+        if (
+          labelHero === edge.dataset.sourceHero ||
+          labelHero === edge.dataset.targetHero
+        ) {
+          continue;
+        }
+
         const rect = label.getBoundingClientRect();
         if (
           segments.some(({ start, end }) =>
             segmentIntersectsRect(start, end, rect)
           )
         ) {
-          result.push(`${edge.dataset.sourceHero}->${edge.dataset.targetHero} crosses ${label.dataset.heroLabel}`);
+          result.push(`${edge.dataset.sourceHero}->${edge.dataset.targetHero} crosses ${labelHero}`);
         }
       }
     }
@@ -431,15 +449,9 @@ test("focused win-rate labels stay source-anchored and do not overlap", async ({
     const leader = entry.locator(".edge-label-leader");
 
     expect(Number.isFinite(t)).toBe(true);
-    if (external === "true") {
-      await expect(leader).toHaveCount(1);
-      expect(await leader.boundingBox()).not.toBeNull();
-      expect(t < 0 || t > 1).toBe(true);
-    } else {
-      await expect(leader).toHaveCount(0);
-      expect(t).toBeGreaterThanOrEqual(0.12);
-      expect(t).toBeLessThanOrEqual(0.88);
-    }
+    expect(external).toBe("false");
+    await expect(leader).toHaveCount(0);
+    expect(t).toBeCloseTo(0.52, 3);
 
     const box = await label.boundingBox();
     expect(box).not.toBeNull();
@@ -667,26 +679,13 @@ test("focus win-rate badges stay attached to rendered relationship paths", async
     expect(geometry.rows.length).toBeGreaterThan(0);
     for (const row of geometry.rows) {
       expect(row.offset).toBe(0);
-      if (row.external) {
-        expect(row.leaderExists).toBe(true);
-        expect(
-          row.t < 0 || row.t > 1,
-          `${heroId}: ${row.source}->${row.target}`
-        ).toBe(true);
-        expect(
-          row.leaderLineDistance,
-          `${heroId}: ${row.source}->${row.target} leader left the relationship continuation`
-        ).toBeLessThan(1.25);
-        expect(
-          row.leaderLength,
-          `${heroId}: ${row.source}->${row.target} leader became too long`
-        ).toBeLessThanOrEqual(160);
-      } else {
-        expect(
-          row.distanceToRoute,
-          `${heroId}: ${row.source}->${row.target}`
-        ).toBeLessThan(1.25);
-      }
+      expect(row.external, `${heroId}: ${row.source}->${row.target}`).toBe(false);
+      expect(row.leaderExists).toBe(false);
+      expect(row.t).toBeCloseTo(0.52, 3);
+      expect(
+        row.distanceToRoute,
+        `${heroId}: ${row.source}->${row.target}`
+      ).toBeLessThan(1.25);
       expect(row.overlapsPortrait).toBe(false);
     }
   }
@@ -1128,65 +1127,44 @@ test("mouse wheel zooms the graph", async ({ page }) => {
     .not.toBe(before);
 });
 
-test("desktop hero selection only pans the existing overview camera for the card", async ({ page }) => {
-  await page.setViewportSize({ width: 1366, height: 768 });
-  await page.goto("/");
-
-  const camera = page.locator(".graph-camera");
-  const search = page.getByRole("combobox", { name: "Search for a hero" });
-  const before = await camera.getAttribute("transform");
-
-  await search.fill("underlord");
-  await page.getByRole("option", { name: /Underlord/ }).click();
-  await page.waitForTimeout(520);
-
-  const after = await camera.getAttribute("transform");
-  expect(before).not.toBeNull();
-  expect(after).not.toBeNull();
-
-  const parseCamera = (transform: string) => {
-    const match = transform.match(
-      /translate\(([-\d.]+) ([-\d.]+)\) scale\(([-\d.]+)\) translate\(([-\d.]+) ([-\d.]+)\)/
-    );
-    if (!match) return null;
-    return match.slice(1).map(Number);
-  };
-
-  const beforeParts = parseCamera(before!);
-  const afterParts = parseCamera(after!);
-  expect(beforeParts).not.toBeNull();
-  expect(afterParts).not.toBeNull();
-
-  expect(afterParts![0] - beforeParts![0]).toBeCloseTo(180, 1);
-  expect(afterParts![1]).toBeCloseTo(beforeParts![1], 4);
-  expect(afterParts![2]).toBeCloseTo(beforeParts![2], 4);
-  expect(afterParts![3]).toBeCloseTo(beforeParts![3], 4);
-  expect(afterParts![4]).toBeCloseTo(beforeParts![4], 4);
-  await expect(page).toHaveURL(/hero=underlord/);
-
-  const activeHeroes = page.locator(".hero-active");
-  const activeCount = await activeHeroes.count();
-  expect(activeCount).toBeGreaterThan(0);
-  expect(activeCount).toBeLessThanOrEqual(10);
-});
-
-test("reduced-motion desktop selection applies only the card pan immediately", async ({ page }) => {
+test("desktop selection uses the dedicated Focus presentation coordinates", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.setViewportSize({ width: 1366, height: 768 });
   await page.goto("/");
 
-  const camera = page.locator(".graph-camera");
-  const before = await camera.getAttribute("transform");
+  const selected = page.locator("#graph-hero-underlord");
+  const overviewTransform = await selected.getAttribute("transform");
+
+  const search = page.getByRole("combobox", { name: "Search for a hero" });
+  await search.fill("underlord");
+  await page.getByRole("option", { name: /Underlord/ }).click();
+  await expect(page).toHaveURL(/hero=underlord/);
+
+  await expect(selected).toHaveClass(/hero-selected/);
+  await expect(selected).toHaveAttribute("transform", "translate(690 380)");
+  expect(await selected.getAttribute("transform")).not.toBe(overviewTransform);
+
+  await expect(page.locator(".graph-camera")).toHaveAttribute(
+    "transform",
+    "translate(600 380) scale(1) translate(-600 -380)"
+  );
+});
+
+test("reduced-motion Focus presentation settles immediately", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.setViewportSize({ width: 1366, height: 768 });
+  await page.goto("/");
 
   const search = page.getByRole("combobox", { name: "Search for a hero" });
   await search.fill("underlord");
   await page.keyboard.press("Enter");
-  await page.waitForTimeout(30);
 
-  const afterSelection = await camera.getAttribute("transform");
+  const selected = page.locator("#graph-hero-underlord");
+  await expect(selected).toHaveAttribute("transform", "translate(690 380)");
+  const afterSelection = await selected.getAttribute("transform");
+
   await page.waitForTimeout(120);
-  expect(afterSelection).not.toBe(before);
-  expect(await camera.getAttribute("transform")).toBe(afterSelection);
+  expect(await selected.getAttribute("transform")).toBe(afterSelection);
 });
 
 test("site exposes the DotaGraph logo as favicon and header brand", async ({ page }) => {
