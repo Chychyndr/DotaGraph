@@ -489,8 +489,8 @@ export function GraphView({
         heroId: hero.id,
         x: placement.x,
         y: placement.y,
-        halfWidth: labelWidthFor(hero) / (2 * graphScale) + 5 / graphScale,
-        halfHeight: 10 / graphScale + 5 / graphScale
+        halfWidth: labelWidthFor(hero) / (2 * graphScale) + 12 / graphScale,
+        halfHeight: 10 / graphScale + 8 / graphScale
       }];
     });
 
