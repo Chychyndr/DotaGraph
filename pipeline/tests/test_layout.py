@@ -104,6 +104,54 @@ class LayoutTests(unittest.TestCase):
         self.assertGreaterEqual(metrics["minimumNodeDistance"], 39.8)
         self.assertLessEqual(metrics["maxNearestNodeDistance"], 70.1)
 
+    def test_relationship_segments_keep_clear_of_foreign_portraits(self) -> None:
+        nodes = ["a", "b", "c", "d", "e", "f"]
+        edges = [
+            WeightedEdge("a", "b", 1.0),
+            WeightedEdge("c", "d", 0.9),
+            WeightedEdge("e", "f", 0.8),
+            WeightedEdge("a", "c", 0.7),
+            WeightedEdge("b", "e", 0.7),
+        ]
+        positions = compute_layout(
+            nodes,
+            edges,
+            width=800,
+            height=520,
+            min_distance=52,
+            iterations=240,
+        )
+
+        for edge in edges:
+            start = positions[edge.source]
+            end = positions[edge.target]
+            segment_x = end[0] - start[0]
+            segment_y = end[1] - start[1]
+            segment_length_sq = segment_x * segment_x + segment_y * segment_y
+            if segment_length_sq <= 1e-8:
+                continue
+
+            for node_id, point in positions.items():
+                if node_id in (edge.source, edge.target):
+                    continue
+
+                projection = (
+                    (point[0] - start[0]) * segment_x
+                    + (point[1] - start[1]) * segment_y
+                ) / segment_length_sq
+                if projection <= 0.08 or projection >= 0.92:
+                    continue
+
+                closest = (
+                    start[0] + segment_x * projection,
+                    start[1] + segment_y * projection,
+                )
+                self.assertGreaterEqual(
+                    math.hypot(point[0] - closest[0], point[1] - closest[1]),
+                    7.5,
+                    f"{edge.source}->{edge.target} crosses {node_id}",
+                )
+
     def test_spread_layout_uses_more_canvas_without_changing_topology(self) -> None:
         positions = {
             "left": (100.0, 200.0),
@@ -122,12 +170,12 @@ class LayoutTests(unittest.TestCase):
         )
 
         self.assertGreater(after, before)
-        self.assertAlmostEqual(spread["center"][0], 600.0, places=2)
-        self.assertAlmostEqual(spread["center"][1], 380.0, places=2)
-        self.assertGreaterEqual(min(x for x, _ in spread.values()), 24.0)
-        self.assertLessEqual(max(x for x, _ in spread.values()), 1176.0)
-        self.assertGreaterEqual(min(y for _, y in spread.values()), 24.0)
-        self.assertLessEqual(max(y for _, y in spread.values()), 736.0)
+        self.assertAlmostEqual(spread["center"][0], 950.0, places=2)
+        self.assertAlmostEqual(spread["center"][1], 590.0, places=2)
+        self.assertGreaterEqual(min(x for x, _ in spread.values()), 60.0)
+        self.assertLessEqual(max(x for x, _ in spread.values()), 1840.0)
+        self.assertGreaterEqual(min(y for _, y in spread.values()), 60.0)
+        self.assertLessEqual(max(y for _, y in spread.values()), 1120.0)
 
     def test_spread_layout_preserves_relative_angles(self) -> None:
         positions = {

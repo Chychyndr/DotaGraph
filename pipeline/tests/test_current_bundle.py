@@ -155,6 +155,45 @@ class CurrentBundleTests(unittest.TestCase):
         )
         self.assertLessEqual(len(selected), len(covered))
 
+    def test_layout_selection_matches_focus_incoming_and_outgoing_limits(self) -> None:
+        def relationship(
+            source: str,
+            target: str,
+            score: float,
+        ) -> RankedRelationship:
+            return RankedRelationship(
+                source=source,
+                target=target,
+                source_win_rate=0.55,
+                sample_size=1000,
+                source_baseline=0.5,
+                target_baseline=0.5,
+                expected_win_rate=0.5,
+                baseline_adjusted_delta=score,
+                standard_error=0.01,
+                ranking_score=score,
+            )
+
+        ranked = [
+            relationship("center", "a", 0.90),
+            relationship("center", "b", 0.80),
+            relationship("x", "center", 0.70),
+            relationship("y", "center", 0.60),
+            # Keep the lower center relationships from being rescued by their
+            # opposite endpoint when the per-direction limit is one.
+            relationship("c", "b", 0.95),
+            relationship("y", "d", 0.95),
+            relationship("x", "e", 0.95),
+        ]
+
+        selected = _select_layout_relationships(ranked, neighbors_per_hero=1)
+        pairs = {(item.source, item.target) for item in selected}
+
+        self.assertIn(("center", "a"), pairs)
+        self.assertIn(("x", "center"), pairs)
+        self.assertNotIn(("center", "b"), pairs)
+        self.assertNotIn(("y", "center"), pairs)
+
     def test_layout_fallback_anchors_rare_hero(self) -> None:
         def relationship(source: str, target: str, delta: float) -> RankedRelationship:
             return RankedRelationship(
@@ -205,9 +244,9 @@ class CurrentBundleTests(unittest.TestCase):
 
         self.assertEqual(metrics["coveredNodeCount"], 127)
         self.assertEqual(metrics["isolatedNodeCount"], 0)
-        self.assertGreaterEqual(metrics["minimumNodeDistance"], 67.0)
-        self.assertGreaterEqual(metrics["medianNearestNodeDistance"], 67.0)
-        self.assertLessEqual(metrics["maxNearestNodeDistance"], 96.0)
+        self.assertGreaterEqual(metrics["minimumNodeDistance"], 84.0)
+        self.assertGreaterEqual(metrics["medianNearestNodeDistance"], 84.0)
+        self.assertLessEqual(metrics["maxNearestNodeDistance"], 165.0)
 
     def test_generate_emits_741f_production_contract(self) -> None:
         repo_root = Path(__file__).resolve().parents[2]

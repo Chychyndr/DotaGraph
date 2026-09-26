@@ -37,19 +37,19 @@
     "rawPairCount": 8001,
     "qualifyingPairCount": 7413,
     "rankedRelationshipCount": 4034,
-    "layoutRelationshipCount": 477,
+    "layoutRelationshipCount": 1029,
     "immortalEvidenceCount": 0
   },
   "layoutMetrics": {
-    "edgeCount": 477,
-    "medianDistance": 260.24,
-    "p90Distance": 437.43,
-    "p95Distance": 482.24,
-    "maxDistance": 700.79,
-    "weightedMeanDistance": 226.1,
-    "minimumNodeDistance": 67.73,
-    "medianNearestNodeDistance": 67.78,
-    "maxNearestNodeDistance": 102.77,
+    "edgeCount": 1029,
+    "medianDistance": 376.22,
+    "p90Distance": 600.12,
+    "p95Distance": 671.97,
+    "maxDistance": 984.81,
+    "weightedMeanDistance": 301.23,
+    "minimumNodeDistance": 87,
+    "medianNearestNodeDistance": 87.05,
+    "maxNearestNodeDistance": 130.27,
     "coveredNodeCount": 127,
     "isolatedNodeCount": 0
   },
@@ -52818,7 +52818,7 @@
       "expectedWinRate": 0.5109304100827312,
       "baselineAdjustedDelta": 0.012833392125622178,
       "standardError": 0.0077551707525993375,
-      "rankingScore": 7.613623759626827e-05,
+      "rankingScore": 0.00007613623759626827,
       "source": "OpenDota"
     },
     {
@@ -52831,7 +52831,7 @@
       "expectedWinRate": 0.5164873364465815,
       "baselineAdjustedDelta": 0.014915201789669708,
       "standardError": 0.009021281717788498,
-      "rankingScore": 7.519336390762917e-05,
+      "rankingScore": 0.00007519336390762917,
       "source": "OpenDota"
     },
     {
@@ -52844,7 +52844,7 @@
       "expectedWinRate": 0.49297780525007917,
       "baselineAdjustedDelta": 0.018307768842168115,
       "standardError": 0.01108951560365034,
-      "rankingScore": 6.551567416330714e-05,
+      "rankingScore": 0.00006551567416330714,
       "source": "OpenDota"
     },
     {
@@ -52857,7 +52857,7 @@
       "expectedWinRate": 0.4942792163699795,
       "baselineAdjustedDelta": 0.01164495424613421,
       "standardError": 0.007040154531792671,
-      "rankingScore": 6.390004133526549e-05,
+      "rankingScore": 0.00006390004133526549,
       "source": "OpenDota"
     },
     {
@@ -52870,7 +52870,7 @@
       "expectedWinRate": 0.5138360059528522,
       "baselineAdjustedDelta": 0.02254809007115388,
       "standardError": 0.013673291238421124,
-      "rankingScore": 5.552598395113309e-05,
+      "rankingScore": 0.00005552598395113309,
       "source": "OpenDota"
     },
     {
@@ -52883,7 +52883,7 @@
       "expectedWinRate": 0.49499236538270414,
       "baselineAdjustedDelta": 0.021243552443670988,
       "standardError": 0.012883024864976635,
-      "rankingScore": 5.09765407844219e-05,
+      "rankingScore": 0.0000509765407844219,
       "source": "OpenDota"
     },
     {
@@ -52896,7 +52896,7 @@
       "expectedWinRate": 0.482981714648913,
       "baselineAdjustedDelta": 0.023511791844593455,
       "standardError": 0.014261950395603643,
-      "rankingScore": 5.088344382546406e-05,
+      "rankingScore": 0.00005088344382546406,
       "source": "OpenDota"
     },
     {
@@ -52909,7 +52909,7 @@
       "expectedWinRate": 0.5103294337188352,
       "baselineAdjustedDelta": 0.00963807677256856,
       "standardError": 0.0058299705760512174,
-      "rankingScore": 4.777517496430683e-05,
+      "rankingScore": 0.00004777517496430683,
       "source": "OpenDota"
     },
     {
@@ -52922,7 +52922,7 @@
       "expectedWinRate": 0.5158093796799506,
       "baselineAdjustedDelta": 0.007563672565695678,
       "standardError": 0.004574615417444346,
-      "rankingScore": 3.8430203999728456e-05,
+      "rankingScore": 0.000038430203999728456,
       "source": "OpenDota"
     },
     {
@@ -52935,7 +52935,7 @@
       "expectedWinRate": 0.4900021174279341,
       "baselineAdjustedDelta": 0.009359312967979094,
       "standardError": 0.005672021218344027,
-      "rankingScore": 2.8838063803169126e-05,
+      "rankingScore": 0.000028838063803169126,
       "source": "OpenDota"
     },
     {
@@ -52948,7 +52948,7 @@
       "expectedWinRate": 0.5169668696323357,
       "baselineAdjustedDelta": 0.015918033207724003,
       "standardError": 0.009659941413501332,
-      "rankingScore": 2.7429582514310047e-05,
+      "rankingScore": 0.000027429582514310047,
       "source": "OpenDota"
     },
     {
@@ -52961,7 +52961,7 @@
       "expectedWinRate": 0.4955932452634593,
       "baselineAdjustedDelta": 0.010254707952914999,
       "standardError": 0.006217326298093627,
-      "rankingScore": 2.720619255098221e-05,
+      "rankingScore": 0.00002720619255098221,
       "source": "OpenDota"
     },
     {
@@ -52974,7 +52974,7 @@
       "expectedWinRate": 0.5261683146517802,
       "baselineAdjustedDelta": 0.01794231958760939,
       "standardError": 0.010890791981147658,
-      "rankingScore": 2.6966778621493465e-05,
+      "rankingScore": 0.000026966778621493465,
       "source": "OpenDota"
     },
     {
@@ -52987,7 +52987,7 @@
       "expectedWinRate": 0.5080449693245718,
       "baselineAdjustedDelta": 0.016245741907453093,
       "standardError": 0.009860445865274209,
-      "rankingScore": 2.5308459077017648e-05,
+      "rankingScore": 0.000025308459077017648,
       "source": "OpenDota"
     },
     {
@@ -53000,7 +53000,7 @@
       "expectedWinRate": 0.49193631773254964,
       "baselineAdjustedDelta": 0.020802535770635067,
       "standardError": 0.01263091544792755,
-      "rankingScore": 2.4679858794247195e-05,
+      "rankingScore": 0.000024679858794247195,
       "source": "OpenDota"
     },
     {
@@ -53013,7 +53013,7 @@
       "expectedWinRate": 0.5128472190812419,
       "baselineAdjustedDelta": 0.008774097391604452,
       "standardError": 0.00532278878037589,
-      "rankingScore": 1.8109847886112543e-05,
+      "rankingScore": 0.000018109847886112543,
       "source": "OpenDota"
     },
     {
@@ -53026,7 +53026,7 @@
       "expectedWinRate": 0.5021244425923934,
       "baselineAdjustedDelta": 0.010334419654903226,
       "standardError": 0.00627254757496185,
-      "rankingScore": 1.6078894090982773e-05,
+      "rankingScore": 0.000016078894090982773,
       "source": "OpenDota"
     },
     {
@@ -53039,7 +53039,7 @@
       "expectedWinRate": 0.5046566078854552,
       "baselineAdjustedDelta": 0.02612038505097264,
       "standardError": 0.015870016215339792,
-      "rankingScore": 1.4208376738680112e-05,
+      "rankingScore": 0.000014208376738680112,
       "source": "OpenDota"
     },
     {
@@ -53052,7 +53052,7 @@
       "expectedWinRate": 0.5052601443094056,
       "baselineAdjustedDelta": 0.010690157906846909,
       "standardError": 0.006490086050238014,
-      "rankingScore": 1.3966354205375772e-05,
+      "rankingScore": 0.000013966354205375772,
       "source": "OpenDota"
     },
     {
@@ -53065,7 +53065,7 @@
       "expectedWinRate": 0.5171241176831052,
       "baselineAdjustedDelta": 0.009046018281279378,
       "standardError": 0.005492476219606367,
-      "rankingScore": 1.089490002690284e-05,
+      "rankingScore": 0.00001089490002690284,
       "source": "OpenDota"
     },
     {
@@ -53078,7 +53078,7 @@
       "expectedWinRate": 0.5038455601340703,
       "baselineAdjustedDelta": 0.01913983737809838,
       "standardError": 0.011629843868234907,
-      "rankingScore": 8.744214851957172e-06,
+      "rankingScore": 0.000008744214851957172,
       "source": "OpenDota"
     },
     {
@@ -53091,7 +53091,7 @@
       "expectedWinRate": 0.501833980038845,
       "baselineAdjustedDelta": 0.009850260485520845,
       "standardError": 0.005985016856056862,
-      "rankingScore": 4.907757307307317e-06,
+      "rankingScore": 0.000004907757307307317,
       "source": "OpenDota"
     },
     {
@@ -53104,7 +53104,7 @@
       "expectedWinRate": 0.5095831066296412,
       "baselineAdjustedDelta": 0.011596624170042091,
       "standardError": 0.007047533250273641,
-      "rankingScore": 3.4319733419520965e-06,
+      "rankingScore": 0.0000034319733419520965,
       "source": "OpenDota"
     },
     {
@@ -53117,7 +53117,7 @@
       "expectedWinRate": 0.5159214425691039,
       "baselineAdjustedDelta": 0.006854382666923953,
       "standardError": 0.0041647963078576405,
-      "rankingScore": 3.292740498133523e-06,
+      "rankingScore": 0.000003292740498133523,
       "source": "OpenDota"
     },
     {
@@ -53130,519 +53130,519 @@
       "expectedWinRate": 0.5005287084627564,
       "baselineAdjustedDelta": 0.016842576593752545,
       "standardError": 0.01023813057050622,
-      "rankingScore": 8.518052698122669e-07,
+      "rankingScore": 8.518052698122669e-7,
       "source": "OpenDota"
     }
   ],
   "evidenceObservations": [],
   "positions": {
     "abaddon": {
-      "x": 251.38,
-      "y": 274.59
+      "x": 1408.3,
+      "y": 412.98
     },
     "abyssal_underlord": {
-      "x": 60.74,
-      "y": 308.74
+      "x": 1323.93,
+      "y": 674.95
     },
     "alchemist": {
-      "x": 840.65,
-      "y": 148.54
+      "x": 1241.34,
+      "y": 1000.9
     },
     "ancient_apparition": {
-      "x": 857.99,
-      "y": 83.0
+      "x": 740.44,
+      "y": 360.97
     },
     "antimage": {
-      "x": 454.34,
-      "y": 284.14
+      "x": 966.1,
+      "y": 797.29
     },
     "arc_warden": {
-      "x": 429.47,
-      "y": 483.05
+      "x": 830.43,
+      "y": 663.56
     },
     "axe": {
-      "x": 235.4,
-      "y": 340.46
+      "x": 1222.5,
+      "y": 811.94
     },
     "bane": {
-      "x": 432.26,
-      "y": 550.85
+      "x": 1431.12,
+      "y": 589.07
     },
     "batrider": {
-      "x": 290.29,
-      "y": 380.15
+      "x": 1581.69,
+      "y": 867.84
     },
     "beastmaster": {
-      "x": 355.55,
-      "y": 107.88
+      "x": 1194.45,
+      "y": 555.23
     },
     "bloodseeker": {
-      "x": 268.52,
-      "y": 557.07
+      "x": 1280.41,
+      "y": 530.85
     },
     "bounty_hunter": {
-      "x": 391.07,
-      "y": 308.36
+      "x": 818.23,
+      "y": 489.89
     },
     "brewmaster": {
-      "x": 478.93,
-      "y": 189.51
+      "x": 1052.73,
+      "y": 447.62
     },
     "bristleback": {
-      "x": 569.47,
-      "y": 361.98
+      "x": 995.35,
+      "y": 911.26
     },
     "broodmother": {
-      "x": 98.77,
-      "y": 432.16
+      "x": 1441.87,
+      "y": 946.97
     },
     "centaur": {
-      "x": 490.7,
-      "y": 587.18
+      "x": 1224.63,
+      "y": 382.94
     },
     "chaos_knight": {
-      "x": 543.98,
-      "y": 211.86
+      "x": 816.1,
+      "y": 314.19
     },
     "chen": {
-      "x": 81.05,
-      "y": 104.46
+      "x": 354.54,
+      "y": 256.97
     },
     "clinkz": {
-      "x": 492.33,
-      "y": 519.4
+      "x": 421.29,
+      "y": 444.47
     },
     "crystal_maiden": {
-      "x": 458.94,
-      "y": 421.97
+      "x": 1511.7,
+      "y": 816.12
     },
     "dark_seer": {
-      "x": 597.51,
-      "y": 165.52
+      "x": 743.5,
+      "y": 536.54
     },
     "dark_willow": {
-      "x": 1046.83,
-      "y": 587.36
+      "x": 1452.69,
+      "y": 491.06
     },
     "dawnbreaker": {
-      "x": 346.66,
-      "y": 257.06
+      "x": 1260.07,
+      "y": 615.59
     },
     "dazzle": {
-      "x": 219.66,
-      "y": 214.7
+      "x": 1303.47,
+      "y": 446.85
     },
     "death_prophet": {
-      "x": 180.89,
-      "y": 598.14
+      "x": 1237.33,
+      "y": 296.81
     },
     "disruptor": {
-      "x": 935.67,
-      "y": 530.95
+      "x": 1238.85,
+      "y": 897.5
     },
     "doom_bringer": {
-      "x": 755.66,
-      "y": 699.35
+      "x": 761.7,
+      "y": 975.95
     },
     "dragon_knight": {
-      "x": 860.43,
-      "y": 663.73
+      "x": 978.66,
+      "y": 494.01
     },
     "drow_ranger": {
-      "x": 868.17,
-      "y": 543.96
+      "x": 984.18,
+      "y": 581.06
     },
     "earth_spirit": {
-      "x": 1140.68,
-      "y": 484.37
+      "x": 970.75,
+      "y": 319.83
     },
     "earthshaker": {
-      "x": 171.19,
-      "y": 318.73
+      "x": 1154.8,
+      "y": 866.68
     },
     "elder_titan": {
-      "x": 1039.32,
-      "y": 431.66
+      "x": 1352.34,
+      "y": 280.49
     },
     "ember_spirit": {
-      "x": 790.38,
-      "y": 265.89
+      "x": 680.11,
+      "y": 848.54
     },
     "enchantress": {
-      "x": 836.36,
-      "y": 216.13
+      "x": 604.54,
+      "y": 805.29
     },
     "enigma": {
-      "x": 881.99,
-      "y": 411.93
+      "x": 1344,
+      "y": 590.25
     },
     "faceless_void": {
-      "x": 189.34,
-      "y": 468.15
+      "x": 468.87,
+      "y": 517.67
     },
     "furion": {
-      "x": 753.71,
-      "y": 323.08
+      "x": 1018.78,
+      "y": 660.96
     },
     "grimstroke": {
-      "x": 593.4,
-      "y": 688.93
+      "x": 627.3,
+      "y": 1000.9
     },
     "gyrocopter": {
-      "x": 119.08,
-      "y": 367.01
+      "x": 655.89,
+      "y": 340.37
     },
     "hoodwink": {
-      "x": 24.0,
-      "y": 391.94
+      "x": 1305.19,
+      "y": 839.15
     },
     "huskar": {
-      "x": 821.47,
-      "y": 326.2
+      "x": 905.52,
+      "y": 542.84
     },
     "invoker": {
-      "x": 500.29,
-      "y": 47.28
+      "x": 561.54,
+      "y": 343.16
     },
     "jakiro": {
-      "x": 1126.96,
-      "y": 415.15
+      "x": 1609.3,
+      "y": 552.03
     },
     "juggernaut": {
-      "x": 203.95,
-      "y": 534.31
+      "x": 1057.77,
+      "y": 534.54
     },
     "keeper_of_the_light": {
-      "x": 936.62,
-      "y": 138.55
+      "x": 521.68,
+      "y": 589
     },
     "kez": {
-      "x": 719.61,
-      "y": 381.64
+      "x": 974.17,
+      "y": 407.07
     },
     "kunkka": {
-      "x": 468.04,
-      "y": 118.9
+      "x": 497.32,
+      "y": 402.05
     },
     "largo": {
-      "x": 787.47,
-      "y": 106.56
+      "x": 548.77,
+      "y": 963.36
     },
     "legion_commander": {
-      "x": 940.17,
-      "y": 302.65
+      "x": 1125.76,
+      "y": 784.61
     },
     "leshrac": {
-      "x": 317.36,
-      "y": 195.93
+      "x": 346.92,
+      "y": 762.17
     },
     "lich": {
-      "x": 925.87,
-      "y": 598.09
+      "x": 1151.14,
+      "y": 232.64
     },
     "life_stealer": {
-      "x": 246.77,
-      "y": 432.13
+      "x": 898.33,
+      "y": 455.66
     },
     "lina": {
-      "x": 249.73,
-      "y": 93.11
+      "x": 468.63,
+      "y": 319.85
     },
     "lion": {
-      "x": 994.13,
-      "y": 482.31
+      "x": 896.5,
+      "y": 367.79
     },
     "lone_druid": {
-      "x": 154.5,
-      "y": 176.34
+      "x": 1076.32,
+      "y": 278.15
     },
     "luna": {
-      "x": 259.81,
-      "y": 160.11
+      "x": 437.49,
+      "y": 719.3
     },
     "lycan": {
-      "x": 685.55,
-      "y": 469.25
+      "x": 1153.17,
+      "y": 319.67
     },
     "magnataur": {
-      "x": 1067.62,
-      "y": 360.2
+      "x": 1548.55,
+      "y": 731.01
     },
     "marci": {
-      "x": 945.72,
-      "y": 434.89
+      "x": 927.27,
+      "y": 972.04
     },
     "mars": {
-      "x": 576.06,
-      "y": 623.33
+      "x": 1218.37,
+      "y": 469.8
     },
     "medusa": {
-      "x": 730.62,
-      "y": 143.47
+      "x": 522.6,
+      "y": 766.45
     },
     "meepo": {
-      "x": 526.28,
-      "y": 414.23
+      "x": 675.9,
+      "y": 674.65
     },
     "mirana": {
-      "x": 918.4,
-      "y": 203.84
+      "x": 1127.46,
+      "y": 402.81
     },
     "monkey_king": {
-      "x": 727.19,
-      "y": 57.07
-    },
-    "morphling": {
-      "x": 411.45,
-      "y": 69.41
-    },
-    "muerta": {
-      "x": 608.6,
-      "y": 232.36
-    },
-    "naga_siren": {
-      "x": 996.84,
-      "y": 665.83
-    },
-    "necrolyte": {
-      "x": 662.97,
-      "y": 147.67
-    },
-    "nevermore": {
-      "x": 634.72,
-      "y": 343.71
-    },
-    "night_stalker": {
-      "x": 417.37,
-      "y": 616.94
-    },
-    "nyx_assassin": {
-      "x": 580.6,
-      "y": 99.86
-    },
-    "obsidian_destroyer": {
-      "x": 521.59,
-      "y": 275.86
-    },
-    "ogre_magi": {
-      "x": 324.74,
-      "y": 438.51
-    },
-    "omniknight": {
-      "x": 1065.8,
-      "y": 522.21
-    },
-    "oracle": {
-      "x": 312.34,
-      "y": 315.54
-    },
-    "pangolier": {
-      "x": 311.46,
-      "y": 685.73
-    },
-    "phantom_assassin": {
-      "x": 888.71,
-      "y": 479.34
-    },
-    "phantom_lancer": {
-      "x": 438.51,
-      "y": 357.32
-    },
-    "phoenix": {
-      "x": 884.89,
-      "y": 263.49
-    },
-    "primal_beast": {
-      "x": 351.07,
-      "y": 563.64
-    },
-    "puck": {
-      "x": 652.82,
-      "y": 721.62
-    },
-    "pudge": {
-      "x": 1097.83,
-      "y": 281.64
-    },
-    "pugna": {
-      "x": 886.74,
-      "y": 344.31
-    },
-    "queenofpain": {
-      "x": 380.37,
-      "y": 170.95
-    },
-    "rattletrap": {
-      "x": 530.42,
-      "y": 145.43
-    },
-    "razor": {
-      "x": 504.37,
-      "y": 341.38
-    },
-    "riki": {
-      "x": 474.77,
-      "y": 653.02
-    },
-    "ringmaster": {
-      "x": 404.99,
-      "y": 695.56
-    },
-    "rubick": {
-      "x": 48.07,
-      "y": 242.07
-    },
-    "sand_king": {
-      "x": 391.16,
-      "y": 425.2
-    },
-    "shadow_demon": {
-      "x": 693.94,
-      "y": 596.44
-    },
-    "shadow_shaman": {
-      "x": 809.64,
-      "y": 509.82
-    },
-    "shredder": {
-      "x": 546.64,
-      "y": 478.88
-    },
-    "silencer": {
-      "x": 281.17,
-      "y": 490.53
-    },
-    "skeleton_king": {
-      "x": 750.69,
-      "y": 441.83
-    },
-    "skywrath_mage": {
-      "x": 832.79,
-      "y": 601.76
-    },
-    "slardar": {
-      "x": 188.45,
-      "y": 397.46
-    },
-    "slark": {
-      "x": 962.44,
-      "y": 369.12
-    },
-    "snapfire": {
-      "x": 774.25,
-      "y": 567.63
-    },
-    "sniper": {
-      "x": 363.07,
-      "y": 496.85
-    },
-    "spectre": {
-      "x": 590.82,
-      "y": 557.17
-    },
-    "spirit_breaker": {
-      "x": 155.49,
-      "y": 252.76
-    },
-    "storm_spirit": {
-      "x": 658.2,
-      "y": 654.03
-    },
-    "sven": {
-      "x": 421.19,
-      "y": 225.02
-    },
-    "techies": {
-      "x": 1007.08,
-      "y": 313.92
-    },
-    "templar_assassin": {
-      "x": 657.06,
-      "y": 407.74
-    },
-    "terrorblade": {
-      "x": 657.12,
-      "y": 279.75
-    },
-    "tidehunter": {
-      "x": 1176.0,
-      "y": 340.78
-    },
-    "tinker": {
-      "x": 740.48,
-      "y": 508.91
-    },
-    "tiny": {
-      "x": 356.79,
-      "y": 366.8
-    },
-    "treant": {
-      "x": 821.77,
-      "y": 443.11
-    },
-    "troll_warlord": {
-      "x": 592.56,
-      "y": 428.44
-    },
-    "tusk": {
-      "x": 1036.04,
-      "y": 186.05
-    },
-    "undying": {
-      "x": 722.7,
-      "y": 262.72
-    },
-    "ursa": {
-      "x": 586.27,
-      "y": 296.31
-    },
-    "vengefulspirit": {
-      "x": 675.06,
-      "y": 214.37
-    },
-    "venomancer": {
-      "x": 289.87,
-      "y": 621.47
-    },
-    "viper": {
-      "x": 758.58,
-      "y": 205.24
-    },
-    "visage": {
-      "x": 787.31,
-      "y": 384.79
-    },
-    "void_spirit": {
-      "x": 751.84,
+      "x": 597.52,
       "y": 631.68
     },
+    "morphling": {
+      "x": 845.2,
+      "y": 1000.9
+    },
+    "muerta": {
+      "x": 609.84,
+      "y": 266.45
+    },
+    "naga_siren": {
+      "x": 1424.94,
+      "y": 823.82
+    },
+    "necrolyte": {
+      "x": 611.05,
+      "y": 414.95
+    },
+    "nevermore": {
+      "x": 948.16,
+      "y": 712.04
+    },
+    "night_stalker": {
+      "x": 918.28,
+      "y": 870.74
+    },
+    "nyx_assassin": {
+      "x": 750.49,
+      "y": 627.57
+    },
+    "obsidian_destroyer": {
+      "x": 1111.05,
+      "y": 698.8
+    },
+    "ogre_magi": {
+      "x": 1082.32,
+      "y": 914.99
+    },
+    "omniknight": {
+      "x": 933.87,
+      "y": 179.1
+    },
+    "oracle": {
+      "x": 443.74,
+      "y": 627.72
+    },
+    "pangolier": {
+      "x": 758.88,
+      "y": 714.25
+    },
+    "phantom_assassin": {
+      "x": 672.91,
+      "y": 587.66
+    },
+    "phantom_lancer": {
+      "x": 913.32,
+      "y": 631.64
+    },
+    "phoenix": {
+      "x": 1177.14,
+      "y": 642.14
+    },
+    "primal_beast": {
+      "x": 530.53,
+      "y": 853.13
+    },
+    "puck": {
+      "x": 1048.3,
+      "y": 360.59
+    },
+    "pudge": {
+      "x": 1320.6,
+      "y": 965
+    },
+    "pugna": {
+      "x": 357.49,
+      "y": 639.54
+    },
+    "queenofpain": {
+      "x": 1287.36,
+      "y": 753.94
+    },
+    "rattletrap": {
+      "x": 1496.19,
+      "y": 656.15
+    },
+    "razor": {
+      "x": 516.12,
+      "y": 679.26
+    },
+    "riki": {
+      "x": 816.82,
+      "y": 402.83
+    },
+    "ringmaster": {
+      "x": 1516.38,
+      "y": 571.4
+    },
+    "rubick": {
+      "x": 1462.47,
+      "y": 744.11
+    },
+    "sand_king": {
+      "x": 327.24,
+      "y": 499.25
+    },
+    "shadow_demon": {
+      "x": 1009.41,
+      "y": 1000.9
+    },
+    "shadow_shaman": {
+      "x": 758.2,
+      "y": 888.4
+    },
+    "shredder": {
+      "x": 866.73,
+      "y": 742.7
+    },
+    "silencer": {
+      "x": 1168.93,
+      "y": 952.57
+    },
+    "skeleton_king": {
+      "x": 1095.07,
+      "y": 613.2
+    },
+    "skywrath_mage": {
+      "x": 823.84,
+      "y": 226.64
+    },
+    "slardar": {
+      "x": 605.91,
+      "y": 896.71
+    },
+    "slark": {
+      "x": 842.02,
+      "y": 913.91
+    },
+    "snapfire": {
+      "x": 1372.08,
+      "y": 894.79
+    },
+    "sniper": {
+      "x": 1038.18,
+      "y": 746.71
+    },
+    "spectre": {
+      "x": 759.96,
+      "y": 801.36
+    },
+    "spirit_breaker": {
+      "x": 1366.98,
+      "y": 506.34
+    },
+    "storm_spirit": {
+      "x": 843.3,
+      "y": 826.52
+    },
+    "sven": {
+      "x": 999.48,
+      "y": 236.61
+    },
+    "techies": {
+      "x": 595.39,
+      "y": 718.67
+    },
+    "templar_assassin": {
+      "x": 821.31,
+      "y": 576.98
+    },
+    "terrorblade": {
+      "x": 662.08,
+      "y": 486.17
+    },
+    "tidehunter": {
+      "x": 544.89,
+      "y": 475.07
+    },
+    "tinker": {
+      "x": 446.04,
+      "y": 817.07
+    },
+    "tiny": {
+      "x": 1134.19,
+      "y": 492.12
+    },
+    "treant": {
+      "x": 1410.96,
+      "y": 673.97
+    },
+    "troll_warlord": {
+      "x": 684.63,
+      "y": 935.43
+    },
+    "tusk": {
+      "x": 1320.54,
+      "y": 361.54
+    },
+    "undying": {
+      "x": 467.32,
+      "y": 913.04
+    },
+    "ursa": {
+      "x": 1096.45,
+      "y": 1000.9
+    },
+    "vengefulspirit": {
+      "x": 894.87,
+      "y": 277.13
+    },
+    "venomancer": {
+      "x": 1374.4,
+      "y": 752.93
+    },
+    "viper": {
+      "x": 1200.13,
+      "y": 726.89
+    },
+    "visage": {
+      "x": 597.33,
+      "y": 544.53
+    },
+    "void_spirit": {
+      "x": 1045.35,
+      "y": 834.04
+    },
     "warlock": {
-      "x": 601.1,
-      "y": 35.24
+      "x": 739.41,
+      "y": 272.96
     },
     "weaver": {
-      "x": 98.41,
-      "y": 500.01
+      "x": 682.62,
+      "y": 761.4
     },
     "windrunner": {
-      "x": 666.72,
-      "y": 534.36
+      "x": 1581.13,
+      "y": 637.09
     },
     "winter_wyvern": {
-      "x": 660.58,
-      "y": 79.91
+      "x": 741.09,
+      "y": 449.54
     },
     "wisp": {
-      "x": 535.82,
-      "y": 724.76
+      "x": 290.7,
+      "y": 695.39
     },
     "witch_doctor": {
-      "x": 989.3,
-      "y": 246.36
+      "x": 1539.76,
+      "y": 487.46
     },
     "zuus": {
-      "x": 612.96,
-      "y": 493.06
+      "x": 391.65,
+      "y": 557.9
     }
   }
 }

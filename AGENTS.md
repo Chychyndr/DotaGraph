@@ -207,7 +207,7 @@ https://www.figma.com/design/rydgq1wV8C0hlVb5n7Ohws/DotaGraph-Design?node-id=1-2
 Interaction reference:
 https://claude.ai/public/artifacts/ddbdfd38-f9ac-4261-a764-cdbac4e405ec
 
-The Claude artifact is an interaction reference, not a pixel-perfect target.
+For issue #120 / PR #121 graph-layout work, the owner explicitly requires reproducing the Claude artifact interaction model and approved screenshots as closely as possible before adding DotaGraph-specific improvements. In that scope, do not reinterpret the reference into a rigid Focus layout or a second graph: the same pre-positioned heroes and straight relationship geometry stay in place, and selection only changes emphasis plus contextual labels/cards.
 
 Never use generative-image output as final hero art, item art, UI icons, screenshots, or product assets. Use lawful real assets with explicit provenance.
 
@@ -293,7 +293,7 @@ The overview must not randomly reorganize on every page load.
 
 Prefer deterministic/precomputed positions, seeded layout, or cached stable positions generated as part of the data build.
 
-Hover and Focus must not relayout the graph. Hero coordinates are the committed Overview coordinates in every interaction state. On desktop, hero selection keeps the Overview camera scale and anchor; a small translation may make room for the HeroCard, but selection must not recenter or rezoom around a new focus layout. Compact viewports may reframe the same graph when needed for the card.
+Hover and Focus must not relayout the graph. Hero coordinates are the committed Overview coordinates in every interaction state. On desktop, hero selection keeps the exact Overview camera transform: no recentering, rezooming, or translation to make room for HeroCard. Compact viewports may reframe the same committed graph when needed for the card.
 
 ## URL state
 

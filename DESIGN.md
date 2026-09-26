@@ -35,11 +35,11 @@ The stable hero field should use the graph canvas generously. Keep the topology 
 
 ## Interaction
 
-Overview keeps the whole graph as a weak spiderweb.
+Overview keeps one persistent focus-eligible relationship graph present as a weak spiderweb. It is the union of every relationship that can become one of a hero's highlighted incoming/outgoing Focus edges, so every line that may be emphasized later already exists in Overview at the same endpoints.
 
-Hover reveals only local context and never relayouts the graph.
+Hover reveals local context only by changing emphasis and never relayouts or inserts relationship geometry.
 
-Focus preserves the exact Overview graph layout. All heroes remain at their committed positions; unrelated heroes become subdued, while incoming and outgoing relationships and their endpoint heroes are emphasized in place. Focus must never construct or overlay a second arrangement of the same heroes. On desktop the Overview camera keeps the same scale and anchor when a hero is selected; the graph may translate slightly to make room for the HeroCard. Compact viewports may reframe the same graph only when needed to keep the selected hero usable with the context card.
+Focus preserves the exact Overview graph layout and edge set. All heroes remain at their committed positions; unrelated heroes become subdued, while incoming and outgoing relationships and their endpoint heroes are emphasized in place. Selecting a hero must never insert replacement lines, construct an overlay graph, or move endpoints. On desktop the Overview camera keeps the same scale and anchor when a hero is selected. Compact viewports may reframe the same graph only when needed to keep the selected hero usable with the context card.
 
 Selecting or leaving a hero moves the camera with a short eased transition. Manual drag or wheel input immediately takes control and cancels that camera animation.
 
@@ -51,7 +51,7 @@ Matchup keeps the graph visible, emphasizes one pair, and changes the compact ca
 
 The percentage belongs to the source hero of the arrow.
 
-The accepted current behavior is source-anchored, collision-aware placement on the active edge itself. Labels normally stay on the source half of the edge; when the selected hero is the source, the badge may sit farther down that half so dense outgoing fans remain readable. On short fixed-layout edges, the badge may scale down to stay on the line without covering a portrait. If the gap is still physically too short, the full badge moves onto a short collinear continuation of that same relationship. Source-side continuation is preferred; target-side continuation is allowed when the source-side ray conflicts with another active relationship or badge. Hero names use collision-aware placement outside active relationship paths and render on an opaque canvas backing.
+The accepted current behavior is source-anchored, collision-aware placement on the active straight edge itself. Labels normally stay nearer the source side; when the selected hero is the source, the badge may slide farther along the same segment so dense outgoing fans remain readable. On short fixed-layout edges, the badge may scale down. The badge center must remain on its own source-to-target segment; it must never detach onto a leader, continuation, bend, or overlay route. Hero names use deterministic anchors around their committed node and render on an opaque canvas backing.
 
 ## Product chrome decisions
 

@@ -11,15 +11,18 @@ export interface EdgeLabelInput {
   segments?: EdgeSegment[];
   preferredT?: number;
   source?: EdgeLabelObstacle;
+  ignoredObstacleIds?: string[];
 }
 
 export interface EdgeLabelObstacle {
+  id?: string;
   x: number;
   y: number;
   radius: number;
 }
 
 export interface EdgeLabelRectObstacle {
+  id?: string;
   x: number;
   y: number;
   width: number;
@@ -192,7 +195,8 @@ const candidateScore = (
   rectObstacles: EdgeLabelRectObstacle[],
   bounds: EdgeLabelBounds | undefined,
   preferenceIndex: number,
-  preferredT: number
+  preferredT: number,
+  ignoredObstacleIds: Set<string>
 ) => {
   const paddedRect = rectFor(
     placement.x,
@@ -217,10 +221,12 @@ const candidateScore = (
   }
 
   for (const obstacle of obstacles) {
+    if (obstacle.id && ignoredObstacleIds.has(obstacle.id)) continue;
     if (circleTouchesRect(obstacle, paddedRect)) score += 5_000;
   }
 
   for (const obstacle of rectObstacles) {
+    if (obstacle.id && ignoredObstacleIds.has(obstacle.id)) continue;
     if (rectanglesOverlap(paddedRect, rectObstacleFor(obstacle))) {
       return Number.POSITIVE_INFINITY;
     }
@@ -237,8 +243,8 @@ export function layoutSourceAnchoredEdgeLabels(
 ) {
   const sizeScale = clamp(options.sizeScale ?? 1, 0.7, 1);
   const minimumScale = MIN_LABEL_SCALE * sizeScale;
-  const beamWidth = 96;
-  const candidateLimit = 128;
+  const beamWidth = 160;
+  const candidateLimit = 220;
 
   const candidateSets = inputs.map((input) => {
     const segments = segmentsFor(input);
@@ -253,7 +259,7 @@ export function layoutSourceAnchoredEdgeLabels(
       safeMinT,
       safeMaxT
     );
-    const step = 0.04;
+    const step = 0.02;
     const sampledTs: number[] = [];
 
     for (let t = safeMinT; t <= safeMaxT + 0.0001; t += step) {
@@ -293,12 +299,16 @@ export function layoutSourceAnchoredEdgeLabels(
     }
 
     if (sizeScale >= 1) {
-      const emergencyScale = 0.7;
-      for (const t of uniqueTs) {
-        rawCandidates.push({
-          placement: candidateForPath(segments, t, emergencyScale),
-          extraPenalty: 25
-        });
+      for (const [emergencyScale, extraPenalty] of [
+        [0.76, 25],
+        [0.70, 65]
+      ] as const) {
+        for (const t of uniqueTs) {
+          rawCandidates.push({
+            placement: candidateForPath(segments, t, emergencyScale),
+            extraPenalty
+          });
+        }
       }
     }
 
@@ -380,7 +390,8 @@ export function layoutSourceAnchoredEdgeLabels(
             rectObstacles,
             options.bounds,
             index,
-            placement.leader ? placement.t : preferredT
+            placement.leader ? placement.t : preferredT,
+            new Set(input.ignoredObstacleIds ?? [])
           ) + extraPenalty
       }))
       .filter(({ score }) => Number.isFinite(score) && score < 5_000)
@@ -414,7 +425,7 @@ export function layoutSourceAnchoredEdgeLabels(
     const placements = new Map<string, EdgeLabelPlacement>();
     const rects: Rect[] = [];
     let visited = 0;
-    const visitLimit = 500_000;
+    const visitLimit = 2_000_000;
 
     const search = (setIndex: number): boolean => {
       if (setIndex >= solveOrder.length) return true;

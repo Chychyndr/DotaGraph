@@ -129,15 +129,18 @@ function ReadyApp({ data }: { data: DatasetBundle }) {
     [evidenceObservations, matchup, scope.patch]
   );
 
-  const visibleRelationships = useMemo(
-    () => relationships.filter(
-      (relationship) =>
-        relationship.sampleSize >= scope.minimumSample &&
-        relationship.patch === scope.patch &&
-        relationship.rankScope === scope.rankScope
-    ),
-    [relationships, scope]
-  );
+  const visibleRelationships = useMemo(() => {
+    const persistent = new Map<string, (typeof relationships)[number]>();
+
+    for (const hero of heroes) {
+      const selected = selectRelations(hero.id, relationships, scope);
+      for (const relationship of [...selected.incoming, ...selected.outgoing]) {
+        persistent.set(relationship.id, relationship);
+      }
+    }
+
+    return [...persistent.values()];
+  }, [heroes, relationships, scope]);
 
   useEffect(() => {
     if (matchupHeroId && !matchup) setMatchupHeroId(null);

@@ -3,7 +3,7 @@
 ## Overview
 
 - All validated current-patch heroes are visible.
-- A sparse deterministic relationship backbone gives graph structure without rendering the full production relationship corpus.
+- The persistent Focus-eligible edge union is already present as a low-contrast spiderweb; every edge that can become one of a hero's highlighted incoming/outgoing relationships exists before selection, and Focus never inserts new relationship geometry.
 - The initial camera fits and centers the actual hero bounds instead of assuming the fixed canvas center.
 - No win-rate labels.
 - Search remains visible.
@@ -17,27 +17,27 @@
 
 - Hovered node grows slightly.
 - Hero name appears in a dedicated top label layer so nearby portrait nodes cannot cover it.
-- Local edges gain contrast while the sparse Overview backbone stays low-contrast.
+- Local edges gain contrast while the same complete Overview edge set stays low-contrast.
 - Hero coordinates and the rest of the Overview graph stay in place.
 - No large panel opens.
 - No relayout.
 
 ## Focus
 
-- Desktop Focus keeps the Overview camera scale and anchor; selecting a hero may translate the same graph slightly to make room for HeroCard, but does not recenter or rezoom it.
+- Desktop Focus keeps the exact Overview camera transform. Selecting a hero does not translate, recenter, or rezoom the graph for HeroCard.
 - Compact Focus may reframe the same committed graph coordinates to keep the selected hero usable above the context card.
 - No viewport mode creates a second focus topology.
 - Gold ring.
 - The same Overview hero nodes remain visible at the same committed coordinates.
 - Unrelated heroes are dimmed in place; active relationship heroes are emphasized where they already live in the graph.
-- The sparse Overview backbone remains as low-contrast context.
+- The exact Overview edge set remains as low-contrast context; Focus only changes classes/emphasis on existing lines.
 - Up to five incoming relationships in coral.
 - Up to five outgoing relationships in cyan.
 - Hero names sit outside active relationship paths, stay clear of the desktop HeroCard, and have an opaque canvas backing so edges cannot visually cut through the text.
 - Tiny arrowheads clarify direction.
-- Win-rate pills remain attached to their relationship line whenever the fixed geometry has enough room. A cramped edge may use a smaller pill or a short collinear continuation. The source side is preferred; the target side is allowed when the source-side ray would conflict with another active relationship or badge.
+- Win-rate pills remain centered on their own straight relationship segment. A cramped edge may use a smaller pill or slide farther along that same segment, but it never detaches onto a continuation or leader.
 - Win-rate pills must not overlap any visible hero-name label or visible hero portrait.
-- Active relationship lines must not cross unrelated active hero portraits; blocked straight segments must use deterministic collision-free routing.
+- Active relationship lines stay straight source-to-target segments. Node masks interrupt the visible stroke under unrelated portraits so the renderer never reroutes the relationship into bends or alternate geometry.
 - Focus never creates a second node arrangement or moves heroes into a separate ring/arc layout.
 - The HeroCard section headings do not show “x/5” counters.
 - HeroCard appears.
