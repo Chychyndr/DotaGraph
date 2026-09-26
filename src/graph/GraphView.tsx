@@ -497,7 +497,9 @@ export function GraphView({
       return Math.min(delta, Math.PI * 2 - delta);
     };
 
-    const candidates = candidateAngles.map((angle) => {
+    const radialOffsets = [0, 18, 34];
+    const candidates = candidateAngles.flatMap((angle) =>
+      radialOffsets.map((radialOffset) => {
       const cos = Math.cos(angle);
       const sin = Math.sin(angle);
       const support =
@@ -506,7 +508,8 @@ export function GraphView({
       const centerOffset =
         BASE_NODE_RADIUS +
         9 / stableLabelScale +
-        support;
+        support +
+        radialOffset / stableLabelScale;
       const x = hero.x + cos * centerOffset;
       const y = hero.y + sin * centerOffset;
       const left = x - halfWidth - 5 / stableLabelScale;
@@ -590,9 +593,11 @@ export function GraphView({
           labelHits * 80_000 +
           edgeHits * 10_000 +
           portraitHits * 2_000 +
-          angularDistance(angle, freeAngle) * 100
+          angularDistance(angle, freeAngle) * 100 +
+          radialOffset * 8
       };
-    });
+    })
+    );
 
     const best = candidates.sort(
       (left, right) =>
