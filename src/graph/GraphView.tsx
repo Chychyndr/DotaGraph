@@ -957,7 +957,15 @@ export function GraphView({
                   height={EDGE_LABEL_HEIGHT}
                   rx={EDGE_LABEL_HEIGHT / 2}
                 />
-                <text textAnchor="middle" dominantBaseline="central">
+                <text
+                  textAnchor="middle"
+                  dominantBaseline="central"
+                  style={
+                    isCompactViewport
+                      ? undefined
+                      : { fontSize: `${10 / Math.max(labelPlacement.scale, 0.001)}px` }
+                  }
+                >
                   {formatPercent(relationship.sourceWinRate)}
                 </text>
               </g>
