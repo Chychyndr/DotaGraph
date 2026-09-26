@@ -108,7 +108,13 @@ def compute_layout(
             distance = math.hypot(dx, dy) + 1e-8
 
             target_length = 0.23 - 0.11 * edge.weight
-            spring = attraction_strength * (0.35 + edge.weight) * (distance - target_length)
+            long_edge_boost = 1.0 + 5.0 * max(0.0, distance - 0.38)
+            spring = (
+                attraction_strength
+                * (0.35 + edge.weight)
+                * (distance - target_length)
+                * long_edge_boost
+            )
             fx = spring * dx / distance
             fy = spring * dy / distance
 
