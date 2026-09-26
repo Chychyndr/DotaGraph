@@ -283,7 +283,8 @@ test("desktop focus keeps fixed hero names inside the graph viewport", async ({ 
     "rubick",
     "terrorblade",
     "dark-willow",
-    "spectre"
+    "spectre",
+    "pudge"
   ]) {
     await page.goto(`/?hero=${heroId}`);
     await page.waitForTimeout(520);
@@ -330,6 +331,7 @@ test("desktop focus keeps fixed hero names inside the graph viewport", async ({ 
     });
 
     expect(geometry.outsideViewport, heroId).toEqual([]);
+    expect(geometry.cardOverlaps, `${heroId}: label peeks out from under HeroCard`).toEqual([]);
   }
 });
 
