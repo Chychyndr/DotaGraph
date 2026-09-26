@@ -298,20 +298,6 @@ export function layoutSourceAnchoredEdgeLabels(
       }
     }
 
-    if (sizeScale >= 1) {
-      for (const [emergencyScale, extraPenalty] of [
-        [0.76, 25],
-        [0.70, 65]
-      ] as const) {
-        for (const t of uniqueTs) {
-          rawCandidates.push({
-            placement: candidateForPath(segments, t, emergencyScale),
-            extraPenalty
-          });
-        }
-      }
-    }
-
     if (input.source) {
       const extraDistances = [
         0, 12, 24, 36, 48, 60, 72, 84, 96, 108, 120
