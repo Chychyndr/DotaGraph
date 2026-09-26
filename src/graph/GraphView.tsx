@@ -760,6 +760,7 @@ export function GraphView({
                 }}
               >
                 <circle className="node-hitarea" r={Math.max(24, radius + 8)} />
+                <circle className="hero-node-mask" r={radius + 5} />
                 <circle className="node-ring" r={radius + (isSelected ? 4 : 2)} />
                 {portraitAsset.status === "ready" ? (
                   <circle
