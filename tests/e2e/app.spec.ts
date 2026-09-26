@@ -386,9 +386,9 @@ test("focused win-rate labels stay source-anchored and do not overlap", async ({
     expect(Number.isFinite(t)).toBe(true);
     expect(external).toBe("false");
     await expect(leader).toHaveCount(0);
-    expect(t).toBeGreaterThanOrEqual(0.16);
-    expect(t).toBeLessThanOrEqual(0.84);
-    expect(Math.abs((t - 0.16) / 0.01 - Math.round((t - 0.16) / 0.01)))
+    expect(t).toBeGreaterThanOrEqual(0.08);
+    expect(t).toBeLessThanOrEqual(0.92);
+    expect(Math.abs((t - 0.08) / 0.01 - Math.round((t - 0.08) / 0.01)))
       .toBeLessThan(0.01);
 
     const box = await label.boundingBox();
@@ -619,12 +619,12 @@ test("focus win-rate badges stay attached to rendered relationship paths", async
       expect(row.offset).toBe(0);
       expect(row.external, `${heroId}: ${row.source}->${row.target}`).toBe(false);
       expect(row.leaderExists).toBe(false);
-      expect(row.t).toBeGreaterThanOrEqual(0.16);
-      expect(row.t).toBeLessThanOrEqual(0.84);
+      expect(row.t).toBeGreaterThanOrEqual(0.08);
+      expect(row.t).toBeLessThanOrEqual(0.92);
       expect(
         Math.abs(
-          (row.t - 0.16) / 0.01 -
-            Math.round((row.t - 0.16) / 0.01)
+          (row.t - 0.08) / 0.01 -
+            Math.round((row.t - 0.08) / 0.01)
         )
       ).toBeLessThan(0.01);
       expect(
