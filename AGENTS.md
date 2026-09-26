@@ -145,13 +145,13 @@ Core states:
 - no large panel.
 
 ### Focus
-- selected hero prominent;
-- the same Overview graph and committed hero coordinates remain in place;
-- unrelated heroes stay visible but dimmed;
-- 0–5 incoming relationships are highlighted;
-- 0–5 outgoing relationships are highlighted;
-- active relationship heroes are emphasized at their existing graph positions;
-- hero names stay outside relationship paths;
+- selected hero prominent in a deterministic Focus presentation layout;
+- unrelated heroes retain their committed Overview positions as dim background context;
+- 0–5 incoming relationships are highlighted in a spacious incoming column;
+- 0–5 outgoing relationships are highlighted in a spacious outgoing column;
+- every active relationship is one straight source-to-target line;
+- active hero names use fixed deterministic anchors beside their portrait;
+- each win-rate pill stays at a fixed point on its own straight line and never detaches;
 - compact HeroCard.
 
 ### Matchup
@@ -184,9 +184,10 @@ Win-rate label:
 - do not cover portraits or arrowheads.
 
 Background graph:
-- remains visible in Overview, Hover, and Focus as the same graph context;
-- Focus highlights active relationships and dims unrelated heroes without replacing or relayouting the graph;
+- remains visible in Overview, Hover, and Focus as continuous context;
+- Focus keeps unrelated heroes on their Overview coordinates while the selected relationship star uses its deterministic presentation layout;
 - background edges stay low-contrast while active relationships become prominent;
+- background portraits that would visually sit directly on an active Focus lane may be fully suppressed for that Focus state;
 - do not render hundreds of prominent arrows or labels at once.
 
 No continuous drift or breathing animation.
@@ -289,11 +290,13 @@ Keep graph rendering behind a focused adapter/module. Domain relationships must 
 
 ## Stable graph layout
 
-The overview must not randomly reorganize on every page load.
+The Overview must not randomly reorganize on every page load.
 
 Prefer deterministic/precomputed positions, seeded layout, or cached stable positions generated as part of the data build.
 
-Hover and Focus must not relayout the graph. Hero coordinates are the committed Overview coordinates in every interaction state. On desktop, hero selection keeps the Overview camera scale and anchor; a small translation may make room for the HeroCard, but selection must not recenter or rezoom around a new focus layout. Compact viewports may reframe the same graph when needed for the card.
+Hover keeps the committed Overview coordinates. Focus uses a deterministic presentation layout only for the selected hero and its active incoming/outgoing endpoints so the relationship star has enough breathing room for straight lines, fixed names, fixed win-rate pills, and future detail layers. Unrelated heroes remain at their committed Overview coordinates as subdued background context.
+
+Focus presentation geometry is renderer-only. It must never change relationship direction, ranking, sample thresholds, displayed percentages, or generated Overview positions. Active Focus edges are straight source-to-target segments; do not reintroduce collision-routed polylines or free-floating win-rate labels.
 
 ## URL state
 

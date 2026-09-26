@@ -135,7 +135,9 @@ const scanVisualCollisions = async (page: import("@playwright/test").Page) =>
 
     const badgeDimmedPortrait: string[] = [];
     const dimmedNodes = Array.from(
-      document.querySelectorAll<SVGGElement>(".hero-node.hero-dimmed")
+      document.querySelectorAll<SVGGElement>(
+        ".hero-node.hero-dimmed:not(.hero-obscured)"
+      )
     );
 
     for (const badge of badges) {

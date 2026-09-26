@@ -436,6 +436,11 @@ button:focus-visible, input:focus-visible, [role="button"]:focus-visible {
   transition: opacity 150ms ease;
 }
 
+.hero-node-mask {
+  fill: var(--canvas);
+  pointer-events: none;
+}
+
 .hero-portrait-node { pointer-events: none; }
 
 .hero-portrait-node-loading {
@@ -465,7 +470,11 @@ button:focus-visible, input:focus-visible, [role="button"]:focus-visible {
   vector-effect: non-scaling-stroke;
 }
 
-.hero-dimmed { opacity: .14; }
+.hero-dimmed { opacity: .08; }
+.hero-dimmed.hero-obscured {
+  opacity: 0;
+  pointer-events: none;
+}
 .hero-active { opacity: 1; }
 .hero-active .node-ring { stroke: #8b949e; }
 .hero-selected .node-ring { stroke: var(--selected); stroke-width: 2.4; }

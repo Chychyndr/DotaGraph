@@ -24,21 +24,22 @@
 
 ## Focus
 
-- Desktop Focus keeps the Overview camera scale and anchor; selecting a hero may translate the same graph slightly to make room for HeroCard, but does not recenter or rezoom it.
-- Compact Focus may reframe the same committed graph coordinates to keep the selected hero usable above the context card.
-- No viewport mode creates a second focus topology.
-- Gold ring.
-- The same Overview hero nodes remain visible at the same committed coordinates.
-- Unrelated heroes are dimmed in place; active relationship heroes are emphasized where they already live in the graph.
-- The sparse Overview backbone remains as low-contrast context.
+- The Overview graph remains visible as low-contrast context.
+- The selected hero and its active endpoints move into a deterministic presentation layout; unrelated heroes retain their committed Overview coordinates.
+- Desktop places the selected hero near the center of the Focus stage, incoming endpoint heroes in a spacious left column, and outgoing endpoint heroes in a spacious right column.
+- Compact Focus uses the same directional semantics with tighter columns and fixed labels above active portraits.
+- Gold ring on the selected hero.
+- Active Focus portraits are slightly larger than Overview portraits.
 - Up to five incoming relationships in coral.
 - Up to five outgoing relationships in cyan.
-- Hero names sit outside active relationship paths, stay clear of the desktop HeroCard, and have an opaque canvas backing so edges cannot visually cut through the text.
-- Tiny arrowheads clarify direction.
-- Win-rate pills remain attached to their relationship line whenever the fixed geometry has enough room. A cramped edge may use a smaller pill or a short collinear continuation. The source side is preferred; the target side is allowed when the source-side ray would conflict with another active relationship or badge.
-- Win-rate pills must not overlap any visible hero-name label or visible hero portrait.
-- Active relationship lines must not cross unrelated active hero portraits; blocked straight segments must use deterministic collision-free routing.
-- Focus never creates a second node arrangement or moves heroes into a separate ring/arc layout.
+- Every active relationship is one straight SVG line between padded portrait boundaries. Focus never bends or collision-routes active relationships.
+- Fixed portrait masks prevent relationship lines from painting through endpoint portrait art.
+- Background heroes that would sit directly on a prominent Focus line or fixed win-rate pill may be fully suppressed for that Focus state; other unrelated heroes remain dimmed in place.
+- Selected hero name is fixed above its portrait. Incoming hero names are fixed to the left and outgoing hero names to the right on desktop.
+- The desktop HeroCard does not reposition active hero names.
+- Each win-rate pill stays at 52% of its own relationship segment, centered on the line, with no leader/fan/external fallback.
+- Win-rate pills must not overlap visible active hero portraits or hero-name labels.
+- Straight active lines must not cross unrelated active portraits.
 - The HeroCard section headings do not show “x/5” counters.
 - HeroCard appears.
 - Clicking another background node refocuses.
