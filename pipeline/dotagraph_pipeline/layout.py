@@ -285,8 +285,8 @@ def compute_layout(
     # keeping endpoints fixed. This is deliberately a soft relaxation: the
     # force pass still owns the organic topology, this pass only removes the
     # most distracting line-through-node accidents.
-    edge_clearance = max(12.0, min_distance * 0.22)
-    for _ in range(36):
+    edge_clearance = max(9.5, min_distance * 0.17)
+    for _ in range(6):
         offsets = [[0.0, 0.0] for _ in nodes]
         conflicts = 0
 
@@ -330,8 +330,8 @@ def compute_layout(
 
                 intrusion = edge_clearance - distance
                 push = min(
-                    2.5,
-                    0.08 + intrusion * (0.18 + edge.weight * 0.08),
+                    1.8,
+                    0.05 + intrusion * (0.14 + edge.weight * 0.06),
                 )
                 offsets[node_index][0] += away_x / distance * push
                 offsets[node_index][1] += away_y / distance * push
@@ -344,9 +344,9 @@ def compute_layout(
             magnitude = math.hypot(offset_x, offset_y)
             if magnitude < 1e-8:
                 continue
-            if magnitude > 3.5:
-                offset_x *= 3.5 / magnitude
-                offset_y *= 3.5 / magnitude
+            if magnitude > 2.5:
+                offset_x *= 2.5 / magnitude
+                offset_y *= 2.5 / magnitude
 
             pixel_positions[node_index][0] = _clamp(
                 pixel_positions[node_index][0] + offset_x,
