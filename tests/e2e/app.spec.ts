@@ -310,7 +310,7 @@ test("desktop focus keeps fixed hero names inside the graph viewport", async ({ 
 test("focused hero names stay clear of their unchanged portraits", async ({ page }) => {
   await page.setViewportSize({ width: 1366, height: 768 });
   await page.goto("/?hero=crystal-maiden");
-  await page.waitForTimeout(120);
+  await expect(page.locator(".hero-label-group").first()).toBeVisible();
 
   const geometry = await page.evaluate(() => {
     const rows = [...document.querySelectorAll<SVGGElement>(".hero-label-group")]
