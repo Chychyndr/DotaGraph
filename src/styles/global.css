@@ -551,6 +551,16 @@ button:focus-visible, input:focus-visible, [role="button"]:focus-visible {
   box-shadow: 0 8px 24px rgba(1, 4, 9, .35);
 }
 
+.context-card-left {
+  left: 16px;
+  right: auto;
+}
+
+.context-card-right {
+  left: auto;
+  right: 16px;
+}
+
 .card-hero {
   display: grid;
   grid-template-columns: 42px 1fr auto;
