@@ -13,24 +13,14 @@ import {
 import { usePortraitAsset } from "../components/PortraitProvider";
 import {
   EDGE_LABEL_HEIGHT,
-  EDGE_LABEL_WIDTH,
-  layoutSourceAnchoredEdgeLabels
+  EDGE_LABEL_WIDTH
 } from "./edgeLabelLayout";
-import {
-  calculateFocusScale,
-  calculateOverviewCamera,
-  visibleViewBoxForViewport
-} from "./focusCamera";
+import { calculateOverviewCamera } from "./focusCamera";
 import {
   mergeVisibleRelationships,
   selectHoverRelationships,
   selectOverviewBackbone
 } from "./relationshipVisibility";
-import { layoutHeroLabels } from "./heroLabelLayout";
-import {
-  routeEdgeAroundObstacles,
-  routeSegments
-} from "./edgeRouting";
 
 interface GraphViewProps {
   heroes: Hero[];
@@ -72,56 +62,6 @@ const COMPACT_VIEWPORT_QUERY = "(max-width: 640px)";
 
 const clamp = (value: number, min: number, max: number) =>
   Math.min(max, Math.max(min, value));
-
-const normalizeAngle = (angle: number) => {
-  const fullTurn = Math.PI * 2;
-  const normalized = angle % fullTurn;
-  return normalized < 0 ? normalized + fullTurn : normalized;
-};
-
-const largestAngularGap = (
-  center: { x: number; y: number },
-  neighbors: Array<{ x: number; y: number }>
-) => {
-  if (!neighbors.length) {
-    return { angle: -Math.PI / 2, halfGap: Math.PI };
-  }
-
-  const angles = neighbors
-    .map((neighbor) =>
-      normalizeAngle(Math.atan2(neighbor.y - center.y, neighbor.x - center.x))
-    )
-    .sort((a, b) => a - b);
-
-  if (angles.length === 1) {
-    return {
-      angle: normalizeAngle(angles[0] + Math.PI),
-      halfGap: Math.PI
-    };
-  }
-
-  let bestStart = angles[0];
-  let bestGap = -1;
-
-  for (let index = 0; index < angles.length; index += 1) {
-    const start = angles[index];
-    const end =
-      index === angles.length - 1
-        ? angles[0] + Math.PI * 2
-        : angles[index + 1];
-    const gap = end - start;
-
-    if (gap > bestGap) {
-      bestGap = gap;
-      bestStart = start;
-    }
-  }
-
-  return {
-    angle: normalizeAngle(bestStart + bestGap / 2),
-    halfGap: bestGap / 2
-  };
-};
 
 export function GraphView({
   heroes,
@@ -253,58 +193,14 @@ export function GraphView({
     y: HEIGHT / 2 + camera.panY + cameraScale * (y - camera.anchorY)
   });
 
-  const heroLabelBounds = useMemo(() => {
-    const graphXForViewBoxX = (viewBoxX: number) =>
-      camera.anchorX +
-      (viewBoxX - WIDTH / 2 - camera.panX) / cameraScale;
-    const graphYForViewBoxY = (viewBoxY: number) =>
-      camera.anchorY +
-      (viewBoxY - HEIGHT / 2 - camera.panY) / cameraScale;
-
-    let minViewBoxX = 0;
-
-    if (selectedHeroId && !isCompactViewport) {
-      const outerScale = Math.min(
-        svgViewport.width / WIDTH,
-        svgViewport.height / HEIGHT
-      );
-
-      if (Number.isFinite(outerScale) && outerScale > 0) {
-        const outerOffsetX = (svgViewport.width - WIDTH * outerScale) / 2;
-        const cardWidth = svgViewport.width <= 820 ? 300 : 332;
-        const safeStageX = 16 + cardWidth + 12;
-        minViewBoxX = Math.max(
-          0,
-          (safeStageX - outerOffsetX) / outerScale
-        );
-      }
-    }
-
-    return {
-      minX: graphXForViewBoxX(minViewBoxX),
-      maxX: graphXForViewBoxX(WIDTH),
-      minY: graphYForViewBoxY(0),
-      maxY: graphYForViewBoxY(HEIGHT)
-    };
-  }, [
-    camera.anchorX,
-    camera.anchorY,
-    camera.panX,
-    camera.panY,
-    cameraScale,
-    isCompactViewport,
-    selectedHeroId,
-    svgViewport.height,
-    svgViewport.width
-  ]);
-
   const hoverRelationshipIds = new Set(
     hoverRelationships.map((relationship) => relationship.id)
   );
 
   const radiusFor = (heroId: string) => {
-    if (heroId === selectedHeroId || activeIds.has(heroId)) return 14;
-    if (heroId === hoveredHeroId) return 18;
+    if (heroId === selectedHeroId) return 28;
+    if (activeIds.has(heroId)) return 19;
+    if (heroId === hoveredHeroId) return 19;
     return 14;
   };
 
@@ -314,8 +210,8 @@ export function GraphView({
     const length = Math.hypot(dx, dy) || 1;
     const ux = dx / length;
     const uy = dy / length;
-    const sourcePadding = radiusFor(source.id) + 4;
-    const targetPadding = radiusFor(target.id) + 7;
+    const sourcePadding = radiusFor(source.id) + 5;
+    const targetPadding = radiusFor(target.id) + 9;
 
     return {
       x1: source.x + ux * sourcePadding,
@@ -328,176 +224,51 @@ export function GraphView({
   const labelWidthFor = (hero: Hero) =>
     Math.max(42, hero.name.length * 6.7 + 14);
 
-  const labelHeroes = heroes
-    .filter(
-      (hero) =>
-        hero.id === selectedHeroId ||
-        activeIds.has(hero.id) ||
-        hero.id === hoveredHeroId
-    )
-    .sort((left, right) => {
-      const priority = (hero: Hero) =>
-        hero.id === selectedHeroId ? 0 : activeIds.has(hero.id) ? 1 : 2;
-      return priority(left) - priority(right) || left.id.localeCompare(right.id);
-    });
+  const labelHeroes = heroes.filter(
+    (hero) =>
+      hero.id === selectedHeroId ||
+      activeIds.has(hero.id) ||
+      hero.id === hoveredHeroId
+  );
 
-  const activeEdgeRoutes = new Map(
+  const layoutMaxX = Math.max(...heroes.map((hero) => hero.x), WIDTH);
+  const fixedLabelPlacements = new Map(
+    labelHeroes.map((hero) => {
+      const width = labelWidthFor(hero);
+      const placeLeft = hero.x > layoutMaxX - 210;
+      const direction = placeLeft ? -1 : 1;
+      const centerOffset = radiusFor(hero.id) + 10 + width / 2;
+
+      return [
+        hero.id,
+        {
+          x: hero.x + direction * centerOffset,
+          y: hero.y,
+          angle: placeLeft ? Math.PI : 0
+        }
+      ] as const;
+    })
+  );
+
+  const EDGE_LABEL_T = 0.52;
+  const edgeLabelPlacements = new Map(
     activeRelationships.flatMap((relationship) => {
       const source = byId.get(relationship.sourceHeroId);
       const target = byId.get(relationship.targetHeroId);
       if (!source || !target) return [];
 
       const geometry = edgeGeometry(source, target);
-      const obstacles = [...activeIds].flatMap((heroId) => {
-        if (
-          heroId === relationship.sourceHeroId ||
-          heroId === relationship.targetHeroId
-        ) {
-          return [];
-        }
-
-        const hero = byId.get(heroId);
-        return hero
-          ? [{
-              id: hero.id,
-              x: hero.x,
-              y: hero.y,
-              radius: radiusFor(hero.id) + 4
-            }]
-          : [];
-      });
-
       return [[
         relationship.id,
-        routeEdgeAroundObstacles(
-          { x: geometry.x1, y: geometry.y1 },
-          { x: geometry.x2, y: geometry.y2 },
-          obstacles
-        )
+        {
+          x: geometry.x1 + (geometry.x2 - geometry.x1) * EDGE_LABEL_T,
+          y: geometry.y1 + (geometry.y2 - geometry.y1) * EDGE_LABEL_T,
+          t: EDGE_LABEL_T,
+          offset: 0,
+          scale: isCompactViewport ? 0.8 : 1
+        }
       ] as const];
     })
-  );
-
-  const activeEdgeSegments = activeRelationships.flatMap((relationship) => {
-    const route = activeEdgeRoutes.get(relationship.id);
-    return route ? routeSegments(route) : [];
-  });
-
-  const heroLabelPlacements = layoutHeroLabels(
-    labelHeroes.map((hero) => {
-      let preferredAngle =
-        hero.x > WIDTH - 170 ? Math.PI : 0;
-
-      if (hero.id === selectedHeroId) {
-        preferredAngle = largestAngularGap(hero, relatedHeroes).angle;
-      } else if (selectedHero && activeIds.has(hero.id)) {
-        preferredAngle = Math.atan2(
-          hero.y - selectedHero.y,
-          hero.x - selectedHero.x
-        );
-      }
-
-      return {
-        id: hero.id,
-        x: hero.x,
-        y: hero.y,
-        radius: radiusFor(hero.id),
-        width: labelWidthFor(hero),
-        height: 20,
-        preferredAngle
-      };
-    }),
-    activeEdgeSegments,
-    [...activeIds].flatMap((heroId) => {
-      const hero = byId.get(heroId);
-      return hero
-        ? [{
-            id: hero.id,
-            x: hero.x,
-            y: hero.y,
-            radius: radiusFor(hero.id) + 3
-          }]
-        : [];
-    }),
-    heroLabelBounds
-  );
-
-  const heroLabelObstacles = labelHeroes.flatMap((hero) => {
-    const placement = heroLabelPlacements.get(hero.id);
-    if (!placement) return [];
-
-    const point = projectGraphPoint(placement.x, placement.y);
-    return [{
-      x: point.x,
-      y: point.y,
-      width: labelWidthFor(hero) * cameraScale,
-      height: 20 * cameraScale
-    }];
-  });
-
-  const portraitRectObstacles = heroes.map((hero) => {
-    const point = projectGraphPoint(hero.x, hero.y);
-    const diameter =
-      (radiusFor(hero.id) * 2 + (activeIds.has(hero.id) ? 8 : 2)) *
-      cameraScale;
-
-    return {
-      x: point.x,
-      y: point.y,
-      width: diameter,
-      height: diameter
-    };
-  });
-
-  const edgeLabelPlacements = layoutSourceAnchoredEdgeLabels(
-    activeRelationships.flatMap((relationship) => {
-      const source = byId.get(relationship.sourceHeroId);
-      const target = byId.get(relationship.targetHeroId);
-      if (!source || !target) return [];
-
-      const route = activeEdgeRoutes.get(relationship.id);
-      const routePath = route ? routeSegments(route) : [];
-      if (!routePath.length) return [];
-
-      const projectedPath = routePath.map((segment) => {
-        const start = projectGraphPoint(segment.x1, segment.y1);
-        const end = projectGraphPoint(segment.x2, segment.y2);
-        return {
-          x1: start.x,
-          y1: start.y,
-          x2: end.x,
-          y2: end.y
-        };
-      });
-      const sourcePoint = projectGraphPoint(source.x, source.y);
-
-      return [{
-        id: relationship.id,
-        segment: projectedPath[0],
-        segments: projectedPath,
-        preferredT: relationship.sourceHeroId === selectedHeroId ? 0.46 : 0.34,
-        source: {
-          x: sourcePoint.x,
-          y: sourcePoint.y,
-          radius: (radiusFor(source.id) + 7) * cameraScale
-        }
-      }];
-    }),
-    heroes.map((hero) => {
-      const point = projectGraphPoint(hero.x, hero.y);
-      return {
-        x: point.x,
-        y: point.y,
-        radius:
-          (radiusFor(hero.id) + (activeIds.has(hero.id) ? 7 : 2)) *
-          cameraScale
-      };
-    }),
-    [...heroLabelObstacles, ...portraitRectObstacles],
-    {
-      sizeScale: isCompactViewport ? 0.8 : 1,
-      bounds: edgeLabelBounds
-    }
   );
 
   const handlePointerDown = (event: ReactPointerEvent<SVGSVGElement>) => {
