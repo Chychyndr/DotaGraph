@@ -238,7 +238,7 @@ test("focus keeps the same graph and only highlights selected relationships", as
 
   expect(focusState.nodes).toEqual(overviewState.nodes);
   expect(focusState.nodes).toHaveLength(127);
-  for (const edge of overviewState.edges) expect(focusState.edges).toContain(edge);
+  expect(focusState.edges).toEqual(overviewState.edges);
   expect(focusState.activeEdges).toBeGreaterThan(0);
   expect(focusState.activeEdges).toBeLessThanOrEqual(10);
   expect(focusState.activeHeroes).toBeGreaterThan(0);
