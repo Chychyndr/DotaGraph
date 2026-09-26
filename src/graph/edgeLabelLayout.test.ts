@@ -231,6 +231,28 @@ describe("layoutSourceAnchoredEdgeLabels", () => {
     }
   });
 
+  it("ignores only the relationship's own endpoint obstacles", () => {
+    const segment = { x1: 120, y1: 100, x2: 420, y2: 100 };
+    const placement = layoutSourceAnchoredEdgeLabels(
+      [{
+        id: "edge",
+        segment,
+        preferredT: 0.2,
+        ignoredObstacleIds: ["source", "target"]
+      }],
+      [
+        { id: "source", x: 100, y: 100, radius: 34 },
+        { id: "target", x: 440, y: 100, radius: 34 },
+        { id: "foreign", x: 240, y: 100, radius: 30 }
+      ]
+    ).get("edge")!;
+
+    expect(placement).toBeDefined();
+    expect(Math.abs(placement.x - 240)).toBeGreaterThan(30 + 23);
+    expect(placement.t).toBeGreaterThanOrEqual(0.12);
+    expect(placement.t).toBeLessThanOrEqual(0.88);
+  });
+
   it("slides along the edge to avoid an unrelated hero portrait", () => {
     const segment = { x1: 100, y1: 200, x2: 500, y2: 200 };
     const placements = layoutSourceAnchoredEdgeLabels(
