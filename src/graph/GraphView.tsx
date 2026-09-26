@@ -68,19 +68,10 @@ const HEIGHT = 760;
 const MIN_ZOOM = 0.55;
 const MAX_ZOOM = 2.4;
 const DRAG_THRESHOLD = 5;
-const CAMERA_DURATION = 460;
 const COMPACT_VIEWPORT_QUERY = "(max-width: 640px)";
-const COMPACT_FOCUS_OFFSET_Y = -120;
-const DESKTOP_FOCUS_OFFSET_X = 180;
 
 const clamp = (value: number, min: number, max: number) =>
   Math.min(max, Math.max(min, value));
-
-const lerp = (from: number, to: number, progress: number) =>
-  from + (to - from) * progress;
-
-const easeOutQuart = (progress: number) =>
-  1 - Math.pow(1 - progress, 4);
 
 const normalizeAngle = (angle: number) => {
   const fullTurn = Math.PI * 2;
@@ -148,43 +139,6 @@ export function GraphView({
   const byId = useMemo(() => new Map(heroes.map((hero) => [hero.id, hero])), [heroes]);
   const initialCompactViewport = window.matchMedia(COMPACT_VIEWPORT_QUERY).matches;
   const [isCompactViewport, setIsCompactViewport] = useState(initialCompactViewport);
-  const [svgViewport, setSvgViewport] = useState({ width: WIDTH, height: HEIGHT });
-  const selectedHero = selectedHeroId ? byId.get(selectedHeroId) : undefined;
-  const relatedHeroes = useMemo(() => {
-    if (!selectedHeroId) return [];
-
-    const ids = new Set(
-      [...selectedRelations.incoming, ...selectedRelations.outgoing]
-        .flatMap((relationship) => [relationship.sourceHeroId, relationship.targetHeroId])
-        .filter((heroId) => heroId !== selectedHeroId)
-    );
-
-    return [...ids].flatMap((heroId) => {
-      const hero = byId.get(heroId);
-      return hero ? [hero] : [];
-    });
-  }, [byId, selectedHeroId, selectedRelations]);
-
-  const visibleGraphSpan = useMemo(
-    () => visibleViewBoxForViewport(
-      svgViewport.width,
-      svgViewport.height,
-      WIDTH,
-      HEIGHT,
-      isCompactViewport ? "slice" : "meet"
-    ),
-    [isCompactViewport, svgViewport]
-  );
-  const edgeLabelBounds = useMemo(
-    () => ({
-      left: (WIDTH - visibleGraphSpan.width) / 2,
-      right: (WIDTH + visibleGraphSpan.width) / 2,
-      top: (HEIGHT - visibleGraphSpan.height) / 2,
-      bottom: (HEIGHT + visibleGraphSpan.height) / 2
-    }),
-    [visibleGraphSpan.height, visibleGraphSpan.width]
-  );
-
   const overviewCamera = useMemo(
     () =>
       calculateOverviewCamera(heroes, {
@@ -193,35 +147,14 @@ export function GraphView({
       }),
     [heroes]
   );
-  const targetFocusScale =
-    selectedHero && isCompactViewport
-      ? calculateFocusScale(selectedHero, relatedHeroes, {
-          ...visibleGraphSpan,
-          offsetY: COMPACT_FOCUS_OFFSET_Y,
-          paddingX: 60,
-          paddingY: 54
-        })
-      : overviewCamera.scale;
 
   const initialCamera: CameraState = {
-    anchorX:
-      selectedHero && initialCompactViewport
-        ? selectedHero.x
-        : overviewCamera.anchorX,
-    anchorY:
-      selectedHero && initialCompactViewport
-        ? selectedHero.y
-        : overviewCamera.anchorY,
-    panX:
-      selectedHero && !initialCompactViewport
-        ? DESKTOP_FOCUS_OFFSET_X
-        : 0,
-    panY: selectedHero && initialCompactViewport ? COMPACT_FOCUS_OFFSET_Y : 0,
+    anchorX: overviewCamera.anchorX,
+    anchorY: overviewCamera.anchorY,
+    panX: 0,
+    panY: 0,
     zoom: 1,
-    focusScale:
-      selectedHero && initialCompactViewport
-        ? targetFocusScale
-        : overviewCamera.scale
+    focusScale: overviewCamera.scale
   };
 
   const [camera, setCameraState] = useState<CameraState>(initialCamera);
@@ -232,12 +165,6 @@ export function GraphView({
   const [keyboardHeroId, setKeyboardHeroId] = useState<string | null>(initialKeyboardHero?.id ?? null);
   const cameraRef = useRef(camera);
   const svgRef = useRef<SVGSVGElement>(null);
-  const animationFrameRef = useRef<number | null>(null);
-  const previousCameraTargetRef = useRef(
-    `${selectedHeroId ?? ""}:${initialCompactViewport}:${
-      selectedHero ? targetFocusScale.toFixed(4) : overviewCamera.scale.toFixed(4)
-    }:${overviewCamera.anchorX.toFixed(2)}:${overviewCamera.anchorY.toFixed(2)}`
-  );
   const previousKeyboardSelectionRef = useRef(selectedHeroId);
   const dragRef = useRef<DragState | null>(null);
 
@@ -249,108 +176,18 @@ export function GraphView({
     });
   };
 
-  const cancelCameraAnimation = () => {
-    if (animationFrameRef.current !== null) {
-      window.cancelAnimationFrame(animationFrameRef.current);
-      animationFrameRef.current = null;
-    }
-  };
+  const cancelCameraAnimation = () => {};
 
   useEffect(() => {
-    const cameraTargetKey = `${selectedHeroId ?? ""}:${isCompactViewport}:${
-      selectedHero ? targetFocusScale.toFixed(4) : overviewCamera.scale.toFixed(4)
-    }:${overviewCamera.anchorX.toFixed(2)}:${overviewCamera.anchorY.toFixed(2)}`;
-    if (previousCameraTargetRef.current === cameraTargetKey) return;
-    previousCameraTargetRef.current = cameraTargetKey;
-
-    cancelCameraAnimation();
-
-    const compactSelected =
-      selectedHeroId && isCompactViewport
-        ? byId.get(selectedHeroId)
-        : undefined;
-    const target: CameraState = {
-      anchorX: compactSelected?.x ?? overviewCamera.anchorX,
-      anchorY: compactSelected?.y ?? overviewCamera.anchorY,
-      panX:
-        selectedHeroId && !isCompactViewport
-          ? DESKTOP_FOCUS_OFFSET_X
-          : 0,
-      panY: compactSelected ? COMPACT_FOCUS_OFFSET_Y : 0,
-      zoom: 1,
-      focusScale: compactSelected ? targetFocusScale : overviewCamera.scale
-    };
-
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      setCamera(target);
-      return;
-    }
-
-    const from = cameraRef.current;
-    const startedAt = performance.now();
-
-    const tick = (now: number) => {
-      const rawProgress = clamp((now - startedAt) / CAMERA_DURATION, 0, 1);
-      const progress = easeOutQuart(rawProgress);
-
-      setCamera({
-        anchorX: lerp(from.anchorX, target.anchorX, progress),
-        anchorY: lerp(from.anchorY, target.anchorY, progress),
-        panX: lerp(from.panX, target.panX, progress),
-        panY: lerp(from.panY, target.panY, progress),
-        zoom: lerp(from.zoom, target.zoom, progress),
-        focusScale: lerp(from.focusScale, target.focusScale, progress)
-      });
-
-      if (rawProgress < 1) {
-        animationFrameRef.current = window.requestAnimationFrame(tick);
-      } else {
-        animationFrameRef.current = null;
-      }
-    };
-
-    animationFrameRef.current = window.requestAnimationFrame(tick);
-
-    return cancelCameraAnimation;
-  }, [
-    selectedHeroId,
-    selectedHero,
-    byId,
-    isCompactViewport,
-    targetFocusScale,
-    overviewCamera
-  ]);
-
-  useEffect(() => cancelCameraAnimation, []);
-
-  useEffect(() => {
-    const svg = svgRef.current;
-    if (!svg) return;
-
-    const updateViewport = () => {
-      const rect = svg.getBoundingClientRect();
-      if (rect.width <= 0 || rect.height <= 0) return;
-
-      setSvgViewport((current) => {
-        if (
-          Math.abs(current.width - rect.width) < 0.5 &&
-          Math.abs(current.height - rect.height) < 0.5
-        ) {
-          return current;
-        }
-
-        return { width: rect.width, height: rect.height };
-      });
-    };
-
-    updateViewport();
-
-    if (typeof ResizeObserver === "undefined") return;
-
-    const observer = new ResizeObserver(updateViewport);
-    observer.observe(svg);
-    return () => observer.disconnect();
-  }, []);
+    setCamera((current) => ({
+      ...current,
+      anchorX: overviewCamera.anchorX,
+      anchorY: overviewCamera.anchorY,
+      panX: 0,
+      panY: 0,
+      focusScale: overviewCamera.scale
+    }));
+  }, [overviewCamera]);
 
   useEffect(() => {
     const media = window.matchMedia(COMPACT_VIEWPORT_QUERY);
