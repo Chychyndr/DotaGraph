@@ -617,7 +617,7 @@ export function GraphView({
         id: hero.id,
         x: point.x,
         y: point.y,
-        radius: radiusFor(hero.id) * cameraScale + 7
+        radius: radiusFor(hero.id) * cameraScale + 3
       };
     });
 
@@ -629,8 +629,8 @@ export function GraphView({
       return [{
         x: point.x,
         y: point.y,
-        width: labelWidthFor(hero) + 18,
-        height: 30
+        width: labelWidthFor(hero) + 6,
+        height: 24
       }];
     });
 
