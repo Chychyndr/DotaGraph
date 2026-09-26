@@ -388,7 +388,7 @@ test("focused win-rate labels stay source-anchored and do not overlap", async ({
     await expect(leader).toHaveCount(0);
     expect(t).toBeGreaterThanOrEqual(0.16);
     expect(t).toBeLessThanOrEqual(0.84);
-    expect(Math.abs((t - 0.16) / 0.04 - Math.round((t - 0.16) / 0.04)))
+    expect(Math.abs((t - 0.16) / 0.01 - Math.round((t - 0.16) / 0.01)))
       .toBeLessThan(0.01);
 
     const box = await label.boundingBox();
@@ -623,8 +623,8 @@ test("focus win-rate badges stay attached to rendered relationship paths", async
       expect(row.t).toBeLessThanOrEqual(0.84);
       expect(
         Math.abs(
-          (row.t - 0.16) / 0.04 -
-            Math.round((row.t - 0.16) / 0.04)
+          (row.t - 0.16) / 0.01 -
+            Math.round((row.t - 0.16) / 0.01)
         )
       ).toBeLessThan(0.01);
       expect(
