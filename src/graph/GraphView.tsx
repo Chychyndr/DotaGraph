@@ -429,67 +429,188 @@ export function GraphView({
     })
   );
 
-  const edgeLabelPlacements = new Map(
-    activeRelationships.flatMap((relationship) => {
+  const edgeLabelPlacements = (() => {
+    const placements = new Map<
+      string,
+      {
+        x: number;
+        y: number;
+        t: number;
+        offset: number;
+        scale: number;
+      }
+    >();
+    const labelScale = isCompactViewport ? 0.8 : 1;
+    const graphScale = Math.max(cameraScale, 0.001);
+    const badgeHalfWidth = EDGE_LABEL_WIDTH * labelScale / (2 * graphScale) + 5 / graphScale;
+    const badgeHalfHeight = EDGE_LABEL_HEIGHT * labelScale / (2 * graphScale) + 5 / graphScale;
+    const placedBadgeRects: Array<{
+      x: number;
+      y: number;
+      halfWidth: number;
+      halfHeight: number;
+    }> = [];
+
+    const fixedHeroLabelRects = labelHeroes.flatMap((hero) => {
+      const placement = fixedLabelPlacements.get(hero.id);
+      if (!placement) return [];
+
+      return [{
+        heroId: hero.id,
+        x: placement.x,
+        y: placement.y,
+        halfWidth: labelWidthFor(hero) / (2 * graphScale) + 5 / graphScale,
+        halfHeight: 10 / graphScale + 5 / graphScale
+      }];
+    });
+
+    const activePortraits = [...activeIds].flatMap((heroId) => {
+      const hero = byId.get(heroId);
+      if (!hero) return [];
+
+      return [{
+        heroId,
+        x: hero.x,
+        y: hero.y,
+        radius: radiusFor(heroId) + 7 / graphScale
+      }];
+    });
+
+    const overlapsRect = (
+      x: number,
+      y: number,
+      halfWidth: number,
+      halfHeight: number,
+      obstacle: {
+        x: number;
+        y: number;
+        halfWidth: number;
+        halfHeight: number;
+      }
+    ) =>
+      Math.abs(x - obstacle.x) < halfWidth + obstacle.halfWidth &&
+      Math.abs(y - obstacle.y) < halfHeight + obstacle.halfHeight;
+
+    for (const relationship of activeRelationships) {
       const source = byId.get(relationship.sourceHeroId);
       const target = byId.get(relationship.targetHeroId);
-      if (!source || !target) return [];
+      if (!source || !target) continue;
 
       const preferredT =
-        relationship.sourceHeroId === selectedHeroId
-          ? 0.72
-          : 0.28;
+        relationship.sourceHeroId === selectedHeroId ? 0.72 : 0.28;
+      const candidateTs =
+        preferredT > 0.5
+          ? [0.72, 0.64, 0.56, 0.48, 0.40, 0.32]
+          : [0.28, 0.36, 0.44, 0.52, 0.60, 0.68];
       const geometry = edgeGeometry(source, target);
-      let t = preferredT;
 
-      if (isCompactViewport) {
-        const visibleLeft = (WIDTH - visibleGraphSpan.width) / 2;
-        const visibleRight = WIDTH - visibleLeft;
-        const visibleTop = (HEIGHT - visibleGraphSpan.height) / 2;
-        const visibleBottom = HEIGHT - visibleTop;
-        const halfWidth = EDGE_LABEL_WIDTH * 0.8 / 2 + 4;
-        const halfHeight = EDGE_LABEL_HEIGHT * 0.8 / 2 + 4;
-        const candidates = [
-          preferredT,
-          0.5,
-          0.42,
-          0.58,
-          0.34,
-          0.66,
-          0.25,
-          0.75
-        ];
+      const candidateIsSafe = (candidate: number) => {
+        const x = geometry.x1 + (geometry.x2 - geometry.x1) * candidate;
+        const y = geometry.y1 + (geometry.y2 - geometry.y1) * candidate;
 
-        const safeCandidate = candidates.find((candidate) => {
-          const graphX =
-            geometry.x1 + (geometry.x2 - geometry.x1) * candidate;
-          const graphY =
-            geometry.y1 + (geometry.y2 - geometry.y1) * candidate;
-          const point = projectGraphPoint(graphX, graphY);
-
-          return (
-            point.x - halfWidth >= visibleLeft &&
-            point.x + halfWidth <= visibleRight &&
-            point.y - halfHeight >= visibleTop &&
-            point.y + halfHeight <= visibleBottom
-          );
-        });
-
-        if (safeCandidate !== undefined) t = safeCandidate;
-      }
-
-      return [[
-        relationship.id,
-        {
-          x: geometry.x1 + (geometry.x2 - geometry.x1) * t,
-          y: geometry.y1 + (geometry.y2 - geometry.y1) * t,
-          t,
-          offset: 0,
-          scale: isCompactViewport ? 0.8 : 1
+        if (
+          fixedHeroLabelRects.some((rect) =>
+            overlapsRect(
+              x,
+              y,
+              badgeHalfWidth,
+              badgeHalfHeight,
+              rect
+            )
+          )
+        ) {
+          return false;
         }
-      ] as const];
-    })
-  );
+
+        if (
+          placedBadgeRects.some((rect) =>
+            overlapsRect(
+              x,
+              y,
+              badgeHalfWidth,
+              badgeHalfHeight,
+              rect
+            )
+          )
+        ) {
+          return false;
+        }
+
+        if (
+          activePortraits.some((portrait) => {
+            if (
+              portrait.heroId === relationship.sourceHeroId ||
+              portrait.heroId === relationship.targetHeroId
+            ) {
+              return false;
+            }
+
+            const closestX = clamp(
+              portrait.x,
+              x - badgeHalfWidth,
+              x + badgeHalfWidth
+            );
+            const closestY = clamp(
+              portrait.y,
+              y - badgeHalfHeight,
+              y + badgeHalfHeight
+            );
+            return (
+              Math.hypot(
+                portrait.x - closestX,
+                portrait.y - closestY
+              ) < portrait.radius
+            );
+          })
+        ) {
+          return false;
+        }
+
+        if (isCompactViewport) {
+          const point = projectGraphPoint(x, y);
+          const visibleLeft = (WIDTH - visibleGraphSpan.width) / 2;
+          const visibleRight = WIDTH - visibleLeft;
+          const visibleTop = (HEIGHT - visibleGraphSpan.height) / 2;
+          const visibleBottom = HEIGHT - visibleTop;
+          const screenHalfWidth = EDGE_LABEL_WIDTH * labelScale / 2 + 4;
+          const screenHalfHeight = EDGE_LABEL_HEIGHT * labelScale / 2 + 4;
+
+          if (
+            point.x - screenHalfWidth < visibleLeft ||
+            point.x + screenHalfWidth > visibleRight ||
+            point.y - screenHalfHeight < visibleTop ||
+            point.y + screenHalfHeight > visibleBottom
+          ) {
+            return false;
+          }
+        }
+
+        return true;
+      };
+
+      const t =
+        candidateTs.find(candidateIsSafe) ??
+        candidateTs[0];
+      const x = geometry.x1 + (geometry.x2 - geometry.x1) * t;
+      const y = geometry.y1 + (geometry.y2 - geometry.y1) * t;
+
+      placements.set(relationship.id, {
+        x,
+        y,
+        t,
+        offset: 0,
+        scale: labelScale
+      });
+      placedBadgeRects.push({
+        x,
+        y,
+        halfWidth: badgeHalfWidth,
+        halfHeight: badgeHalfHeight
+      });
+    }
+
+    return placements;
+  })();
 
   const distanceToSegment = (
     px: number,
