@@ -66,9 +66,15 @@ def compute_layout(
     golden_angle = math.pi * (3.0 - math.sqrt(5.0))
     positions: list[list[float]] = []
 
+    preferred_stride = min(89, max(1, count - 1))
+    initial_stride = preferred_stride
+    while initial_stride > 1 and math.gcd(initial_stride, count) != 1:
+        initial_stride -= 1
+
     for i in range(count):
-        fraction = math.sqrt((i + 0.5) / count)
-        angle = i * golden_angle
+        slot = (i * initial_stride) % count
+        fraction = math.sqrt((slot + 0.5) / count)
+        angle = slot * golden_angle
         positions.append([
             math.cos(angle) * fraction,
             math.sin(angle) * fraction * 0.72,
