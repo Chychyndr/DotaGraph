@@ -468,7 +468,7 @@ button:focus-visible, input:focus-visible, [role="button"]:focus-visible {
 .hero-dimmed { opacity: .14; }
 .hero-active { opacity: 1; }
 .hero-active .node-ring { stroke: #8b949e; }
-.hero-selected .node-ring { stroke: var(--selected); stroke-width: 2.4; }
+.hero-selected .node-ring { stroke: var(--selected); stroke-width: 4; }
 .hero-matchup .node-ring { stroke-width: 2.4; }
 .hero-hovered:not(.hero-selected) .node-ring { stroke: var(--secondary); }
 
@@ -494,12 +494,17 @@ button:focus-visible, input:focus-visible, [role="button"]:focus-visible {
 
 .hero-label {
   fill: var(--text);
-  font: 600 11px "Mona Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
+  font: 600 12px "Mona Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
   paint-order: stroke fill;
   stroke: var(--canvas);
   stroke-width: 2px;
   stroke-linejoin: round;
   pointer-events: none;
+}
+
+.hero-label-selected .hero-label {
+  font-size: 18px;
+  font-weight: 700;
 }
 
 .empty-guidance {
