@@ -773,7 +773,11 @@ export function GraphView({
       </p>
       <svg
       ref={svgRef}
-      className={isPanning ? "graph graph-panning" : "graph"}
+      className={[
+        "graph",
+        isPanning ? "graph-panning" : "",
+        selectedHeroId ? "graph-focused" : ""
+      ].filter(Boolean).join(" ")}
       viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
       preserveAspectRatio={isCompactViewport ? "xMidYMid slice" : "xMidYMid meet"}
       role="group"
