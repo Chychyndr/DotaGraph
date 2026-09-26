@@ -57,8 +57,19 @@ function RelationRows({
 }
 
 export function HeroCard({ hero, incoming, outgoing, onMatchup, heroesById }: HeroCardProps) {
+  const heroXs = [...heroesById.values()].map((item) => item.x);
+  const graphCenterX =
+    heroXs.length > 0
+      ? (Math.min(...heroXs) + Math.max(...heroXs)) / 2
+      : hero.x;
+  const cardSideClass =
+    hero.x < graphCenterX ? "context-card-right" : "context-card-left";
+
   return (
-    <aside className="context-card" aria-label={`${hero.name} counter summary`}>
+    <aside
+      className={`context-card ${cardSideClass}`}
+      aria-label={`${hero.name} counter summary`}
+    >
       <div className="card-hero">
         <HeroPortrait hero={hero} />
         <h2>{hero.name}</h2>
