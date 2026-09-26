@@ -340,6 +340,10 @@ export function GraphView({
     x: WIDTH / 2 + camera.panX + cameraScale * (x - camera.anchorX),
     y: HEIGHT / 2 + camera.panY + cameraScale * (y - camera.anchorY)
   });
+  const projectOverviewPoint = (x: number, y: number) => ({
+    x: WIDTH / 2 + overviewCamera.scale * (x - overviewCamera.anchorX),
+    y: HEIGHT / 2 + overviewCamera.scale * (y - overviewCamera.anchorY)
+  });
 
   const hoverRelationshipIds = new Set(
     hoverRelationships.map((relationship) => relationship.id)
@@ -383,6 +387,8 @@ export function GraphView({
 
   const layoutMinX = Math.min(...heroes.map((hero) => hero.x), 0);
   const layoutMaxX = Math.max(...heroes.map((hero) => hero.x), WIDTH);
+  const layoutMinY = Math.min(...heroes.map((hero) => hero.y), 0);
+  const layoutMaxY = Math.max(...heroes.map((hero) => hero.y), HEIGHT);
   const stableIncidentRelationships = new Map<
     string,
     MatchupRelationship[]
@@ -540,20 +546,29 @@ export function GraphView({
           );
         }, 0);
 
-        const outside =
+        const outsideLayout =
           left < layoutMinX ||
           right > layoutMaxX ||
-          top < Math.min(...heroes.map((item) => item.y)) ||
-          bottom > Math.max(...heroes.map((item) => item.y));
+          top < layoutMinY ||
+          bottom > layoutMaxY;
+        const overviewPoint = projectOverviewPoint(x, y);
+        const screenHalfWidth = width / 2 + 5;
+        const screenHalfHeight = 12;
+        const viewportOverflow =
+          Math.max(0, screenHalfWidth - overviewPoint.x) +
+          Math.max(0, overviewPoint.x + screenHalfWidth - WIDTH) +
+          Math.max(0, screenHalfHeight - overviewPoint.y) +
+          Math.max(0, overviewPoint.y + screenHalfHeight - HEIGHT);
 
         return {
           angle,
           x,
           y,
           score:
-            (outside ? 1_000_000 : 0) +
-            edgeHits * 100_000 +
-            portraitHits * 20_000 +
+            viewportOverflow * 1_000_000 +
+            (outsideLayout ? 100_000 : 0) +
+            edgeHits * 10_000 +
+            portraitHits * 2_000 +
             angularDistance(angle, freeAngle) * 100
         };
       });
@@ -773,78 +788,6 @@ export function GraphView({
 
     return placements;
   })();
-
-  const distanceToSegment = (
-    px: number,
-    py: number,
-    x1: number,
-    y1: number,
-    x2: number,
-    y2: number
-  ) => {
-    const dx = x2 - x1;
-    const dy = y2 - y1;
-    const lengthSquared = dx * dx + dy * dy;
-    if (!lengthSquared) return Math.hypot(px - x1, py - y1);
-
-    const t = clamp(
-      ((px - x1) * dx + (py - y1) * dy) / lengthSquared,
-      0,
-      1
-    );
-    return Math.hypot(
-      px - (x1 + dx * t),
-      py - (y1 + dy * t)
-    );
-  };
-
-  const obscuredDimmedIds = new Set(
-    selectedHeroId
-      ? heroes
-          .filter((hero) => !activeIds.has(hero.id))
-          .filter((hero) => {
-            for (const relationship of activeRelationships) {
-              const source = byId.get(relationship.sourceHeroId);
-              const target = byId.get(relationship.targetHeroId);
-              if (!source || !target) continue;
-
-              const geometry = edgeGeometry(source, target);
-              if (
-                distanceToSegment(
-                  hero.x,
-                  hero.y,
-                  geometry.x1,
-                  geometry.y1,
-                  geometry.x2,
-                  geometry.y2
-                ) < radiusFor(hero.id) + 7
-              ) {
-                return true;
-              }
-
-              const badge = edgeLabelPlacements.get(relationship.id);
-              if (!badge) continue;
-
-              const halfWidth =
-                EDGE_LABEL_WIDTH / (2 * Math.max(cameraScale, 0.001)) +
-                radiusFor(hero.id) + 4;
-              const halfHeight =
-                EDGE_LABEL_HEIGHT / (2 * Math.max(cameraScale, 0.001)) +
-                radiusFor(hero.id) + 4;
-
-              if (
-                Math.abs(hero.x - badge.x) < halfWidth &&
-                Math.abs(hero.y - badge.y) < halfHeight
-              ) {
-                return true;
-              }
-            }
-
-            return false;
-          })
-          .map((hero) => hero.id)
-      : []
-  );
 
   const handlePointerDown = (event: ReactPointerEvent<SVGSVGElement>) => {
     if (event.button !== 0) return;
@@ -1107,10 +1050,7 @@ export function GraphView({
               isActive ? "hero-active" : "",
               isHovered ? "hero-hovered" : "",
               isMatchup ? "hero-matchup" : "",
-              shouldDim ? "hero-dimmed" : "",
-              shouldDim && obscuredDimmedIds.has(hero.id)
-                ? "hero-obscured"
-                : ""
+              shouldDim ? "hero-dimmed" : ""
             ].filter(Boolean).join(" ");
 
             const activeRelationship = activeRelationships.find(
