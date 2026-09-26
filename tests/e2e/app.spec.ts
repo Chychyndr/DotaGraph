@@ -168,15 +168,15 @@ test("initial overview centers the actual hero bounds", async ({ page }) => {
   expect(Math.abs(heroesCenterY - graphCenterY)).toBeLessThan(8);
 });
 
-test("overview renders a sparse relationship backbone", async ({ page }) => {
+test("overview preloads the persistent focus relationship graph", async ({ page }) => {
   await page.goto("/");
   await expect(
     page.getByRole("group", { name: "Dota 2 hero counter relationships" })
   ).toBeVisible();
 
   const edgeCount = await page.locator(".edges .edge").count();
-  expect(edgeCount).toBeGreaterThan(0);
-  expect(edgeCount).toBeLessThanOrEqual(127);
+  expect(edgeCount).toBeGreaterThan(127);
+  expect(edgeCount).toBeLessThanOrEqual(1270);
 });
 
 test("hover reveals local relationships without moving or replacing the overview graph", async ({ page }) => {
