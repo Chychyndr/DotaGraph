@@ -490,15 +490,7 @@ def _ensure_layout_neighbors(
             if degrees.get(hero_slug, 0) >= minimum_neighbors:
                 break
 
-    return sorted(
-        selected_by_pair.values(),
-        key=lambda item: (
-            -item.baseline_adjusted_delta,
-            -item.sample_size,
-            item.source,
-            item.target,
-        ),
-    )
+    return sorted(selected_by_pair.values(), key=_relationship_sort_key)
 
 
 def _layout_edges(
