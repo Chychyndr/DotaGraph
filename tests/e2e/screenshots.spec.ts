@@ -188,7 +188,8 @@ test("capture owner reference Focus cases on the stable global layout", async ({
     "earthshaker",
     "enchantress",
     "ember-spirit",
-    "crystal-maiden"
+    "crystal-maiden",
+    "pudge"
   ]) {
     await page.goto(`/?hero=${heroId}`, { waitUntil: "networkidle" });
     await page.waitForTimeout(520);
