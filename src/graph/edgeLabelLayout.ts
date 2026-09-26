@@ -300,8 +300,8 @@ export function layoutSourceAnchoredEdgeLabels(
 
     if (sizeScale >= 1) {
       for (const [emergencyScale, extraPenalty] of [
-        [0.7, 25],
-        [0.62, 65]
+        [0.76, 25],
+        [0.70, 65]
       ] as const) {
         for (const t of uniqueTs) {
           rawCandidates.push({
