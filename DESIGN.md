@@ -24,14 +24,12 @@ https://www.figma.com/design/rydgq1wV8C0hlVb5n7Ohws/DotaGraph-Design?node-id=1-2
 - Dota portrait art carries most of the color.
 
 Approximate portrait sizes:
-- default: 28 px;
-- active relationship: 28 px;
-- selected: 28 px with a stronger gold ring;
+- default Overview/background: 28 px;
+- active Focus relationship: about 34 px;
+- selected Focus hero: about 34 px with a stronger gold ring;
 - hover may grow to about 36 px.
 
-Focus preserves the Overview portrait footprint so highlighting relationships never forces a second layout.
-
-The stable hero field should use the graph canvas generously. Keep the topology recognizable, but avoid compressing the full roster into a dense central knot when there is unused viewport space. Portrait size stays constant; breathing room comes from the committed node coordinates and camera framing.
+The stable Overview hero field should use the graph canvas generously. Keep that topology recognizable, but Focus may move only the selected hero and its active relationship endpoints into a deterministic presentation layout. This gives the relationship star enough breathing room without changing the underlying relationship data.
 
 ## Interaction
 
@@ -39,7 +37,7 @@ Overview keeps the whole graph as a weak spiderweb.
 
 Hover reveals only local context and never relayouts the graph.
 
-Focus preserves the exact Overview graph layout. All heroes remain at their committed positions; unrelated heroes become subdued, while incoming and outgoing relationships and their endpoint heroes are emphasized in place. Focus must never construct or overlay a second arrangement of the same heroes. On desktop the Overview camera keeps the same scale and anchor when a hero is selected; the graph may translate slightly to make room for the HeroCard. Compact viewports may reframe the same graph only when needed to keep the selected hero usable with the context card.
+Focus keeps the Overview graph as subdued background context, while the selected hero and its active endpoints move into a deterministic spacious relationship-star layout. Incoming endpoints occupy the left side, outgoing endpoints occupy the right side, and the selected hero stays near the center of the Focus stage. Every active relationship is one straight line; Focus must not use bent or collision-routed active polylines. Background heroes stay at their committed Overview positions and may be fully hidden only when they would visually sit directly on an active Focus lane or fixed win-rate pill.
 
 Selecting or leaving a hero moves the camera with a short eased transition. Manual drag or wheel input immediately takes control and cancels that camera animation.
 
@@ -51,7 +49,7 @@ Matchup keeps the graph visible, emphasizes one pair, and changes the compact ca
 
 The percentage belongs to the source hero of the arrow.
 
-The accepted current behavior is source-anchored, collision-aware placement on the active edge itself. Labels normally stay on the source half of the edge; when the selected hero is the source, the badge may sit farther down that half so dense outgoing fans remain readable. On short fixed-layout edges, the badge may scale down to stay on the line without covering a portrait. If the gap is still physically too short, the full badge moves onto a short collinear continuation of that same relationship. Source-side continuation is preferred; target-side continuation is allowed when the source-side ray conflicts with another active relationship or badge. Hero names use collision-aware placement outside active relationship paths and render on an opaque canvas backing.
+In Focus, every win-rate pill has a fixed position at 52% of its own straight padded relationship segment. The pill stays centered on that line, never fans away from it, never gains a leader line, and never moves onto an external continuation. Hero names also use fixed Focus anchors: selected name above the portrait, incoming names to the left, outgoing names to the right on desktop; compact Focus uses fixed above-portrait labels.
 
 ## Product chrome decisions
 
