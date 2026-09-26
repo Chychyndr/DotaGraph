@@ -606,8 +606,6 @@ export function GraphView({
     >();
     const labelScale = isCompactViewport ? 0.8 : 1;
     const graphScale = Math.max(cameraScale, 0.001);
-    const badgeHalfWidth = EDGE_LABEL_WIDTH * labelScale / (2 * graphScale) + 5 / graphScale;
-    const badgeHalfHeight = EDGE_LABEL_HEIGHT * labelScale / (2 * graphScale) + 5 / graphScale;
     const placedBadgeRects: Array<{
       x: number;
       y: number;
@@ -658,18 +656,27 @@ export function GraphView({
       const preferredT =
         relationship.sourceHeroId === selectedHeroId ? 0.72 : 0.28;
       const candidateTs = Array.from(
-        { length: 69 },
-        (_, index) => Number((0.16 + index * 0.01).toFixed(2))
+        { length: 85 },
+        (_, index) => Number((0.08 + index * 0.01).toFixed(2))
       ).sort(
         (left, right) =>
           Math.abs(left - preferredT) - Math.abs(right - preferredT) ||
           left - right
       );
+      const candidateScales = [...new Set([
+        labelScale,
+        Number((labelScale * 0.9).toFixed(2)),
+        Number((labelScale * 0.8).toFixed(2))
+      ])];
       const geometry = edgeGeometry(source, target);
 
-      const candidateCost = (candidate: number) => {
+      const candidateCost = (candidate: number, candidateScale: number) => {
         const x = geometry.x1 + (geometry.x2 - geometry.x1) * candidate;
         const y = geometry.y1 + (geometry.y2 - geometry.y1) * candidate;
+        const badgeHalfWidth =
+          EDGE_LABEL_WIDTH * candidateScale / (2 * graphScale) + 4 / graphScale;
+        const badgeHalfHeight =
+          EDGE_LABEL_HEIGHT * candidateScale / (2 * graphScale) + 4 / graphScale;
 
         if (isCompactViewport) {
           const point = projectGraphPoint(x, y);
@@ -677,8 +684,8 @@ export function GraphView({
           const visibleRight = WIDTH - visibleLeft;
           const visibleTop = (HEIGHT - visibleGraphSpan.height) / 2;
           const visibleBottom = HEIGHT - visibleTop;
-          const screenHalfWidth = EDGE_LABEL_WIDTH * labelScale / 2 + 4;
-          const screenHalfHeight = EDGE_LABEL_HEIGHT * labelScale / 2 + 4;
+          const screenHalfWidth = EDGE_LABEL_WIDTH * candidateScale / 2 + 4;
+          const screenHalfHeight = EDGE_LABEL_HEIGHT * candidateScale / 2 + 4;
 
           if (
             point.x - screenHalfWidth < visibleLeft ||
@@ -711,13 +718,6 @@ export function GraphView({
         ).length;
 
         const portraitHits = heroPortraits.filter((portrait) => {
-          if (
-            portrait.heroId === relationship.sourceHeroId ||
-            portrait.heroId === relationship.targetHeroId
-          ) {
-            return false;
-          }
-
           const closestX = clamp(
             portrait.x,
             x - badgeHalfWidth,
@@ -737,21 +737,26 @@ export function GraphView({
         }).length;
 
         return (
-          portraitHits * 20_000 +
-          labelHits * 10_000 +
-          badgeHits * 5_000 +
+          portraitHits * 1_000_000 +
+          labelHits * 500_000 +
+          badgeHits * 200_000 +
+          (labelScale - candidateScale) * 1_000 +
           Math.abs(candidate - preferredT) * 100
         );
       };
 
-      const rankedCandidates = candidateTs
-        .map((candidate) => ({
-          candidate,
-          cost: candidateCost(candidate)
-        }))
+      const rankedCandidates = candidateScales
+        .flatMap((candidateScale) =>
+          candidateTs.map((candidate) => ({
+            candidate,
+            scale: candidateScale,
+            cost: candidateCost(candidate, candidateScale)
+          }))
+        )
         .sort(
           (left, right) =>
             left.cost - right.cost ||
+            right.scale - left.scale ||
             Math.abs(left.candidate - preferredT) -
               Math.abs(right.candidate - preferredT) ||
             left.candidate - right.candidate
@@ -763,15 +768,20 @@ export function GraphView({
       }
 
       const t = bestCandidate?.candidate ?? preferredT;
+      const scale = bestCandidate?.scale ?? labelScale;
       const x = geometry.x1 + (geometry.x2 - geometry.x1) * t;
       const y = geometry.y1 + (geometry.y2 - geometry.y1) * t;
+      const badgeHalfWidth =
+        EDGE_LABEL_WIDTH * scale / (2 * graphScale) + 4 / graphScale;
+      const badgeHalfHeight =
+        EDGE_LABEL_HEIGHT * scale / (2 * graphScale) + 4 / graphScale;
 
       placements.set(relationship.id, {
         x,
         y,
         t,
         offset: 0,
-        scale: labelScale
+        scale
       });
       placedBadgeRects.push({
         x,
@@ -997,7 +1007,7 @@ export function GraphView({
                 relationship.targetHeroId === matchupHeroId)
             );
             const labelScreenScale =
-              (isCompactViewport ? 0.8 : 1) /
+              labelPlacement.scale /
               Math.max(cameraScale, 0.001);
 
             return (
@@ -1013,7 +1023,7 @@ export function GraphView({
                 data-target-hero={relationship.targetHeroId}
                 data-label-t={labelPlacement.t.toFixed(3)}
                 data-label-offset="0.0"
-                data-label-scale={(isCompactViewport ? 0.8 : 1).toFixed(2)}
+                data-label-scale={labelPlacement.scale.toFixed(2)}
                 data-label-external="false"
               >
                 <rect
