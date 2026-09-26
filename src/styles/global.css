@@ -458,6 +458,11 @@ button:focus-visible, input:focus-visible, [role="button"]:focus-visible {
 
 .node-hitarea { fill: transparent; }
 
+.hero-node-mask {
+  fill: var(--canvas);
+  pointer-events: none;
+}
+
 .node-ring {
   fill: var(--panel);
   stroke: #6e7681;
