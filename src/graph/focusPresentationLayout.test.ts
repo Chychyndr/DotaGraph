@@ -14,7 +14,7 @@ const relationship = (
   sampleSize: 1000,
   patch: "test",
   rankScope: "ancient_plus",
-  source: "test"
+  sourceKind: "generated"
 });
 
 describe("layoutFocusPresentation", () => {
