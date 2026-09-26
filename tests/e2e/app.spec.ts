@@ -213,9 +213,21 @@ test("focus keeps the same graph and only highlights selected relationships", as
     nodes: [...document.querySelectorAll<SVGGElement>(".hero-node")]
       .map((node) => [node.id, node.getAttribute("transform") ?? ""] as const)
       .sort(([a], [b]) => a.localeCompare(b)),
-    edges: [...document.querySelectorAll<SVGElement>(".edges .edge")]
-      .map((edge) => `${edge.dataset.sourceHero}->${edge.dataset.targetHero}`)
-      .sort()
+    edges: [...document.querySelectorAll<SVGLineElement>(".edges .edge")]
+      .map((edge) => ({
+        id: `${edge.dataset.sourceHero}->${edge.dataset.targetHero}`,
+        x1: edge.getAttribute("x1"),
+        y1: edge.getAttribute("y1"),
+        x2: edge.getAttribute("x2"),
+        y2: edge.getAttribute("y2")
+      }))
+      .sort((left, right) => left.id.localeCompare(right.id)),
+    portraitRadii: [...document.querySelectorAll<SVGCircleElement>(".hero-portrait-node")]
+      .map((portrait) => ({
+        heroId: portrait.closest<SVGGElement>(".hero-node")?.id ?? "",
+        radius: portrait.getAttribute("r")
+      }))
+      .sort((left, right) => left.heroId.localeCompare(right.heroId))
   }));
 
   const search = page.getByRole("combobox", { name: "Search for a hero" });
@@ -229,8 +241,20 @@ test("focus keeps the same graph and only highlights selected relationships", as
       .map((node) => [node.id, node.getAttribute("transform") ?? ""] as const)
       .sort(([a], [b]) => a.localeCompare(b)),
     edges: [...document.querySelectorAll<SVGLineElement>(".edges .edge")]
-      .map((edge) => `${edge.dataset.sourceHero}->${edge.dataset.targetHero}`)
-      .sort(),
+      .map((edge) => ({
+        id: `${edge.dataset.sourceHero}->${edge.dataset.targetHero}`,
+        x1: edge.getAttribute("x1"),
+        y1: edge.getAttribute("y1"),
+        x2: edge.getAttribute("x2"),
+        y2: edge.getAttribute("y2")
+      }))
+      .sort((left, right) => left.id.localeCompare(right.id)),
+    portraitRadii: [...document.querySelectorAll<SVGCircleElement>(".hero-portrait-node")]
+      .map((portrait) => ({
+        heroId: portrait.closest<SVGGElement>(".hero-node")?.id ?? "",
+        radius: portrait.getAttribute("r")
+      }))
+      .sort((left, right) => left.heroId.localeCompare(right.heroId)),
     activeEdges: document.querySelectorAll(".edge-active").length,
     activeHeroes: document.querySelectorAll(".hero-active").length,
     dimmedHeroes: document.querySelectorAll(".hero-dimmed").length
@@ -239,6 +263,8 @@ test("focus keeps the same graph and only highlights selected relationships", as
   expect(focusState.nodes).toEqual(overviewState.nodes);
   expect(focusState.nodes).toHaveLength(127);
   expect(focusState.edges).toEqual(overviewState.edges);
+  expect(focusState.portraitRadii).toEqual(overviewState.portraitRadii);
+  expect(new Set(focusState.portraitRadii.map((item) => item.radius))).toEqual(new Set(["14"]));
   expect(focusState.activeEdges).toBeGreaterThan(0);
   expect(focusState.activeEdges).toBeLessThanOrEqual(10);
   expect(focusState.activeHeroes).toBeGreaterThan(0);
