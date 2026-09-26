@@ -22,9 +22,7 @@ import {
   visibleViewBoxForViewport
 } from "./focusCamera";
 import {
-  mergeVisibleRelationships,
-  selectHoverRelationships,
-  selectOverviewBackbone
+  selectHoverRelationships
 } from "./relationshipVisibility";
 
 interface GraphViewProps {
@@ -305,10 +303,6 @@ export function GraphView({
     () => [...selectedRelations.incoming, ...selectedRelations.outgoing],
     [selectedRelations]
   );
-  const overviewRelationships = useMemo(
-    () => selectOverviewBackbone(relationships),
-    [relationships]
-  );
   const hoverRelationships = useMemo(
     () =>
       hoveredHeroId && !selectedHeroId
@@ -316,19 +310,9 @@ export function GraphView({
         : [],
     [hoveredHeroId, relationships, selectedHeroId]
   );
-  const visibleRelationships = useMemo(
-    () =>
-      mergeVisibleRelationships(
-        overviewRelationships,
-        activeRelationships,
-        hoverRelationships
-      ),
-    [
-      activeRelationships,
-      hoverRelationships,
-      overviewRelationships
-    ]
-  );
+  // Every relationship already exists in the global graph. Focus and hover only
+  // change emphasis, so selecting a hero never creates replacement geometry.
+  const visibleRelationships = relationships;
   const activeIds = new Set(activeRelationships.flatMap((relationship) => [
     relationship.sourceHeroId,
     relationship.targetHeroId
