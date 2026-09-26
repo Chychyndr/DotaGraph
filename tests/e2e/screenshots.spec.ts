@@ -181,6 +181,24 @@ test("capture clean directional Focus regression cases", async ({ page }) => {
   }
 });
 
+test("capture owner-reported straight Focus cases", async ({ page }) => {
+  await page.setViewportSize({ width: 1366, height: 768 });
+
+  for (const heroId of [
+    "earthshaker",
+    "enchantress",
+    "ember-spirit",
+    "crystal-maiden"
+  ]) {
+    await page.goto(`/?hero=${heroId}`, { waitUntil: "networkidle" });
+    await page.waitForTimeout(520);
+    await page.screenshot({
+      path: `${output}/focus-${heroId}-straight-layout.png`,
+      fullPage: true
+    });
+  }
+});
+
 test("capture mobile Focus and Matchup states", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/?hero=viper", { waitUntil: "networkidle" });
