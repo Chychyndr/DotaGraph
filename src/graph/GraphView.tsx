@@ -619,13 +619,18 @@ export function GraphView({
           y2: endPoint.y
         },
         preferredT:
-          relationship.sourceHeroId === selectedHeroId ? 0.72 : 0.28
+          relationship.sourceHeroId === selectedHeroId ? 0.72 : 0.28,
+        ignoredObstacleIds: [
+          relationship.sourceHeroId,
+          relationship.targetHeroId
+        ]
       }];
     });
 
     const portraitObstacles = heroes.map((hero) => {
       const point = projectGraphPoint(hero.x, hero.y);
       return {
+        id: hero.id,
         x: point.x,
         y: point.y,
         radius: radiusFor(hero.id) * cameraScale + 7
