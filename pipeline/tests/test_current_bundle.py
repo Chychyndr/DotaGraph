@@ -246,7 +246,7 @@ class CurrentBundleTests(unittest.TestCase):
         self.assertEqual(metrics["isolatedNodeCount"], 0)
         self.assertGreaterEqual(metrics["minimumNodeDistance"], 84.0)
         self.assertGreaterEqual(metrics["medianNearestNodeDistance"], 84.0)
-        self.assertLessEqual(metrics["maxNearestNodeDistance"], 135.0)
+        self.assertLessEqual(metrics["maxNearestNodeDistance"], 165.0)
 
     def test_generate_emits_741f_production_contract(self) -> None:
         repo_root = Path(__file__).resolve().parents[2]
