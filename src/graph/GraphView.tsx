@@ -481,9 +481,17 @@ export function GraphView({
     return 14;
   };
 
-  const edgeGeometry = (source: Hero, target: Hero) => {
-    const sourcePoint = positionFor(source);
-    const targetPoint = positionFor(target);
+  const edgeGeometry = (
+    source: Hero,
+    target: Hero,
+    useFocusPositions = true
+  ) => {
+    const sourcePoint = useFocusPositions
+      ? positionFor(source)
+      : { x: source.x, y: source.y };
+    const targetPoint = useFocusPositions
+      ? positionFor(target)
+      : { x: target.x, y: target.y };
     const dx = targetPoint.x - sourcePoint.x;
     const dy = targetPoint.y - sourcePoint.y;
     const length = Math.hypot(dx, dy) || 1;
@@ -550,7 +558,13 @@ export function GraphView({
       if (focusPoint.role === "selected") {
         placements.set(hero.id, {
           x: point.x,
-          y: point.y - radiusFor(hero.id) - 20,
+          y: point.y - radiusFor(hero.id) - (isCompactViewport ? 24 : 34),
+          angle: -Math.PI / 2
+        });
+      } else if (isCompactViewport) {
+        placements.set(hero.id, {
+          x: point.x,
+          y: point.y - radiusFor(hero.id) - 18,
           angle: -Math.PI / 2
         });
       } else if (focusPoint.role === "incoming") {
@@ -572,18 +586,89 @@ export function GraphView({
   }, [
     focusPresentation,
     heroLabelBounds,
+    isCompactViewport,
     labelHeroes,
     selectedHeroId
   ]);
 
   const EDGE_LABEL_T = 0.52;
+  const activeEdgeGeometries = new Map(
+    activeRelationships.flatMap((relationship) => {
+      const source = byId.get(relationship.sourceHeroId);
+      const target = byId.get(relationship.targetHeroId);
+      if (!source || !target) return [];
+      return [[relationship.id, edgeGeometry(source, target, true)] as const];
+    })
+  );
+
+  const distanceToSegment = (
+    px: number,
+    py: number,
+    x1: number,
+    y1: number,
+    x2: number,
+    y2: number
+  ) => {
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    const lengthSquared = dx * dx + dy * dy;
+    if (!lengthSquared) return Math.hypot(px - x1, py - y1);
+
+    const t = clamp(
+      ((px - x1) * dx + (py - y1) * dy) / lengthSquared,
+      0,
+      1
+    );
+    return Math.hypot(
+      px - (x1 + dx * t),
+      py - (y1 + dy * t)
+    );
+  };
+
+  const obscuredDimmedIds = new Set(
+    selectedHeroId
+      ? heroes
+          .filter((hero) => !activeIds.has(hero.id))
+          .filter((hero) => {
+            for (const geometry of activeEdgeGeometries.values()) {
+              if (
+                distanceToSegment(
+                  hero.x,
+                  hero.y,
+                  geometry.x1,
+                  geometry.y1,
+                  geometry.x2,
+                  geometry.y2
+                ) < radiusFor(hero.id) + 8
+              ) {
+                return true;
+              }
+
+              const badgeX =
+                geometry.x1 + (geometry.x2 - geometry.x1) * EDGE_LABEL_T;
+              const badgeY =
+                geometry.y1 + (geometry.y2 - geometry.y1) * EDGE_LABEL_T;
+              if (
+                Math.abs(hero.x - badgeX) < EDGE_LABEL_WIDTH / 2 + 14 &&
+                Math.abs(hero.y - badgeY) < EDGE_LABEL_HEIGHT / 2 + 14
+              ) {
+                return true;
+              }
+            }
+            return false;
+          })
+          .map((hero) => hero.id)
+      : []
+  );
+
   const edgeLabelPlacements = new Map(
     activeRelationships.flatMap((relationship) => {
       const source = byId.get(relationship.sourceHeroId);
       const target = byId.get(relationship.targetHeroId);
       if (!source || !target) return [];
 
-      const geometry = edgeGeometry(source, target);
+      const geometry = activeEdgeGeometries.get(relationship.id);
+      if (!geometry) return [];
       const point = projectGraphPoint(
         geometry.x1 + (geometry.x2 - geometry.x1) * EDGE_LABEL_T,
         geometry.y1 + (geometry.y2 - geometry.y1) * EDGE_LABEL_T
@@ -778,7 +863,7 @@ export function GraphView({
               matchupHeroId && isActive && !isMatchup ? "edge-deemphasized" : "",
               isMatchup ? "edge-matchup" : ""
             ].filter(Boolean).join(" ");
-            const geometry = edgeGeometry(source, target);
+            const geometry = edgeGeometry(source, target, isActive);
             const markerEnd = isIncoming
               ? "url(#arrow-incoming)"
               : isOutgoing
@@ -818,7 +903,10 @@ export function GraphView({
               isActive ? "hero-active" : "",
               isHovered ? "hero-hovered" : "",
               isMatchup ? "hero-matchup" : "",
-              shouldDim ? "hero-dimmed" : ""
+              shouldDim ? "hero-dimmed" : "",
+              shouldDim && obscuredDimmedIds.has(hero.id)
+                ? "hero-obscured"
+                : ""
             ].filter(Boolean).join(" ");
 
             const activeRelationship = activeRelationships.find(
