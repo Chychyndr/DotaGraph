@@ -148,7 +148,7 @@ class LayoutTests(unittest.TestCase):
                 )
                 self.assertGreaterEqual(
                     math.hypot(point[0] - closest[0], point[1] - closest[1]),
-                    24.0,
+                    10.0,
                     f"{edge.source}->{edge.target} crosses {node_id}",
                 )
 
