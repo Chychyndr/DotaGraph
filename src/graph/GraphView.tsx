@@ -68,6 +68,44 @@ const DESKTOP_FOCUS_SAFE_X = 360;
 const clamp = (value: number, min: number, max: number) =>
   Math.min(max, Math.max(min, value));
 
+const normalizeAngle = (angle: number) => {
+  const fullTurn = Math.PI * 2;
+  const normalized = angle % fullTurn;
+  return normalized < 0 ? normalized + fullTurn : normalized;
+};
+
+const largestAngularGap = (
+  center: { x: number; y: number },
+  neighbors: Array<{ x: number; y: number }>
+) => {
+  if (!neighbors.length) return 0;
+
+  const angles = neighbors
+    .map((neighbor) =>
+      normalizeAngle(Math.atan2(neighbor.y - center.y, neighbor.x - center.x))
+    )
+    .sort((left, right) => left - right);
+
+  let bestStart = angles[0];
+  let bestGap = -1;
+
+  for (let index = 0; index < angles.length; index += 1) {
+    const start = angles[index];
+    const end =
+      index === angles.length - 1
+        ? angles[0] + Math.PI * 2
+        : angles[index + 1];
+    const gap = end - start;
+
+    if (gap > bestGap) {
+      bestGap = gap;
+      bestStart = start;
+    }
+  }
+
+  return normalizeAngle(bestStart + bestGap / 2);
+};
+
 export function GraphView({
   heroes,
   relationships,
@@ -371,11 +409,37 @@ export function GraphView({
       hero.id === hoveredHeroId
   );
 
+  const layoutMinX = Math.min(...heroes.map((hero) => hero.x), 0);
   const layoutMaxX = Math.max(...heroes.map((hero) => hero.x), WIDTH);
+  const stableLabelNeighbors = new Map<string, Hero[]>();
+
+  for (const relationship of overviewRelationships) {
+    const source = byId.get(relationship.sourceHeroId);
+    const target = byId.get(relationship.targetHeroId);
+    if (!source || !target) continue;
+
+    stableLabelNeighbors.set(source.id, [
+      ...(stableLabelNeighbors.get(source.id) ?? []),
+      target
+    ]);
+    stableLabelNeighbors.set(target.id, [
+      ...(stableLabelNeighbors.get(target.id) ?? []),
+      source
+    ]);
+  }
+
   const fixedLabelPlacements = new Map(
     labelHeroes.map((hero) => {
       const width = labelWidthFor(hero);
-      const placeLeft = hero.x > layoutMaxX - 210;
+      const freeAngle = largestAngularGap(
+        hero,
+        stableLabelNeighbors.get(hero.id) ?? []
+      );
+      let placeLeft = Math.cos(freeAngle) < 0;
+
+      if (hero.x < layoutMinX + 170) placeLeft = false;
+      if (hero.x > layoutMaxX - 170) placeLeft = true;
+
       const direction = placeLeft ? -1 : 1;
       const screenGap = hero.id === selectedHeroId ? 12 : 9;
       const centerOffset =
