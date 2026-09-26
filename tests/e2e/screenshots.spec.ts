@@ -199,21 +199,6 @@ test("capture owner reference Focus cases on the stable global layout", async ({
   }
 });
 
-test("capture external Claude graph reference", async ({ page }) => {
-  await page.setViewportSize({ width: 1366, height: 768 });
-  await page
-    .goto(
-      "https://claude.ai/public/artifacts/ddbdfd38-f9ac-4261-a764-cdbac4e405ec",
-      { waitUntil: "domcontentloaded", timeout: 45_000 }
-    )
-    .catch(() => null);
-  await page.waitForTimeout(8_000);
-  await page.screenshot({
-    path: `${output}/claude-reference.png`,
-    fullPage: true
-  });
-});
-
 test("capture mobile Focus and Matchup states", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/?hero=viper", { waitUntil: "networkidle" });
