@@ -386,13 +386,13 @@ button:focus-visible, input:focus-visible, [role="button"]:focus-visible {
 .edge {
   stroke: #6e7681;
   stroke-width: 1;
-  opacity: .07;
+  opacity: .045;
   vector-effect: non-scaling-stroke;
   transition: opacity 140ms ease, stroke 140ms ease;
 }
 
-.graph-focused .edge:not(.edge-active) { opacity: .035; }
-.edge-hover { opacity: .34; }
+.graph-focused .edge:not(.edge-active) { opacity: .018; }
+.edge-hover { opacity: .30; }
 .edge-active { opacity: .94; stroke-width: 1.4; }
 .edge-incoming { stroke: var(--incoming); }
 .edge-outgoing { stroke: var(--outgoing); }
