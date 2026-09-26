@@ -225,9 +225,21 @@ test("every hero focus keeps the same global graph and collision-free direct lin
         node.getAttribute("transform") ?? ""
       ])
     ),
-    edges: Array.from(document.querySelectorAll<SVGElement>(".edges .edge"))
-      .map((edge) => `${edge.dataset.sourceHero}->${edge.dataset.targetHero}`)
-      .sort()
+    edges: Array.from(document.querySelectorAll<SVGLineElement>(".edges .edge"))
+      .map((edge) => ({
+        id: `${edge.dataset.sourceHero}->${edge.dataset.targetHero}`,
+        x1: edge.getAttribute("x1"),
+        y1: edge.getAttribute("y1"),
+        x2: edge.getAttribute("x2"),
+        y2: edge.getAttribute("y2")
+      }))
+      .sort((left, right) => left.id.localeCompare(right.id)),
+    portraitRadii: Object.fromEntries(
+      Array.from(document.querySelectorAll<SVGGElement>(".hero-node")).map((node) => [
+        node.id,
+        node.querySelector<SVGCircleElement>(".hero-portrait-node")?.getAttribute("r") ?? ""
+      ])
+    )
   }));
   const heroIds = Object.keys(baseline.nodes).map((id) => id.replace("graph-hero-", ""));
 
@@ -271,16 +283,29 @@ test("every hero focus keeps the same global graph and collision-free direct lin
         : ["missing-graph"];
 
       const edges = Array.from(
-        document.querySelectorAll<SVGElement>(".edges .edge")
+        document.querySelectorAll<SVGLineElement>(".edges .edge")
       )
-        .map((edge) => `${edge.dataset.sourceHero}->${edge.dataset.targetHero}`)
-        .sort();
+        .map((edge) => ({
+          id: `${edge.dataset.sourceHero}->${edge.dataset.targetHero}`,
+          x1: edge.getAttribute("x1"),
+          y1: edge.getAttribute("y1"),
+          x2: edge.getAttribute("x2"),
+          y2: edge.getAttribute("y2")
+        }))
+        .sort((left, right) => left.id.localeCompare(right.id));
+      const portraitRadii = Object.fromEntries(
+        Array.from(document.querySelectorAll<SVGGElement>(".hero-node")).map((node) => [
+          node.id,
+          node.querySelector<SVGCircleElement>(".hero-portrait-node")?.getAttribute("r") ?? ""
+        ])
+      );
 
       return {
         heroId,
         camera,
         movedNodes,
         edges,
+        portraitRadii,
         indirectEdges,
         activeEdgeCount: activeEdges.length,
         outsideLabels
@@ -289,8 +314,11 @@ test("every hero focus keeps the same global graph and collision-free direct lin
 
     expect(state.camera, `${heroId}: camera moved`).toBe(baseline.camera);
     expect(state.movedNodes, `${heroId}: node coordinates moved`).toEqual([]);
-    expect(state.edges, `${heroId}: Focus changed the persistent edge set`).toEqual(
+    expect(state.edges, `${heroId}: Focus changed persistent edge geometry`).toEqual(
       baseline.edges
+    );
+    expect(state.portraitRadii, `${heroId}: Focus changed portrait footprint`).toEqual(
+      baseline.portraitRadii
     );
     expect(state.indirectEdges, `${heroId}: active edge stopped being direct`).toEqual([]);
     expect(state.activeEdgeCount, `${heroId}: too many active relationships`).toBeLessThanOrEqual(10);
