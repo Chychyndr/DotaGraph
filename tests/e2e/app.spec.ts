@@ -307,7 +307,7 @@ test("desktop focus keeps fixed hero names inside the graph viewport", async ({ 
   }
 });
 
-test("focused hero names stay fixed beside their unchanged portraits", async ({ page }) => {
+test("focused hero names stay clear of their unchanged portraits", async ({ page }) => {
   await page.setViewportSize({ width: 1366, height: 768 });
   await page.goto("/?hero=crystal-maiden");
   await page.waitForTimeout(120);
@@ -322,19 +322,26 @@ test("focused hero names stay fixed beside their unchanged portraits", async ({ 
 
         const labelRect = label.getBoundingClientRect();
         const portraitRect = portrait.getBoundingClientRect();
-        const gapRight = labelRect.left - portraitRect.right;
-        const gapLeft = portraitRect.left - labelRect.right;
-        const verticalDelta = Math.abs(
-          (labelRect.top + labelRect.bottom) / 2 -
-          (portraitRect.top + portraitRect.bottom) / 2
-        );
+        const overlapX =
+          labelRect.left < portraitRect.right &&
+          labelRect.right > portraitRect.left;
+        const overlapY =
+          labelRect.top < portraitRect.bottom &&
+          labelRect.bottom > portraitRect.top;
+        const labelCenterX = (labelRect.left + labelRect.right) / 2;
+        const labelCenterY = (labelRect.top + labelRect.bottom) / 2;
+        const portraitCenterX = (portraitRect.left + portraitRect.right) / 2;
+        const portraitCenterY = (portraitRect.top + portraitRect.bottom) / 2;
 
         return {
           heroId,
           selected: node.classList.contains("hero-selected"),
           active: node.classList.contains("hero-active"),
-          separated: gapRight >= 4 || gapLeft >= 4,
-          verticalDelta
+          overlapsPortrait: overlapX && overlapY,
+          centerDistance: Math.hypot(
+            labelCenterX - portraitCenterX,
+            labelCenterY - portraitCenterY
+          )
         };
       })
       .filter((row): row is NonNullable<typeof row> => row !== null);
@@ -345,8 +352,8 @@ test("focused hero names stay fixed beside their unchanged portraits", async ({ 
   expect(geometry.length).toBeGreaterThan(0);
   for (const row of geometry) {
     expect(row.selected || row.active, row.heroId).toBe(true);
-    expect(row.separated, row.heroId).toBe(true);
-    expect(row.verticalDelta, row.heroId).toBeLessThan(2);
+    expect(row.overlapsPortrait, row.heroId).toBe(false);
+    expect(row.centerDistance, row.heroId).toBeLessThan(180);
   }
 });
 
