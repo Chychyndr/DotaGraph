@@ -470,7 +470,11 @@ button:focus-visible, input:focus-visible, [role="button"]:focus-visible {
   vector-effect: non-scaling-stroke;
 }
 
-.hero-dimmed { opacity: .14; }
+.hero-dimmed .node-ring,
+.hero-dimmed .hero-portrait-node,
+.hero-dimmed .hero-node-fallback-text {
+  opacity: .14;
+}
 .hero-active { opacity: 1; }
 .hero-active .node-ring { stroke: #8b949e; }
 .hero-selected .node-ring { stroke: var(--selected); stroke-width: 4; }
