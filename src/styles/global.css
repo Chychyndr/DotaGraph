@@ -393,7 +393,7 @@ button:focus-visible, input:focus-visible, [role="button"]:focus-visible {
 
 .graph-focused .edge:not(.edge-active) { opacity: .014; }
 .edge-hover { opacity: .30; }
-.edge-active { opacity: .94; stroke-width: 1.4; }
+.edge-active { opacity: .94; stroke-width: 1.2; }
 .edge-incoming { stroke: var(--incoming); }
 .edge-outgoing { stroke: var(--outgoing); }
 .edge-deemphasized { opacity: .17; }
