@@ -11,9 +11,11 @@ export interface EdgeLabelInput {
   segments?: EdgeSegment[];
   preferredT?: number;
   source?: EdgeLabelObstacle;
+  ignoredObstacleIds?: string[];
 }
 
 export interface EdgeLabelObstacle {
+  id?: string;
   x: number;
   y: number;
   radius: number;
@@ -192,7 +194,8 @@ const candidateScore = (
   rectObstacles: EdgeLabelRectObstacle[],
   bounds: EdgeLabelBounds | undefined,
   preferenceIndex: number,
-  preferredT: number
+  preferredT: number,
+  ignoredObstacleIds: Set<string>
 ) => {
   const paddedRect = rectFor(
     placement.x,
@@ -217,6 +220,7 @@ const candidateScore = (
   }
 
   for (const obstacle of obstacles) {
+    if (obstacle.id && ignoredObstacleIds.has(obstacle.id)) continue;
     if (circleTouchesRect(obstacle, paddedRect)) score += 5_000;
   }
 
@@ -380,7 +384,8 @@ export function layoutSourceAnchoredEdgeLabels(
             rectObstacles,
             options.bounds,
             index,
-            placement.leader ? placement.t : preferredT
+            placement.leader ? placement.t : preferredT,
+            new Set(input.ignoredObstacleIds ?? [])
           ) + extraPenalty
       }))
       .filter(({ score }) => Number.isFinite(score) && score < 5_000)
