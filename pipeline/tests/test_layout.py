@@ -122,12 +122,12 @@ class LayoutTests(unittest.TestCase):
         )
 
         self.assertGreater(after, before)
-        self.assertAlmostEqual(spread["center"][0], 600.0, places=2)
-        self.assertAlmostEqual(spread["center"][1], 380.0, places=2)
-        self.assertGreaterEqual(min(x for x, _ in spread.values()), 24.0)
-        self.assertLessEqual(max(x for x, _ in spread.values()), 1176.0)
-        self.assertGreaterEqual(min(y for _, y in spread.values()), 24.0)
-        self.assertLessEqual(max(y for _, y in spread.values()), 736.0)
+        self.assertAlmostEqual(spread["center"][0], 950.0, places=2)
+        self.assertAlmostEqual(spread["center"][1], 590.0, places=2)
+        self.assertGreaterEqual(min(x for x, _ in spread.values()), 60.0)
+        self.assertLessEqual(max(x for x, _ in spread.values()), 1840.0)
+        self.assertGreaterEqual(min(y for _, y in spread.values()), 60.0)
+        self.assertLessEqual(max(y for _, y in spread.values()), 1120.0)
 
     def test_spread_layout_preserves_relative_angles(self) -> None:
         positions = {
