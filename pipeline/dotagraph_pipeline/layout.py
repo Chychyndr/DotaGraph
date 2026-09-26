@@ -75,8 +75,8 @@ def compute_layout(
         ])
 
     repulsion_strength = 0.0085
-    attraction_strength = 0.058
-    gravity_strength = 0.0035
+    attraction_strength = 0.072
+    gravity_strength = 0.0032
     max_step = 0.045
 
     for iteration in range(iterations):
@@ -107,7 +107,7 @@ def compute_layout(
             dy = y2 - y1
             distance = math.hypot(dx, dy) + 1e-8
 
-            target_length = 0.34 - 0.17 * edge.weight
+            target_length = 0.30 - 0.14 * edge.weight
             spring = attraction_strength * (0.35 + edge.weight) * (distance - target_length)
             fx = spring * dx / distance
             fy = spring * dy / distance
@@ -276,6 +276,133 @@ def compute_layout(
                 (target_y - y) / nearest_distance * excess
             )
             moved = True
+
+        if not moved:
+            break
+
+    # Straight Focus links should not depend on masks to look readable. Push
+    # unrelated portraits away from the interior of relationship segments while
+    # keeping endpoints fixed. This is deliberately a soft relaxation: the
+    # force pass still owns the organic topology, this pass only removes the
+    # most distracting line-through-node accidents.
+    edge_clearance = max(30.0, min_distance * 0.58)
+    for _ in range(72):
+        offsets = [[0.0, 0.0] for _ in nodes]
+        conflicts = 0
+
+        for edge_index, edge in enumerate(valid_edges):
+            source_index = index[edge.source]
+            target_index = index[edge.target]
+            start_x, start_y = pixel_positions[source_index]
+            end_x, end_y = pixel_positions[target_index]
+            segment_x = end_x - start_x
+            segment_y = end_y - start_y
+            segment_length_sq = segment_x * segment_x + segment_y * segment_y
+            if segment_length_sq < 1e-8:
+                continue
+            segment_length = math.sqrt(segment_length_sq)
+
+            for node_index, (node_x, node_y) in enumerate(pixel_positions):
+                if node_index in (source_index, target_index):
+                    continue
+
+                projection = (
+                    (node_x - start_x) * segment_x
+                    + (node_y - start_y) * segment_y
+                ) / segment_length_sq
+                if projection <= 0.08 or projection >= 0.92:
+                    continue
+
+                closest_x = start_x + segment_x * projection
+                closest_y = start_y + segment_y * projection
+                away_x = node_x - closest_x
+                away_y = node_y - closest_y
+                distance = math.hypot(away_x, away_y)
+                if distance >= edge_clearance:
+                    continue
+
+                conflicts += 1
+                if distance < 1e-8:
+                    side = -1.0 if (node_index + edge_index) % 2 else 1.0
+                    away_x = -segment_y / segment_length * side
+                    away_y = segment_x / segment_length * side
+                    distance = 1.0
+
+                intrusion = edge_clearance - distance
+                push = min(
+                    7.5,
+                    0.18 + intrusion * (0.28 + edge.weight * 0.16),
+                )
+                offsets[node_index][0] += away_x / distance * push
+                offsets[node_index][1] += away_y / distance * push
+
+        if conflicts == 0:
+            break
+
+        moved = False
+        for node_index, (offset_x, offset_y) in enumerate(offsets):
+            magnitude = math.hypot(offset_x, offset_y)
+            if magnitude < 1e-8:
+                continue
+            if magnitude > 8.0:
+                offset_x *= 8.0 / magnitude
+                offset_y *= 8.0 / magnitude
+
+            pixel_positions[node_index][0] = _clamp(
+                pixel_positions[node_index][0] + offset_x,
+                layout_left,
+                layout_right,
+            )
+            pixel_positions[node_index][1] = _clamp(
+                pixel_positions[node_index][1] + offset_y,
+                layout_top,
+                layout_bottom,
+            )
+            moved = True
+
+        # Keep the edge-clearance pass from trading line readability for portrait
+        # overlap. One deterministic collision sweep after every clearance step
+        # is enough because the earlier 220-pass phase already established the
+        # minimum spacing.
+        for left in range(count):
+            x1, y1 = pixel_positions[left]
+            for right in range(left + 1, count):
+                x2, y2 = pixel_positions[right]
+                dx = x2 - x1
+                dy = y2 - y1
+                distance = math.hypot(dx, dy)
+                if distance >= min_distance:
+                    continue
+
+                if distance < 1e-8:
+                    angle = (left * 97 + right * 193) * golden_angle
+                    dx = math.cos(angle)
+                    dy = math.sin(angle)
+                    distance = 1.0
+
+                push = (min_distance - distance) / 2.0 + 0.05
+                ux = dx / distance
+                uy = dy / distance
+                pixel_positions[left][0] = _clamp(
+                    pixel_positions[left][0] - ux * push,
+                    layout_left,
+                    layout_right,
+                )
+                pixel_positions[left][1] = _clamp(
+                    pixel_positions[left][1] - uy * push,
+                    layout_top,
+                    layout_bottom,
+                )
+                pixel_positions[right][0] = _clamp(
+                    pixel_positions[right][0] + ux * push,
+                    layout_left,
+                    layout_right,
+                )
+                pixel_positions[right][1] = _clamp(
+                    pixel_positions[right][1] + uy * push,
+                    layout_top,
+                    layout_bottom,
+                )
 
         if not moved:
             break
