@@ -658,8 +658,8 @@ export function GraphView({
       const preferredT =
         relationship.sourceHeroId === selectedHeroId ? 0.72 : 0.28;
       const candidateTs = Array.from(
-        { length: 18 },
-        (_, index) => Number((0.16 + index * 0.04).toFixed(2))
+        { length: 69 },
+        (_, index) => Number((0.16 + index * 0.01).toFixed(2))
       ).sort(
         (left, right) =>
           Math.abs(left - preferredT) - Math.abs(right - preferredT) ||
