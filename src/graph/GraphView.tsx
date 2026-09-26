@@ -198,6 +198,9 @@ export function GraphView({
     ? byId.get(selectedHeroId)
     : findNearestHeroToPoint(heroes, WIDTH / 2, HEIGHT / 2);
   const [keyboardHeroId, setKeyboardHeroId] = useState<string | null>(initialKeyboardHero?.id ?? null);
+  const [cardOccludedLabelIds, setCardOccludedLabelIds] = useState<Set<string>>(
+    () => new Set()
+  );
   const cameraRef = useRef(camera);
   const svgRef = useRef<SVGSVGElement>(null);
   const previousKeyboardSelectionRef = useRef(selectedHeroId);
@@ -335,6 +338,70 @@ export function GraphView({
   const hoverRelationshipIds = new Set(
     hoverRelationships.map((relationship) => relationship.id)
   );
+
+  useEffect(() => {
+    let firstFrame = 0;
+    let secondFrame = 0;
+
+    const clearOccludedLabels = () => {
+      setCardOccludedLabelIds((current) =>
+        current.size === 0 ? current : new Set()
+      );
+    };
+
+    if (!selectedHeroId || isCompactViewport) {
+      clearOccludedLabels();
+      return;
+    }
+
+    clearOccludedLabels();
+    firstFrame = window.requestAnimationFrame(() => {
+      secondFrame = window.requestAnimationFrame(() => {
+        const svg = svgRef.current;
+        const stage = svg?.closest(".graph-stage");
+        const card = stage?.querySelector<HTMLElement>(".context-card");
+        if (!svg || !card) return;
+
+        const cardRect = card.getBoundingClientRect();
+        const next = new Set<string>();
+
+        for (const label of svg.querySelectorAll<SVGGElement>(".hero-label-group")) {
+          const rect = label.getBoundingClientRect();
+          const overlapsCard =
+            rect.left < cardRect.right &&
+            rect.right > cardRect.left &&
+            rect.top < cardRect.bottom &&
+            rect.bottom > cardRect.top;
+
+          if (overlapsCard && label.dataset.heroLabel) {
+            next.add(label.dataset.heroLabel);
+          }
+        }
+
+        setCardOccludedLabelIds((current) => {
+          if (
+            current.size === next.size &&
+            [...current].every((heroId) => next.has(heroId))
+          ) {
+            return current;
+          }
+          return next;
+        });
+      });
+    });
+
+    return () => {
+      window.cancelAnimationFrame(firstFrame);
+      window.cancelAnimationFrame(secondFrame);
+    };
+  }, [
+    hoveredHeroId,
+    isCompactViewport,
+    matchupHeroId,
+    selectedHeroId,
+    svgViewport.height,
+    svgViewport.width
+  ]);
 
   const radiusFor = (heroId: string) => {
     if (heroId === hoveredHeroId && !selectedHeroId) return HOVER_NODE_RADIUS;
@@ -665,6 +732,8 @@ export function GraphView({
     });
 
     const heroLabelObstacles = labelHeroes.flatMap((hero) => {
+      if (cardOccludedLabelIds.has(hero.id)) return [];
+
       const placement = fixedLabelPlacements.get(hero.id);
       if (!placement) return [];
 
@@ -1106,7 +1175,7 @@ export function GraphView({
               activeIds.has(hero.id) ||
               hero.id === hoveredHeroId;
 
-            if (!showLabel) return null;
+            if (!showLabel || cardOccludedLabelIds.has(hero.id)) return null;
 
             const labelWidth = labelWidthFor(hero);
             const placement = fixedLabelPlacements.get(hero.id);
