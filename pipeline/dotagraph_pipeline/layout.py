@@ -42,7 +42,7 @@ def compute_layout(
     min_distance: float = 58.0,
     max_nearest_distance: float = 88.0,
     fill_ratio: float = 0.90,
-    iterations: int = 900,
+    iterations: int = 700,
 ) -> dict[str, tuple[float, float]]:
     """Return deterministic force-directed coordinates.
 
@@ -249,6 +249,9 @@ def compute_layout(
     for _ in range(12):
         moved = False
         for node_index in range(count):
+            if degrees[node_index] > 1:
+                continue
+
             x, y = pixel_positions[node_index]
             nearest_index = -1
             nearest_distance = math.inf
@@ -286,7 +289,7 @@ def compute_layout(
     # force pass still owns the organic topology, this pass only removes the
     # most distracting line-through-node accidents.
     edge_clearance = max(9.5, min_distance * 0.17)
-    for _ in range(6):
+    for _ in range(2):
         offsets = [[0.0, 0.0] for _ in nodes]
         conflicts = 0
 
@@ -403,6 +406,43 @@ def compute_layout(
                     layout_top,
                     layout_bottom,
                 )
+
+        if not moved:
+            break
+
+    # A final collision settle restores the portrait-spacing invariant after the
+    # tiny edge-clearance nudges above. Repeat to convergence because resolving
+    # one pair can otherwise create a new overlap with its next neighbor.
+    for _ in range(80):
+        moved = False
+        for left in range(count):
+            x1, y1 = pixel_positions[left]
+            for right in range(left + 1, count):
+                x2, y2 = pixel_positions[right]
+                dx = x2 - x1
+                dy = y2 - y1
+                distance = math.hypot(dx, dy)
+                if distance >= min_distance:
+                    continue
+
+                if distance < 1e-8:
+                    angle = (left * 97 + right * 193) * golden_angle
+                    dx = math.cos(angle)
+                    dy = math.sin(angle)
+                    distance = 1.0
+
+                push = (min_distance - distance) / 2.0 + 0.05
+                ux = dx / distance
+                uy = dy / distance
+                pixel_positions[left][0] -= ux * push
+                pixel_positions[left][1] -= uy * push
+                pixel_positions[right][0] += ux * push
+                pixel_positions[right][1] += uy * push
+                moved = True
+
+        for point in pixel_positions:
+            point[0] = _clamp(point[0], layout_left, layout_right)
+            point[1] = _clamp(point[1], layout_top, layout_bottom)
 
         if not moved:
             break
