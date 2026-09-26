@@ -463,11 +463,48 @@ export function GraphView({
       const target = byId.get(relationship.targetHeroId);
       if (!source || !target) return [];
 
-      const t =
+      const preferredT =
         relationship.sourceHeroId === selectedHeroId
           ? 0.72
           : 0.28;
       const geometry = edgeGeometry(source, target);
+      let t = preferredT;
+
+      if (isCompactViewport) {
+        const visibleLeft = (WIDTH - visibleGraphSpan.width) / 2;
+        const visibleRight = WIDTH - visibleLeft;
+        const visibleTop = (HEIGHT - visibleGraphSpan.height) / 2;
+        const visibleBottom = HEIGHT - visibleTop;
+        const halfWidth = EDGE_LABEL_WIDTH * 0.8 / 2 + 4;
+        const halfHeight = EDGE_LABEL_HEIGHT * 0.8 / 2 + 4;
+        const candidates = [
+          preferredT,
+          0.5,
+          0.42,
+          0.58,
+          0.34,
+          0.66,
+          0.25,
+          0.75
+        ];
+
+        const safeCandidate = candidates.find((candidate) => {
+          const graphX =
+            geometry.x1 + (geometry.x2 - geometry.x1) * candidate;
+          const graphY =
+            geometry.y1 + (geometry.y2 - geometry.y1) * candidate;
+          const point = projectGraphPoint(graphX, graphY);
+
+          return (
+            point.x - halfWidth >= visibleLeft &&
+            point.x + halfWidth <= visibleRight &&
+            point.y - halfHeight >= visibleTop &&
+            point.y + halfHeight <= visibleBottom
+          );
+        });
+
+        if (safeCandidate !== undefined) t = safeCandidate;
+      }
 
       return [[
         relationship.id,
