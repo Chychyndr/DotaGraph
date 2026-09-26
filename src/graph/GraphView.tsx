@@ -430,54 +430,149 @@ export function GraphView({
     stableLabelNeighbors.set(hero.id, neighbors);
   }
 
+  const stableLabelScale = Math.max(overviewCamera.scale, 0.001);
   const fixedLabelPlacements = new Map(
     labelHeroes.map((hero) => {
       const width = labelWidthFor(hero);
+      const stableWidth = Math.max(82, hero.name.length * 10.2 + 20);
+      const halfWidth = stableWidth / (2 * stableLabelScale);
+      const halfHeight = 12 / stableLabelScale;
       const freeAngle = largestAngularGap(
         hero,
         stableLabelNeighbors.get(hero.id) ?? []
       );
       const incident = stableIncidentRelationships.get(hero.id) ?? [];
-      const sideCost = (direction: -1 | 1) =>
-        incident.reduce((cost, relationship) => {
+
+      const segmentHitsRect = (
+        x1: number,
+        y1: number,
+        x2: number,
+        y2: number,
+        left: number,
+        top: number,
+        right: number,
+        bottom: number
+      ) => {
+        let t0 = 0;
+        let t1 = 1;
+        const dx = x2 - x1;
+        const dy = y2 - y1;
+        const p = [-dx, dx, -dy, dy];
+        const q = [x1 - left, right - x1, y1 - top, bottom - y1];
+
+        for (let index = 0; index < 4; index += 1) {
+          if (Math.abs(p[index]) < 1e-9) {
+            if (q[index] < 0) return false;
+            continue;
+          }
+
+          const ratio = q[index] / p[index];
+          if (p[index] < 0) {
+            if (ratio > t1) return false;
+            t0 = Math.max(t0, ratio);
+          } else {
+            if (ratio < t0) return false;
+            t1 = Math.min(t1, ratio);
+          }
+        }
+
+        return true;
+      };
+
+      const candidateAngles = Array.from(
+        { length: 16 },
+        (_, index) => index * Math.PI * 2 / 16
+      );
+      const angularDistance = (left: number, right: number) => {
+        const delta = Math.abs(normalizeAngle(left) - normalizeAngle(right));
+        return Math.min(delta, Math.PI * 2 - delta);
+      };
+
+      const candidates = candidateAngles.map((angle) => {
+        const cos = Math.cos(angle);
+        const sin = Math.sin(angle);
+        const support =
+          Math.abs(cos) * halfWidth +
+          Math.abs(sin) * halfHeight;
+        const centerOffset =
+          38 +
+          10 / stableLabelScale +
+          support;
+        const x = hero.x + cos * centerOffset;
+        const y = hero.y + sin * centerOffset;
+        const left = x - halfWidth - 5 / stableLabelScale;
+        const right = x + halfWidth + 5 / stableLabelScale;
+        const top = y - halfHeight - 5 / stableLabelScale;
+        const bottom = y + halfHeight + 5 / stableLabelScale;
+
+        const edgeHits = incident.reduce((hits, relationship) => {
           const neighborId =
             relationship.sourceHeroId === hero.id
               ? relationship.targetHeroId
               : relationship.sourceHeroId;
           const neighbor = byId.get(neighborId);
-          if (!neighbor) return cost;
-
-          const dx = neighbor.x - hero.x;
-          const dy = neighbor.y - hero.y;
-          const distance = Math.hypot(dx, dy) || 1;
-          const alignment = direction * dx / distance;
-          return alignment > 0
-            ? cost + alignment ** 4
-            : cost;
+          if (!neighbor) return hits;
+          return hits + (
+            segmentHitsRect(
+              hero.x,
+              hero.y,
+              neighbor.x,
+              neighbor.y,
+              left,
+              top,
+              right,
+              bottom
+            )
+              ? 1
+              : 0
+          );
         }, 0);
 
-      const leftCost = sideCost(-1);
-      const rightCost = sideCost(1);
-      let placeLeft =
-        Math.abs(leftCost - rightCost) > 1e-6
-          ? leftCost < rightCost
-          : Math.cos(freeAngle) < 0;
+        const portraitHits = heroes.reduce((hits, other) => {
+          if (other.id === hero.id) return hits;
+          const radius = 18 / stableLabelScale;
+          const closestX = clamp(other.x, left, right);
+          const closestY = clamp(other.y, top, bottom);
+          return hits + (
+            Math.hypot(other.x - closestX, other.y - closestY) < radius
+              ? 1
+              : 0
+          );
+        }, 0);
 
-      if (hero.x < layoutMinX + 170) placeLeft = false;
-      if (hero.x > layoutMaxX - 170) placeLeft = true;
+        const outside =
+          left < layoutMinX ||
+          right > layoutMaxX ||
+          top < Math.min(...heroes.map((item) => item.y)) ||
+          bottom > Math.max(...heroes.map((item) => item.y));
 
-      const direction = placeLeft ? -1 : 1;
-      const screenGap = hero.id === selectedHeroId ? 12 : 9;
-      const centerOffset =
-        radiusFor(hero.id) +
-        (screenGap + width / 2) / Math.max(cameraScale, 0.001);
+        return {
+          angle,
+          x,
+          y,
+          score:
+            (outside ? 1_000_000 : 0) +
+            edgeHits * 100_000 +
+            portraitHits * 20_000 +
+            angularDistance(angle, freeAngle) * 100
+        };
+      });
+
+      const best = candidates.sort(
+        (left, right) =>
+          left.score - right.score ||
+          angularDistance(left.angle, freeAngle) -
+            angularDistance(right.angle, freeAngle) ||
+          left.angle - right.angle
+      )[0];
 
       return [
         hero.id,
         {
-          x: hero.x + direction * centerOffset,
-          y: hero.y,
-          angle: placeLeft ? Math.PI : 0
+          x: best.x,
+          y: best.y,
+          angle: best.angle,
+          width
         }
       ] as const;
     })
