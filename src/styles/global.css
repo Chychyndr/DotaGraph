@@ -391,7 +391,7 @@ button:focus-visible, input:focus-visible, [role="button"]:focus-visible {
   transition: opacity 140ms ease, stroke 140ms ease;
 }
 
-.graph-focused .edge:not(.edge-active) { opacity: .010; }
+.graph-focused .edge:not(.edge-active) { opacity: .014; }
 .edge-hover { opacity: .30; }
 .edge-active { opacity: .94; stroke-width: 1.4; }
 .edge-incoming { stroke: var(--incoming); }
@@ -474,7 +474,7 @@ button:focus-visible, input:focus-visible, [role="button"]:focus-visible {
 .hero-dimmed .node-ring,
 .hero-dimmed .hero-portrait-node,
 .hero-dimmed .hero-node-fallback-text {
-  opacity: .14;
+  opacity: .18;
 }
 .hero-active { opacity: 1; }
 .hero-active .node-ring { stroke: #8b949e; }
