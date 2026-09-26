@@ -24,7 +24,7 @@
 
 ## Focus
 
-- Desktop Focus keeps the Overview camera scale and anchor; selecting a hero may translate the same graph slightly to make room for HeroCard, but does not recenter or rezoom it.
+- Desktop Focus keeps the exact Overview camera transform. Selecting a hero does not translate, recenter, or rezoom the graph for HeroCard.
 - Compact Focus may reframe the same committed graph coordinates to keep the selected hero usable above the context card.
 - No viewport mode creates a second focus topology.
 - Gold ring.
