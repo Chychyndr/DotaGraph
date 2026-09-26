@@ -373,8 +373,8 @@ export function GraphView({
 
       const t =
         relationship.sourceHeroId === selectedHeroId
-          ? 0.64
-          : 0.36;
+          ? 0.72
+          : 0.28;
       const geometry = edgeGeometry(source, target);
 
       return [[
