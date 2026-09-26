@@ -22,6 +22,7 @@ export interface EdgeLabelObstacle {
 }
 
 export interface EdgeLabelRectObstacle {
+  id?: string;
   x: number;
   y: number;
   width: number;
@@ -225,8 +226,9 @@ const candidateScore = (
   }
 
   for (const obstacle of rectObstacles) {
+    if (obstacle.id && ignoredObstacleIds.has(obstacle.id)) continue;
     if (rectanglesOverlap(paddedRect, rectObstacleFor(obstacle))) {
-      return Number.POSITIVE_INFINITY;
+      score += 20_000;
     }
   }
 
@@ -241,8 +243,8 @@ export function layoutSourceAnchoredEdgeLabels(
 ) {
   const sizeScale = clamp(options.sizeScale ?? 1, 0.7, 1);
   const minimumScale = MIN_LABEL_SCALE * sizeScale;
-  const beamWidth = 96;
-  const candidateLimit = 128;
+  const beamWidth = 160;
+  const candidateLimit = 220;
 
   const candidateSets = inputs.map((input) => {
     const segments = segmentsFor(input);
@@ -257,7 +259,7 @@ export function layoutSourceAnchoredEdgeLabels(
       safeMinT,
       safeMaxT
     );
-    const step = 0.04;
+    const step = 0.02;
     const sampledTs: number[] = [];
 
     for (let t = safeMinT; t <= safeMaxT + 0.0001; t += step) {
@@ -388,7 +390,7 @@ export function layoutSourceAnchoredEdgeLabels(
             new Set(input.ignoredObstacleIds ?? [])
           ) + extraPenalty
       }))
-      .filter(({ score }) => Number.isFinite(score) && score < 5_000)
+      .filter(({ score }) => Number.isFinite(score))
       .sort(
         (left, right) =>
           left.score - right.score ||
@@ -419,7 +421,7 @@ export function layoutSourceAnchoredEdgeLabels(
     const placements = new Map<string, EdgeLabelPlacement>();
     const rects: Rect[] = [];
     let visited = 0;
-    const visitLimit = 500_000;
+    const visitLimit = 2_000_000;
 
     const search = (setIndex: number): boolean => {
       if (setIndex >= solveOrder.length) return true;
