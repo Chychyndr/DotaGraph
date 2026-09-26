@@ -26,14 +26,15 @@ Hero coordinates are generated offline from real current-patch matchup observati
 
 The layout build:
 - reads the canonical hero catalog;
-- derives primary affinity candidates from current-patch OpenDota pair observations with the normal 500-match sample floor but without the one-sided 95% headline confidence penalty;
-- keeps up to five strongest real incident affinities per hero;
-- when a rare hero would otherwise have fewer than two geometry neighbors, may use geometry-only current-patch observations down to the explicit 100-match fallback floor;
+- starts from the same published current-patch relationships and ranking order used by the frontend, including the normal sample floor and one-sided 95% confidence ranking;
+- selects up to five strongest incoming and five strongest outgoing Focus relationships for every hero, then lays out the union of those focus-eligible edges;
+- when a rare hero would otherwise have fewer than two geometry neighbors, may use geometry-only current-patch observations down to the explicit fallback sample floor;
 - never publishes those geometry-only fallback edges as counters or uses them to change displayed percentages;
-- runs a deterministic force-directed solver;
-- pulls low-degree heroes toward the centroid of their real affinity neighbors so they do not become detached hull islands;
-- performs deterministic collision relaxation with a 58 px minimum center distance;
-- applies a final uniform presentation-spread pass, capped at 1.18×, so the stable topology uses more of the 1200×760 graph canvas without changing relative angles;
+- runs a deterministic 700-iteration force-directed solver with stronger local attraction so Focus neighbors form natural neighborhoods without rows, columns, or a selected-hero scaffold;
+- only pulls genuinely sparse degree-0/1 heroes toward nearby graph structure; normally connected heroes keep their real relationship topology;
+- performs deterministic portrait collision relaxation with a 58 px minimum center distance;
+- applies a tiny deterministic straight-edge clearance nudge only to true line-through-node cases, followed by another collision settle;
+- applies a final uniform presentation-spread pass, capped at 1.50× into the larger virtual canvas, without changing the topology or relative angles;
 - writes fixed coordinates plus spacing, isolation, and edge-distance quality metrics.
 
 The browser never runs a force simulation. Overview, Hover, Focus, and Matchup all use the same committed stable hero coordinates after that spread pass. Desktop Focus keeps the exact Overview camera transform as well as the node positions; it does not translate, recenter, or rezoom for the context card. Compact Focus may reframe that same coordinate system for the context card. No interaction state derives a second set of node positions.
