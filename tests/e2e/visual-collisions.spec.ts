@@ -57,10 +57,8 @@ const scanVisualCollisions = async (page: import("@playwright/test").Page) =>
     }
 
     const activeEdgeForeignPortrait: string[] = [];
-    const activeNodes = Array.from(
-      document.querySelectorAll<SVGGElement>(
-        ".hero-node.hero-active, .hero-node.hero-selected"
-      )
+    const portraitNodes = Array.from(
+      document.querySelectorAll<SVGGElement>(".hero-node")
     ).flatMap((node) => {
       const portrait = node.querySelector<SVGCircleElement>(".hero-portrait-node");
       const mask = node.querySelector<SVGCircleElement>(".hero-node-mask");
@@ -112,7 +110,7 @@ const scanVisualCollisions = async (page: import("@playwright/test").Page) =>
       const source = edge.dataset.sourceHero ?? "unknown";
       const target = edge.dataset.targetHero ?? "unknown";
 
-      for (const node of activeNodes) {
+      for (const node of portraitNodes) {
         if (node.hero === source || node.hero === target) continue;
 
         const crosses = screenPoints
@@ -143,9 +141,7 @@ const scanVisualCollisions = async (page: import("@playwright/test").Page) =>
 
     const badgeDimmedPortrait: string[] = [];
     const dimmedNodes = Array.from(
-      document.querySelectorAll<SVGGElement>(
-        ".hero-node.hero-dimmed:not(.hero-obscured)"
-      )
+      document.querySelectorAll<SVGGElement>(".hero-node.hero-dimmed")
     );
 
     for (const badge of badges) {
@@ -213,3 +209,86 @@ for (const [hero, baseline] of Object.entries(knownCollisionBaseline)) {
     expect(await scanVisualCollisions(page)).toEqual(baseline);
   });
 }
+
+
+test("every hero focus keeps the same global graph and collision-free direct links", async ({ page }) => {
+  test.setTimeout(120_000);
+  await page.setViewportSize({ width: 1366, height: 768 });
+  await page.goto("/", { waitUntil: "networkidle" });
+  await expect(page.locator(".hero-node")).toHaveCount(127);
+
+  const baseline = await page.evaluate(() => ({
+    camera: document.querySelector<SVGGElement>(".graph-camera")?.getAttribute("transform") ?? "",
+    nodes: Object.fromEntries(
+      Array.from(document.querySelectorAll<SVGGElement>(".hero-node")).map((node) => [
+        node.id,
+        node.getAttribute("transform") ?? ""
+      ])
+    )
+  }));
+  const heroIds = Object.keys(baseline.nodes).map((id) => id.replace("graph-hero-", ""));
+
+  for (const heroId of heroIds) {
+    const node = page.locator(`#graph-hero-${heroId}`);
+    await node.click({ force: true });
+    await expect(node, heroId).toHaveClass(/hero-selected/);
+
+    const state = await page.evaluate(({ heroId, baseline }) => {
+      const camera =
+        document.querySelector<SVGGElement>(".graph-camera")?.getAttribute("transform") ?? "";
+      const movedNodes = Array.from(
+        document.querySelectorAll<SVGGElement>(".hero-node")
+      ).flatMap((node) => {
+        const expected = baseline.nodes[node.id];
+        const actual = node.getAttribute("transform") ?? "";
+        return expected === actual ? [] : [node.id];
+      });
+      const activeEdges = Array.from(
+        document.querySelectorAll<SVGElement>(".edge.edge-active")
+      );
+      const indirectEdges = activeEdges.flatMap((edge) =>
+        edge instanceof SVGLineElement &&
+        edge.dataset.routeDetoured === "false"
+          ? []
+          : [`${edge.dataset.sourceHero}->${edge.dataset.targetHero}`]
+      );
+      const graph = document.querySelector<SVGSVGElement>(".graph");
+      const graphRect = graph?.getBoundingClientRect();
+      const outsideLabels = graphRect
+        ? Array.from(document.querySelectorAll<SVGGElement>(".hero-label-group"))
+            .flatMap((label) => {
+              const rect = label.getBoundingClientRect();
+              return rect.left >= graphRect.left - 1 &&
+                rect.right <= graphRect.right + 1 &&
+                rect.top >= graphRect.top - 1 &&
+                rect.bottom <= graphRect.bottom + 1
+                ? []
+                : [label.dataset.heroLabel ?? "unknown"];
+            })
+        : ["missing-graph"];
+
+      return {
+        heroId,
+        camera,
+        movedNodes,
+        indirectEdges,
+        activeEdgeCount: activeEdges.length,
+        outsideLabels
+      };
+    }, { heroId, baseline });
+
+    expect(state.camera, `${heroId}: camera moved`).toBe(baseline.camera);
+    expect(state.movedNodes, `${heroId}: node coordinates moved`).toEqual([]);
+    expect(state.indirectEdges, `${heroId}: active edge stopped being direct`).toEqual([]);
+    expect(state.activeEdgeCount, `${heroId}: too many active relationships`).toBeLessThanOrEqual(10);
+    expect(state.outsideLabels, `${heroId}: label left the graph viewport`).toEqual([]);
+    expect(await scanVisualCollisions(page), heroId).toEqual({
+      badgeHeroLabel: [],
+      activeEdgeForeignPortrait: [],
+      badgeDimmedPortrait: []
+    });
+
+    await page.getByRole("button", { name: "Reset" }).click();
+    await expect(node, `${heroId}: reset failed`).not.toHaveClass(/hero-selected/);
+  }
+});
