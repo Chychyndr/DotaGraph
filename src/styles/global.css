@@ -471,10 +471,6 @@ button:focus-visible, input:focus-visible, [role="button"]:focus-visible {
 }
 
 .hero-dimmed { opacity: .14; }
-.hero-dimmed.hero-obscured {
-  opacity: 0;
-  pointer-events: none;
-}
 .hero-active { opacity: 1; }
 .hero-active .node-ring { stroke: #8b949e; }
 .hero-selected .node-ring { stroke: var(--selected); stroke-width: 4; }
