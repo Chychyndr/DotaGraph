@@ -83,7 +83,8 @@ export function GraphView({
     () =>
       calculateOverviewCamera(heroes, {
         width: WIDTH,
-        height: HEIGHT
+        height: HEIGHT,
+        minScale: 0.84
       }),
     [heroes]
   );
@@ -198,9 +199,9 @@ export function GraphView({
   );
 
   const radiusFor = (heroId: string) => {
-    if (heroId === selectedHeroId) return 28;
-    if (activeIds.has(heroId)) return 19;
-    if (heroId === hoveredHeroId) return 19;
+    if (heroId === selectedHeroId) return 38;
+    if (activeIds.has(heroId)) return 22;
+    if (heroId === hoveredHeroId) return 20;
     return 14;
   };
 
@@ -222,7 +223,9 @@ export function GraphView({
   };
 
   const labelWidthFor = (hero: Hero) =>
-    Math.max(42, hero.name.length * 6.7 + 14);
+    hero.id === selectedHeroId
+      ? Math.max(82, hero.name.length * 10.2 + 20)
+      : Math.max(48, hero.name.length * 7.2 + 14);
 
   const labelHeroes = heroes.filter(
     (hero) =>
@@ -237,7 +240,10 @@ export function GraphView({
       const width = labelWidthFor(hero);
       const placeLeft = hero.x > layoutMaxX - 210;
       const direction = placeLeft ? -1 : 1;
-      const centerOffset = radiusFor(hero.id) + 10 + width / 2;
+      const screenGap = hero.id === selectedHeroId ? 12 : 9;
+      const centerOffset =
+        radiusFor(hero.id) +
+        (screenGap + width / 2) / Math.max(cameraScale, 0.001);
 
       return [
         hero.id,
@@ -250,25 +256,24 @@ export function GraphView({
     })
   );
 
-  const EDGE_LABEL_T = 0.52;
   const edgeLabelPlacements = new Map(
     activeRelationships.flatMap((relationship) => {
       const source = byId.get(relationship.sourceHeroId);
       const target = byId.get(relationship.targetHeroId);
       if (!source || !target) return [];
 
+      const t =
+        relationship.sourceHeroId === selectedHeroId
+          ? 0.64
+          : 0.36;
       const geometry = edgeGeometry(source, target);
-      const point = projectGraphPoint(
-        geometry.x1 + (geometry.x2 - geometry.x1) * EDGE_LABEL_T,
-        geometry.y1 + (geometry.y2 - geometry.y1) * EDGE_LABEL_T
-      );
 
       return [[
         relationship.id,
         {
-          x: point.x,
-          y: point.y,
-          t: EDGE_LABEL_T,
+          x: geometry.x1 + (geometry.x2 - geometry.x1) * t,
+          y: geometry.y1 + (geometry.y2 - geometry.y1) * t,
+          t,
           offset: 0,
           scale: isCompactViewport ? 0.8 : 1
         }
@@ -476,6 +481,53 @@ export function GraphView({
           })}
         </g>
 
+        <g className="edge-label-layer" aria-hidden="true">
+          {activeRelationships.map((relationship) => {
+            const labelPlacement = edgeLabelPlacements.get(relationship.id);
+            if (!labelPlacement) return null;
+
+            const isIncoming = selectedHeroId === relationship.targetHeroId;
+            const isOutgoing = selectedHeroId === relationship.sourceHeroId;
+            const isMatchup = Boolean(
+              matchupHeroId &&
+              (relationship.sourceHeroId === matchupHeroId ||
+                relationship.targetHeroId === matchupHeroId)
+            );
+            const labelScreenScale =
+              (isCompactViewport ? 0.8 : 1) /
+              Math.max(cameraScale, 0.001);
+
+            return (
+              <g
+                key={relationship.id}
+                className={[
+                  "edge-label",
+                  isIncoming ? "label-incoming" : isOutgoing ? "label-outgoing" : "",
+                  matchupHeroId && !isMatchup ? "edge-label-deemphasized" : ""
+                ].filter(Boolean).join(" ")}
+                transform={`translate(${labelPlacement.x} ${labelPlacement.y}) scale(${labelScreenScale})`}
+                data-source-hero={relationship.sourceHeroId}
+                data-target-hero={relationship.targetHeroId}
+                data-label-t={labelPlacement.t.toFixed(3)}
+                data-label-offset="0.0"
+                data-label-scale={(isCompactViewport ? 0.8 : 1).toFixed(2)}
+                data-label-external="false"
+              >
+                <rect
+                  x={-EDGE_LABEL_WIDTH / 2}
+                  y={-EDGE_LABEL_HEIGHT / 2}
+                  width={EDGE_LABEL_WIDTH}
+                  height={EDGE_LABEL_HEIGHT}
+                  rx={EDGE_LABEL_HEIGHT / 2}
+                />
+                <text textAnchor="middle" dominantBaseline="central">
+                  {formatPercent(relationship.sourceWinRate)}
+                </text>
+              </g>
+            );
+          })}
+        </g>
+
         <g className="nodes">
           {heroes.map((hero) => {
             const isSelected = hero.id === selectedHeroId;
@@ -617,9 +669,12 @@ export function GraphView({
             return (
               <g
                 key={`hero-label-${hero.id}`}
-                className="hero-label-group"
+                className={[
+                  "hero-label-group",
+                  hero.id === selectedHeroId ? "hero-label-selected" : ""
+                ].filter(Boolean).join(" ")}
                 data-hero-label={hero.id}
-                transform={`translate(${placement.x} ${placement.y})`}
+                transform={`translate(${placement.x} ${placement.y}) scale(${1 / Math.max(cameraScale, 0.001)})`}
               >
                 <rect
                   className="hero-label-bg"
@@ -642,47 +697,6 @@ export function GraphView({
         </g>
       </g>
 
-      <g className="edge-label-layer" aria-hidden="true">
-          {activeRelationships.map((relationship) => {
-            const labelPlacement = edgeLabelPlacements.get(relationship.id);
-            if (!labelPlacement) return null;
-
-            const isIncoming = selectedHeroId === relationship.targetHeroId;
-            const isOutgoing = selectedHeroId === relationship.sourceHeroId;
-            const isMatchup = Boolean(
-              matchupHeroId &&
-              (relationship.sourceHeroId === matchupHeroId || relationship.targetHeroId === matchupHeroId)
-            );
-
-            return (
-              <g key={relationship.id} className="edge-label-entry">
-                <g
-                  className={[
-                    "edge-label",
-                    isIncoming ? "label-incoming" : isOutgoing ? "label-outgoing" : "",
-                    matchupHeroId && !isMatchup ? "edge-label-deemphasized" : ""
-                  ].filter(Boolean).join(" ")}
-                  transform={`translate(${labelPlacement.x} ${labelPlacement.y}) scale(${labelPlacement.scale})`}
-                  data-source-hero={relationship.sourceHeroId}
-                  data-target-hero={relationship.targetHeroId}
-                  data-label-t={labelPlacement.t.toFixed(3)}
-                  data-label-offset={labelPlacement.offset.toFixed(1)}
-                  data-label-scale={labelPlacement.scale.toFixed(2)}
-                  data-label-external="false"
-                >
-                  <rect
-                    x={-EDGE_LABEL_WIDTH / 2}
-                    y={-EDGE_LABEL_HEIGHT / 2}
-                    width={EDGE_LABEL_WIDTH}
-                    height={EDGE_LABEL_HEIGHT}
-                    rx={EDGE_LABEL_HEIGHT / 2}
-                  />
-                  <text textAnchor="middle" dominantBaseline="central">{formatPercent(relationship.sourceWinRate)}</text>
-                </g>
-              </g>
-            );
-          })}
-        </g>
       </svg>
     </>
   );
