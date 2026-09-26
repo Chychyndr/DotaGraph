@@ -299,12 +299,16 @@ export function layoutSourceAnchoredEdgeLabels(
     }
 
     if (sizeScale >= 1) {
-      const emergencyScale = 0.7;
-      for (const t of uniqueTs) {
-        rawCandidates.push({
-          placement: candidateForPath(segments, t, emergencyScale),
-          extraPenalty: 25
-        });
+      for (const [emergencyScale, extraPenalty] of [
+        [0.7, 25],
+        [0.62, 65]
+      ] as const) {
+        for (const t of uniqueTs) {
+          rawCandidates.push({
+            placement: candidateForPath(segments, t, emergencyScale),
+            extraPenalty
+          });
+        }
       }
     }
 
