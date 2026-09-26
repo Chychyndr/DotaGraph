@@ -35,7 +35,7 @@ The stable hero field should use the graph canvas generously. Keep the topology 
 
 ## Interaction
 
-Overview keeps the whole published relationship graph present as one weak spiderweb. Every relationship line that can be highlighted later already exists in Overview at the same endpoints.
+Overview keeps one persistent focus-eligible relationship graph present as a weak spiderweb. It is the union of every relationship that can become one of a hero's highlighted incoming/outgoing Focus edges, so every line that may be emphasized later already exists in Overview at the same endpoints.
 
 Hover reveals local context only by changing emphasis and never relayouts or inserts relationship geometry.
 
