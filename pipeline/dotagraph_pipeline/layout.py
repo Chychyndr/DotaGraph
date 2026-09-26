@@ -74,9 +74,9 @@ def compute_layout(
             math.sin(angle) * fraction * 0.72,
         ])
 
-    repulsion_strength = 0.0085
-    attraction_strength = 0.072
-    gravity_strength = 0.0032
+    repulsion_strength = 0.0035
+    attraction_strength = 0.22
+    gravity_strength = 0.0022
     max_step = 0.045
 
     for iteration in range(iterations):
@@ -107,7 +107,7 @@ def compute_layout(
             dy = y2 - y1
             distance = math.hypot(dx, dy) + 1e-8
 
-            target_length = 0.30 - 0.14 * edge.weight
+            target_length = 0.23 - 0.11 * edge.weight
             spring = attraction_strength * (0.35 + edge.weight) * (distance - target_length)
             fx = spring * dx / distance
             fy = spring * dy / distance
@@ -285,8 +285,8 @@ def compute_layout(
     # keeping endpoints fixed. This is deliberately a soft relaxation: the
     # force pass still owns the organic topology, this pass only removes the
     # most distracting line-through-node accidents.
-    edge_clearance = max(30.0, min_distance * 0.58)
-    for _ in range(72):
+    edge_clearance = max(12.0, min_distance * 0.22)
+    for _ in range(36):
         offsets = [[0.0, 0.0] for _ in nodes]
         conflicts = 0
 
@@ -330,8 +330,8 @@ def compute_layout(
 
                 intrusion = edge_clearance - distance
                 push = min(
-                    7.5,
-                    0.18 + intrusion * (0.28 + edge.weight * 0.16),
+                    2.5,
+                    0.08 + intrusion * (0.18 + edge.weight * 0.08),
                 )
                 offsets[node_index][0] += away_x / distance * push
                 offsets[node_index][1] += away_y / distance * push
@@ -344,9 +344,9 @@ def compute_layout(
             magnitude = math.hypot(offset_x, offset_y)
             if magnitude < 1e-8:
                 continue
-            if magnitude > 8.0:
-                offset_x *= 8.0 / magnitude
-                offset_y *= 8.0 / magnitude
+            if magnitude > 3.5:
+                offset_x *= 3.5 / magnitude
+                offset_y *= 3.5 / magnitude
 
             pixel_positions[node_index][0] = _clamp(
                 pixel_positions[node_index][0] + offset_x,
