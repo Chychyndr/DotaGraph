@@ -166,10 +166,10 @@ export function GraphView({
       ? calculateFocusScale(selectedHero, relatedHeroes, {
           ...visibleGraphSpan,
           offsetY: -92,
-          paddingX: 52,
-          paddingY: 48,
-          minScale: 0.42,
-          maxScale: 0.9
+          paddingX: 80,
+          paddingY: 62,
+          minScale: 0.38,
+          maxScale: 0.86
         })
       : overviewCamera.scale;
 
@@ -498,10 +498,14 @@ export function GraphView({
 
       const preferredT =
         relationship.sourceHeroId === selectedHeroId ? 0.72 : 0.28;
-      const candidateTs =
-        preferredT > 0.5
-          ? [0.72, 0.64, 0.56, 0.48, 0.40, 0.32]
-          : [0.28, 0.36, 0.44, 0.52, 0.60, 0.68];
+      const candidateTs = Array.from(
+        { length: 18 },
+        (_, index) => Number((0.16 + index * 0.04).toFixed(2))
+      ).sort(
+        (left, right) =>
+          Math.abs(left - preferredT) - Math.abs(right - preferredT) ||
+          left - right
+      );
       const geometry = edgeGeometry(source, target);
 
       const candidateIsSafe = (candidate: number) => {
