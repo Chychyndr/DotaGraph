@@ -63,14 +63,17 @@ const scanVisualCollisions = async (page: import("@playwright/test").Page) =>
       )
     ).flatMap((node) => {
       const portrait = node.querySelector<SVGCircleElement>(".hero-portrait-node");
-      if (!portrait) return [];
+      const mask = node.querySelector<SVGCircleElement>(".hero-node-mask");
+      if (!portrait || !mask) return [];
 
       const rect = portrait.getBoundingClientRect();
+      const maskRect = mask.getBoundingClientRect();
       return [{
         hero: node.id.replace("graph-hero-", ""),
         x: rect.left + rect.width / 2,
         y: rect.top + rect.height / 2,
-        radius: Math.min(rect.width, rect.height) / 2
+        radius: Math.min(rect.width, rect.height) / 2,
+        maskRadius: Math.min(maskRect.width, maskRect.height) / 2
       }];
     });
 
@@ -127,6 +130,11 @@ const scanVisualCollisions = async (page: import("@playwright/test").Page) =>
           );
         if (!crosses) continue;
 
+        // Active edges render below the node layer. A sufficiently large
+        // opaque mask means the relationship is visually interrupted before
+        // it reaches an unrelated portrait instead of painting over the art.
+        if (node.maskRadius >= node.radius + 3) continue;
+
         activeEdgeForeignPortrait.push(
           `${source}->${target} crosses portrait:${node.hero}`
         );
@@ -135,7 +143,9 @@ const scanVisualCollisions = async (page: import("@playwright/test").Page) =>
 
     const badgeDimmedPortrait: string[] = [];
     const dimmedNodes = Array.from(
-      document.querySelectorAll<SVGGElement>(".hero-node.hero-dimmed")
+      document.querySelectorAll<SVGGElement>(
+        ".hero-node.hero-dimmed:not(.hero-obscured)"
+      )
     );
 
     for (const badge of badges) {
