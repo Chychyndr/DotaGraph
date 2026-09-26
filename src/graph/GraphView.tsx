@@ -63,6 +63,7 @@ const MIN_ZOOM = 0.55;
 const MAX_ZOOM = 2.4;
 const DRAG_THRESHOLD = 5;
 const COMPACT_VIEWPORT_QUERY = "(max-width: 640px)";
+const DESKTOP_FOCUS_SAFE_X = 360;
 
 const clamp = (value: number, min: number, max: number) =>
   Math.min(max, Math.max(min, value));
@@ -135,6 +136,17 @@ export function GraphView({
         })
       : overviewCamera.scale;
 
+  const initialDesktopFocusPanX =
+    selectedHero && !initialCompactViewport
+      ? Math.max(
+          0,
+          DESKTOP_FOCUS_SAFE_X -
+            (WIDTH / 2 +
+              overviewCamera.scale *
+                (selectedHero.x - overviewCamera.anchorX))
+        )
+      : 0;
+
   const initialCamera: CameraState = {
     anchorX:
       selectedHero && initialCompactViewport
@@ -144,7 +156,7 @@ export function GraphView({
       selectedHero && initialCompactViewport
         ? selectedHero.y
         : overviewCamera.anchorY,
-    panX: 0,
+    panX: initialDesktopFocusPanX,
     panY: selectedHero && initialCompactViewport ? -92 : 0,
     zoom: 1,
     focusScale:
@@ -192,6 +204,22 @@ export function GraphView({
         panY: -92,
         zoom: 1,
         focusScale: nextScale
+      }));
+      return;
+    }
+
+    if (selectedHero && !isCompactViewport) {
+      const projectedX =
+        WIDTH / 2 +
+        overviewCamera.scale * (selectedHero.x - overviewCamera.anchorX);
+      setCamera((current) => ({
+        ...current,
+        anchorX: overviewCamera.anchorX,
+        anchorY: overviewCamera.anchorY,
+        panX: Math.max(0, DESKTOP_FOCUS_SAFE_X - projectedX),
+        panY: 0,
+        zoom: 1,
+        focusScale: overviewCamera.scale
       }));
       return;
     }
