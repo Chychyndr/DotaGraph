@@ -437,7 +437,31 @@ export function GraphView({
         hero,
         stableLabelNeighbors.get(hero.id) ?? []
       );
-      let placeLeft = Math.cos(freeAngle) < 0;
+      const incident = stableIncidentRelationships.get(hero.id) ?? [];
+      const sideCost = (direction: -1 | 1) =>
+        incident.reduce((cost, relationship) => {
+          const neighborId =
+            relationship.sourceHeroId === hero.id
+              ? relationship.targetHeroId
+              : relationship.sourceHeroId;
+          const neighbor = byId.get(neighborId);
+          if (!neighbor) return cost;
+
+          const dx = neighbor.x - hero.x;
+          const dy = neighbor.y - hero.y;
+          const distance = Math.hypot(dx, dy) || 1;
+          const alignment = direction * dx / distance;
+          return alignment > 0
+            ? cost + alignment ** 4
+            : cost;
+        }, 0);
+
+      const leftCost = sideCost(-1);
+      const rightCost = sideCost(1);
+      let placeLeft =
+        Math.abs(leftCost - rightCost) > 1e-6
+          ? leftCost < rightCost
+          : Math.cos(freeAngle) < 0;
 
       if (hero.x < layoutMinX + 170) placeLeft = false;
       if (hero.x > layoutMaxX - 170) placeLeft = true;
