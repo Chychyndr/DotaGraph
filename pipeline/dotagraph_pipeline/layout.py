@@ -289,17 +289,17 @@ def compute_layout(
 def spread_layout_positions(
     positions: dict[str, tuple[float, float]],
     *,
-    width: float = 1200.0,
-    height: float = 760.0,
-    margin: float = 24.0,
-    max_scale: float = 1.18,
+    width: float = 1900.0,
+    height: float = 1180.0,
+    margin: float = 60.0,
+    max_scale: float = 1.50,
 ) -> dict[str, tuple[float, float]]:
-    """Expand an already-stable layout uniformly into more of the graph canvas.
+    """Expand one stable organic layout into a larger virtual graph canvas.
 
-    This pass preserves topology and all relative angles. It only changes the
-    presentation scale around the current bounds center, so Overview, Hover,
-    Focus, and Matchup can keep one stable coordinate system while gaining more
-    breathing room between portraits.
+    The browser deliberately does not fit this larger canvas perfectly at all
+    times. That keeps portraits small relative to the space between them, like
+    a natural force-directed graph, while preserving the exact same coordinates
+    in Overview, Hover, Focus, and Matchup.
     """
 
     if not positions:
