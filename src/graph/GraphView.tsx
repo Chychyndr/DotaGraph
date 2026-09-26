@@ -508,67 +508,9 @@ export function GraphView({
       );
       const geometry = edgeGeometry(source, target);
 
-      const candidateIsSafe = (candidate: number) => {
+      const candidateCost = (candidate: number) => {
         const x = geometry.x1 + (geometry.x2 - geometry.x1) * candidate;
         const y = geometry.y1 + (geometry.y2 - geometry.y1) * candidate;
-
-        if (
-          fixedHeroLabelRects.some((rect) =>
-            overlapsRect(
-              x,
-              y,
-              badgeHalfWidth,
-              badgeHalfHeight,
-              rect
-            )
-          )
-        ) {
-          return false;
-        }
-
-        if (
-          placedBadgeRects.some((rect) =>
-            overlapsRect(
-              x,
-              y,
-              badgeHalfWidth,
-              badgeHalfHeight,
-              rect
-            )
-          )
-        ) {
-          return false;
-        }
-
-        if (
-          activePortraits.some((portrait) => {
-            if (
-              portrait.heroId === relationship.sourceHeroId ||
-              portrait.heroId === relationship.targetHeroId
-            ) {
-              return false;
-            }
-
-            const closestX = clamp(
-              portrait.x,
-              x - badgeHalfWidth,
-              x + badgeHalfWidth
-            );
-            const closestY = clamp(
-              portrait.y,
-              y - badgeHalfHeight,
-              y + badgeHalfHeight
-            );
-            return (
-              Math.hypot(
-                portrait.x - closestX,
-                portrait.y - closestY
-              ) < portrait.radius
-            );
-          })
-        ) {
-          return false;
-        }
 
         if (isCompactViewport) {
           const point = projectGraphPoint(x, y);
@@ -585,16 +527,83 @@ export function GraphView({
             point.y - screenHalfHeight < visibleTop ||
             point.y + screenHalfHeight > visibleBottom
           ) {
-            return false;
+            return Number.POSITIVE_INFINITY;
           }
         }
 
-        return true;
+        const labelHits = fixedHeroLabelRects.filter((rect) =>
+          overlapsRect(
+            x,
+            y,
+            badgeHalfWidth,
+            badgeHalfHeight,
+            rect
+          )
+        ).length;
+
+        const badgeHits = placedBadgeRects.filter((rect) =>
+          overlapsRect(
+            x,
+            y,
+            badgeHalfWidth,
+            badgeHalfHeight,
+            rect
+          )
+        ).length;
+
+        const portraitHits = activePortraits.filter((portrait) => {
+          if (
+            portrait.heroId === relationship.sourceHeroId ||
+            portrait.heroId === relationship.targetHeroId
+          ) {
+            return false;
+          }
+
+          const closestX = clamp(
+            portrait.x,
+            x - badgeHalfWidth,
+            x + badgeHalfWidth
+          );
+          const closestY = clamp(
+            portrait.y,
+            y - badgeHalfHeight,
+            y + badgeHalfHeight
+          );
+          return (
+            Math.hypot(
+              portrait.x - closestX,
+              portrait.y - closestY
+            ) < portrait.radius
+          );
+        }).length;
+
+        return (
+          portraitHits * 20_000 +
+          labelHits * 10_000 +
+          badgeHits * 5_000 +
+          Math.abs(candidate - preferredT) * 100
+        );
       };
 
-      const t =
-        candidateTs.find(candidateIsSafe) ??
-        candidateTs[0];
+      const rankedCandidates = candidateTs
+        .map((candidate) => ({
+          candidate,
+          cost: candidateCost(candidate)
+        }))
+        .sort(
+          (left, right) =>
+            left.cost - right.cost ||
+            Math.abs(left.candidate - preferredT) -
+              Math.abs(right.candidate - preferredT) ||
+            left.candidate - right.candidate
+        );
+
+      const bestCandidate = rankedCandidates[0];
+      if (!bestCandidate || !Number.isFinite(bestCandidate.cost)) {
+        if (isCompactViewport) continue;
+      }
+
+      const t = bestCandidate?.candidate ?? preferredT;
       const x = geometry.x1 + (geometry.x2 - geometry.x1) * t;
       const y = geometry.y1 + (geometry.y2 - geometry.y1) * t;
 
