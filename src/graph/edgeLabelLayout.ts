@@ -228,7 +228,7 @@ const candidateScore = (
   for (const obstacle of rectObstacles) {
     if (obstacle.id && ignoredObstacleIds.has(obstacle.id)) continue;
     if (rectanglesOverlap(paddedRect, rectObstacleFor(obstacle))) {
-      score += 20_000;
+      return Number.POSITIVE_INFINITY;
     }
   }
 
@@ -390,7 +390,7 @@ export function layoutSourceAnchoredEdgeLabels(
             new Set(input.ignoredObstacleIds ?? [])
           ) + extraPenalty
       }))
-      .filter(({ score }) => Number.isFinite(score))
+      .filter(({ score }) => Number.isFinite(score) && score < 5_000)
       .sort(
         (left, right) =>
           left.score - right.score ||
