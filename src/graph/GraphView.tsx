@@ -628,17 +628,12 @@ export function GraphView({
       }];
     });
 
-    const activePortraits = [...activeIds].flatMap((heroId) => {
-      const hero = byId.get(heroId);
-      if (!hero) return [];
-
-      return [{
-        heroId,
-        x: hero.x,
-        y: hero.y,
-        radius: radiusFor(heroId) + 7 / graphScale
-      }];
-    });
+    const heroPortraits = heroes.map((hero) => ({
+      heroId: hero.id,
+      x: hero.x,
+      y: hero.y,
+      radius: radiusFor(hero.id) + 7 / graphScale
+    }));
 
     const overlapsRect = (
       x: number,
@@ -715,7 +710,7 @@ export function GraphView({
           )
         ).length;
 
-        const portraitHits = activePortraits.filter((portrait) => {
+        const portraitHits = heroPortraits.filter((portrait) => {
           if (
             portrait.heroId === relationship.sourceHeroId ||
             portrait.heroId === relationship.targetHeroId
