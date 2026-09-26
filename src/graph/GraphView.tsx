@@ -258,11 +258,16 @@ export function GraphView({
       if (!source || !target) return [];
 
       const geometry = edgeGeometry(source, target);
+      const point = projectGraphPoint(
+        geometry.x1 + (geometry.x2 - geometry.x1) * EDGE_LABEL_T,
+        geometry.y1 + (geometry.y2 - geometry.y1) * EDGE_LABEL_T
+      );
+
       return [[
         relationship.id,
         {
-          x: geometry.x1 + (geometry.x2 - geometry.x1) * EDGE_LABEL_T,
-          y: geometry.y1 + (geometry.y2 - geometry.y1) * EDGE_LABEL_T,
+          x: point.x,
+          y: point.y,
           t: EDGE_LABEL_T,
           offset: 0,
           scale: isCompactViewport ? 0.8 : 1
@@ -448,29 +453,11 @@ export function GraphView({
               isMatchup ? "edge-matchup" : ""
             ].filter(Boolean).join(" ");
             const geometry = edgeGeometry(source, target);
-            const route = isActive
-              ? activeEdgeRoutes.get(relationship.id)
-              : undefined;
             const markerEnd = isIncoming
               ? "url(#arrow-incoming)"
               : isOutgoing
                 ? "url(#arrow-outgoing)"
                 : undefined;
-
-            if (route?.detoured) {
-              return (
-                <polyline
-                  key={relationship.id}
-                  className={edgeClass}
-                  points={route.points.map((point) => `${point.x},${point.y}`).join(" ")}
-                  fill="none"
-                  markerEnd={markerEnd}
-                  data-source-hero={relationship.sourceHeroId}
-                  data-target-hero={relationship.targetHeroId}
-                  data-route-detoured="true"
-                />
-              );
-            }
 
             return (
               <line
@@ -496,8 +483,7 @@ export function GraphView({
             const isHovered = hero.id === hoveredHeroId;
             const isMatchup = hero.id === matchupHeroId;
             const shouldDim = Boolean(selectedHeroId && !isSelected && !isActive);
-            const size = isSelected || isActive ? 28 : isHovered ? 36 : 28;
-            const radius = size / 2;
+            const radius = radiusFor(hero.id);
             const nodeClass = [
               "hero-node",
               isSelected ? "hero-selected" : "",
@@ -625,7 +611,7 @@ export function GraphView({
             if (!showLabel) return null;
 
             const labelWidth = labelWidthFor(hero);
-            const placement = heroLabelPlacements.get(hero.id);
+            const placement = fixedLabelPlacements.get(hero.id);
             if (!placement) return null;
 
             return (
@@ -670,19 +656,6 @@ export function GraphView({
 
             return (
               <g key={relationship.id} className="edge-label-entry">
-                {labelPlacement.leader && (
-                  <line
-                    className={[
-                      "edge-label-leader",
-                      isIncoming ? "edge-incoming" : isOutgoing ? "edge-outgoing" : "",
-                      matchupHeroId && !isMatchup ? "edge-deemphasized" : ""
-                    ].filter(Boolean).join(" ")}
-                    x1={labelPlacement.leader.x1}
-                    y1={labelPlacement.leader.y1}
-                    x2={labelPlacement.leader.x2}
-                    y2={labelPlacement.leader.y2}
-                  />
-                )}
                 <g
                   className={[
                     "edge-label",
@@ -695,7 +668,7 @@ export function GraphView({
                   data-label-t={labelPlacement.t.toFixed(3)}
                   data-label-offset={labelPlacement.offset.toFixed(1)}
                   data-label-scale={labelPlacement.scale.toFixed(2)}
-                  data-label-external={labelPlacement.leader ? "true" : "false"}
+                  data-label-external="false"
                 >
                   <rect
                     x={-EDGE_LABEL_WIDTH / 2}
