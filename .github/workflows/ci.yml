@@ -57,7 +57,7 @@ jobs:
           path: |
             public/assets/heroes-atlas.webp
             public/assets/heroes-atlas.manifest.json
-          key: hero-atlas-${{ hashFiles('src/data/heroCatalog.json', 'scripts/generate-hero-atlas.mjs') }}
+          key: hero-atlas-${{ hashFiles('src/data/heroCatalog.json', 'src/data/heroAtlasConfig.json', 'scripts/generate-hero-atlas.mjs') }}
 
       - run: npm run typecheck
       - run: npm test

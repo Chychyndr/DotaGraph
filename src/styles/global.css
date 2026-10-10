@@ -141,7 +141,7 @@ button:focus-visible, input:focus-visible, [role="button"]:focus-visible {
   font-size: 12px;
 }
 
-.search-input-wrap input::placeholder { color: #6e7681; }
+.search-input-wrap input::placeholder { color: var(--muted); }
 
 .search-input-wrap kbd {
   min-width: 20px;
@@ -341,6 +341,7 @@ button:focus-visible, input:focus-visible, [role="button"]:focus-visible {
   display: grid;
   gap: 6px;
   transform: translateX(-50%);
+  pointer-events: none;
 }
 
 .data-warning {
@@ -496,6 +497,8 @@ button:focus-visible, input:focus-visible, [role="button"]:focus-visible {
   pointer-events: none;
 }
 
+.compact-graph-hint { display: none; }
+
 .hero-label-bg {
   fill: var(--canvas);
   fill-opacity: .96;
@@ -515,6 +518,12 @@ button:focus-visible, input:focus-visible, [role="button"]:focus-visible {
 .hero-label-selected .hero-label {
   font-size: 18px;
   font-weight: 700;
+}
+
+@media (max-width: 640px) {
+  .hero-label { font-size: 10px; }
+  .hero-label-selected .hero-label { font-size: 14px; }
+  .compact-graph-hint { display: block; color: var(--muted); font-size: 11px; margin: 10px 0 0; }
 }
 
 .empty-guidance {
@@ -672,6 +681,7 @@ button:focus-visible, input:focus-visible, [role="button"]:focus-visible {
 .card-back {
   margin: -4px 0 10px;
   padding: 4px 0;
+  min-height: 32px;
   color: var(--muted);
   background: transparent;
   border: 0;
@@ -762,6 +772,9 @@ button:focus-visible, input:focus-visible, [role="button"]:focus-visible {
 
 .provenance-details summary {
   width: max-content;
+  max-width: 100%;
+  min-height: 32px;
+  padding: 8px 4px;
   color: var(--secondary);
   font-size: 10px;
   font-weight: 600;
@@ -822,6 +835,9 @@ button:focus-visible, input:focus-visible, [role="button"]:focus-visible {
 
 .population-evidence-details summary {
   width: max-content;
+  max-width: 100%;
+  min-height: 32px;
+  padding: 8px 4px;
   color: var(--secondary);
   font-size: 10px;
   font-weight: 600;
@@ -1008,6 +1024,12 @@ button:focus-visible, input:focus-visible, [role="button"]:focus-visible {
     max-height: min(48%, 360px);
     padding: 12px;
     overscroll-behavior: contain;
+  }
+
+  .card-back,
+  .provenance-details summary,
+  .population-evidence-details summary {
+    min-height: 44px;
   }
 
   .population-evidence-stat span,

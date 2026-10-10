@@ -91,8 +91,8 @@ test("focus layers keep edges behind badges, portraits, and hero names", async (
 
   expect(order).not.toBeNull();
   expect(order!.badges).toBeGreaterThan(order!.edges);
-  expect(order!.nodes).toBeGreaterThan(order!.badges);
-  expect(order!.names).toBeGreaterThan(order!.nodes);
+  expect(order!.badges).toBeGreaterThan(order!.nodes);
+  expect(order!.names).toBeGreaterThan(order!.badges);
 });
 
 test("win-rate badges keep native screen scale after camera zoom", async ({ page }) => {

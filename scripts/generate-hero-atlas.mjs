@@ -10,8 +10,9 @@ const outputDir = join(root, "public", "assets");
 const atlasPath = join(outputDir, "heroes-atlas.webp");
 const manifestPath = join(outputDir, "heroes-atlas.manifest.json");
 
-const COLUMNS = 16;
-const CELL_SIZE = 96;
+const atlasConfig = JSON.parse(await readFile(join(root, "src", "data", "heroAtlasConfig.json"), "utf8"));
+const COLUMNS = atlasConfig.columns;
+const CELL_SIZE = atlasConfig.cellSize;
 const QUALITY = 76;
 const MAX_BYTES = 1_500_000;
 const SOURCE_ROOT =

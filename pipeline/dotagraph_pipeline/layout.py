@@ -252,12 +252,21 @@ def compute_layout(
     # exactly the excess distance cannot violate the minimum spacing because
     # every current pair is at least that far apart at the time of the move.
     sparse_gap_target = max(min_distance, max_nearest_distance)
+    nearest_gaps = [
+        min(
+            math.hypot(other_x - x, other_y - y)
+            for other_index, (other_x, other_y) in enumerate(pixel_positions)
+            if other_index != node_index
+        )
+        for node_index, (x, y) in enumerate(pixel_positions)
+    ] if count > 1 else []
+    # A connected hull node can also be detached. Use the graph's own density
+    # to identify that outlier without collapsing a small, intentionally sparse
+    # graph or undoing its affinity layout.
+    connected_gap_target = max(sparse_gap_target, median(nearest_gaps) * 1.5) if nearest_gaps else sparse_gap_target
     for _ in range(12):
         moved = False
         for node_index in range(count):
-            if degrees[node_index] > 1:
-                continue
-
             x, y = pixel_positions[node_index]
             nearest_index = -1
             nearest_distance = math.inf
@@ -272,12 +281,15 @@ def compute_layout(
 
             if (
                 nearest_index < 0
-                or nearest_distance <= sparse_gap_target + 1e-8
+                or nearest_distance <= (
+                    connected_gap_target if degrees[node_index] > 1 else sparse_gap_target
+                ) + 1e-8
             ):
                 continue
 
             target_x, target_y = pixel_positions[nearest_index]
-            excess = nearest_distance - sparse_gap_target
+            target_gap = connected_gap_target if degrees[node_index] > 1 else sparse_gap_target
+            excess = nearest_distance - target_gap
             pixel_positions[node_index][0] += (
                 (target_x - x) / nearest_distance * excess
             )

@@ -6,6 +6,7 @@ from typing import Iterable
 
 
 ONE_SIDED_95_Z = 1.645
+OPPONENTS_PER_MATCH = 5
 
 
 @dataclass(frozen=True)
@@ -62,8 +63,23 @@ def _baseline_excluding_pair(
     pair_wins: int,
     pair_matches: int,
 ) -> tuple[float, int] | None:
-    games = total.games - pair_matches
-    wins = total.wins - pair_wins
+    if (
+        total.games < 0
+        or total.wins < 0
+        or total.wins > total.games
+        or total.games % OPPONENTS_PER_MATCH != 0
+        or total.wins % OPPONENTS_PER_MATCH != 0
+    ):
+        raise ValueError("Hero totals do not describe complete 5v5 match observations")
+
+    # Every real hero-match contributes the same outcome to five opponent rows.
+    # Exclude the entire direct-opponent match from the independent baseline.
+    match_count = total.games // OPPONENTS_PER_MATCH
+    match_wins = total.wins // OPPONENTS_PER_MATCH
+    games = match_count - pair_matches
+    wins = match_wins - pair_wins
+    if games < 0 or wins < 0 or wins > games:
+        raise ValueError("Direct-pair counts exceed complete hero match totals")
     if games <= 0:
         return None
     return wins / games, games

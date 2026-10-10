@@ -136,7 +136,17 @@ Current query scope:
 
 Published output contains aggregate hero statistics, qualified hero-vs-hero headline observations, separate aggregate Immortal detail observations where available, provenance, and deterministic graph coordinates. The Immortal subset is computed inside the same Explorer query, so no additional provider access method or request is introduced. The output does not publish player identities or raw match IDs.
 
-The twice-daily workflow uses bounded retries, time-range splitting for expensive Explorer queries, structured logs, and a static generated JSON artifact. Provider availability never becomes a runtime dependency for the frontend.
+The twice-daily workflow reads the same observation window in non-overlapping 12-hour Explorer chunks, bisecting a failing range on timeout while its duration exceeds six hours. Adjacent chunks use inclusive start and exclusive end timestamps, preserving the approved corpus without duplicating boundary matches. This request-size adjustment changes retrieval reliability, not patch/rank scope, provider, eligibility, or aggregation methodology. The workflow uses bounded retries, structured logs, and a static generated JSON artifact. Provider availability never becomes a runtime dependency for the frontend.
+
+### OpenDota Immortal population limitation
+
+Implementation review date: 2026-10-10. Reviewed upstream revision: `b87e0659b958c8b34ca9f38ddc3aab2dc2b52f5f`.
+
+- [`getMatchRankTier()`](https://github.com/odota/core/blob/b87e0659b958c8b34ca9f38ddc3aab2dc2b52f5f/svc/util/queries.ts#L317-L342) takes the known players' rank ratings and calls `averageMedal()`.
+- [`averageMedal()`](https://github.com/odota/core/blob/b87e0659b958c8b34ca9f38ddc3aab2dc2b52f5f/svc/util/utility.ts#L139-L146) converts each medal using `firstDigit * 5 + lastDigit - 1`, averages those values, then converts back. For rank 80 this produces 39 and then 75. Rank 75 also produces 39 and then 75.
+- [`upsertMatchSample()`](https://github.com/odota/core/blob/b87e0659b958c8b34ca9f38ddc3aab2dc2b52f5f/svc/counts.ts#L72-L87) stores that result as `public_matches.avg_rank_tier` and retains the number of known player ranks separately as `num_rank_tier`.
+
+This establishes a provider-field limitation, not a count of actual Immortal players. The hosted service's exact deployed revision may differ, so production rank diagnostics must remain explicit. Zero rows under `avg_rank_tier >= 80` must not silently be interpreted as proof that Immortal matches are absent. Lowering the filter to 75 would combine Divine 5 and rank-80 populations and would create a misleading Immortal label. Preserve separate unavailable evidence and explain the limitation until a provider-compatible observation establishes the population. The Ancient+ headline query and approved source set remain unchanged.
 
 STRATZ, DOTABUFF, and Dota2ProTracker remain owner-approved direct sources for compatible secondary/detail evidence. Their observations must retain their own scope/provenance and must not silently alter or inflate the OpenDota headline sample size.
 

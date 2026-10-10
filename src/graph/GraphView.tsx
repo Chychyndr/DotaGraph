@@ -33,7 +33,7 @@ interface GraphViewProps {
   matchupHeroId: string | null;
   selectedRelations: SelectedRelations;
   onSelectHero: (heroId: string) => void;
-  onSelectMatchup: (heroId: string) => void;
+  onSelectMatchup: (heroId: string, keyboard?: boolean) => void;
   onHoverHero: (heroId: string | null) => void;
   onClearSelection: () => void;
 }
@@ -45,6 +45,7 @@ interface DragState {
   lastX: number;
   lastY: number;
   moved: boolean;
+  startedOnHero?: boolean;
 }
 
 interface CameraState {
@@ -64,6 +65,7 @@ const DRAG_THRESHOLD = 5;
 const BASE_NODE_RADIUS = 14;
 const HOVER_NODE_RADIUS = 20;
 const COMPACT_VIEWPORT_QUERY = "(max-width: 640px)";
+const COMPACT_RELATION_LIMIT = 3;
 
 const clamp = (value: number, min: number, max: number) =>
   Math.min(max, Math.max(min, value));
@@ -123,12 +125,26 @@ export function GraphView({
   const initialCompactViewport = window.matchMedia(COMPACT_VIEWPORT_QUERY).matches;
   const [isCompactViewport, setIsCompactViewport] = useState(initialCompactViewport);
   const [svgViewport, setSvgViewport] = useState({ width: WIDTH, height: HEIGHT });
+  const [compactInsets, setCompactInsets] = useState({ top: 64, bottom: HEIGHT * 0.48 });
   const selectedHero = selectedHeroId ? byId.get(selectedHeroId) : undefined;
+  const activeRelationships = useMemo(() => {
+    const visible = (group: MatchupRelationship[]) => {
+      if (!isCompactViewport) return group;
+      const first = group.slice(0, COMPACT_RELATION_LIMIT);
+      const matchup = matchupHeroId && group.find((relationship) =>
+        relationship.sourceHeroId === matchupHeroId || relationship.targetHeroId === matchupHeroId
+      );
+      return matchup && !first.includes(matchup)
+        ? [...first.slice(0, COMPACT_RELATION_LIMIT - 1), matchup]
+        : first;
+    };
+    return [...visible(selectedRelations.incoming), ...visible(selectedRelations.outgoing)];
+  }, [selectedRelations, isCompactViewport, matchupHeroId]);
   const relatedHeroes = useMemo(() => {
     if (!selectedHeroId) return [];
 
     const ids = new Set(
-      [...selectedRelations.incoming, ...selectedRelations.outgoing]
+      activeRelationships
         .flatMap((relationship) => [
           relationship.sourceHeroId,
           relationship.targetHeroId
@@ -140,7 +156,7 @@ export function GraphView({
       const hero = byId.get(heroId);
       return hero ? [hero] : [];
     });
-  }, [byId, selectedHeroId, selectedRelations.incoming, selectedRelations.outgoing]);
+  }, [byId, selectedHeroId, activeRelationships]);
   const visibleGraphSpan = useMemo(
     () =>
       visibleViewBoxForViewport(
@@ -205,6 +221,10 @@ export function GraphView({
   const svgRef = useRef<SVGSVGElement>(null);
   const previousKeyboardSelectionRef = useRef(selectedHeroId);
   const dragRef = useRef<DragState | null>(null);
+  const previousCompactRef = useRef(isCompactViewport);
+  const ignoreNextNodeClickRef = useRef(false);
+  const pointersRef = useRef(new Map<number, { x: number; y: number }>());
+  const pinchRef = useRef<{ distance: number; x: number; y: number } | null>(null);
 
   const setCamera = (next: CameraState | ((current: CameraState) => CameraState)) => {
     setCameraState((current) => {
@@ -217,23 +237,32 @@ export function GraphView({
   const cancelCameraAnimation = () => {};
 
   useEffect(() => {
+    const wasCompact = previousCompactRef.current;
+    previousCompactRef.current = isCompactViewport;
+    if (wasCompact && !isCompactViewport) {
+      setCamera({ anchorX: overviewCamera.anchorX, anchorY: overviewCamera.anchorY, panX: 0, panY: 0, zoom: 1, focusScale: overviewCamera.scale });
+      return;
+    }
     if (isCompactViewport && selectedHero) {
-      const nextScale = calculateFocusScale(selectedHero, relatedHeroes, {
-        ...visibleGraphSpan,
-        offsetY: -92,
-        paddingX: 52,
-        paddingY: 48,
-        minScale: 0.42,
+      const outerScale = Math.max(svgViewport.width / WIDTH, svgViewport.height / HEIGHT);
+      const top = (HEIGHT - visibleGraphSpan.height) / 2 + compactInsets.top / outerScale;
+      const bottom = (HEIGHT + visibleGraphSpan.height) / 2 - compactInsets.bottom / outerScale;
+      const fitted = calculateOverviewCamera([selectedHero, ...relatedHeroes], {
+        width: visibleGraphSpan.width,
+        height: Math.max(80, bottom - top),
+        paddingX: 48,
+        paddingY: 36,
+        minScale: 0.05,
         maxScale: 0.9
       });
       setCamera((current) => ({
         ...current,
-        anchorX: selectedHero.x,
-        anchorY: selectedHero.y,
+        anchorX: fitted.anchorX,
+        anchorY: fitted.anchorY,
         panX: 0,
-        panY: -92,
+        panY: (top + bottom) / 2 - HEIGHT / 2,
         zoom: 1,
-        focusScale: nextScale
+        focusScale: fitted.scale
       }));
       return;
     }
@@ -255,8 +284,30 @@ export function GraphView({
     relatedHeroes,
     selectedHero,
     selectedHeroId,
-    visibleGraphSpan
+    visibleGraphSpan,
+    compactInsets,
+    svgViewport
   ]);
+
+  useEffect(() => {
+    const svg = svgRef.current;
+    const stage = svg?.closest(".graph-stage");
+    if (!svg || !stage || !isCompactViewport) return;
+    const card = stage.querySelector<HTMLElement>(".context-card");
+    const notices = stage.querySelector<HTMLElement>(".stage-notices");
+    const measure = () => {
+      const bounds = svg.getBoundingClientRect();
+      const top = notices ? Math.max(12, notices.getBoundingClientRect().bottom - bounds.top + 12) : 12;
+      const bottom = card ? Math.max(0, bounds.bottom - card.getBoundingClientRect().top + 12) : 12;
+      setCompactInsets((current) => Math.abs(current.top - top) < 1 && Math.abs(current.bottom - bottom) < 1 ? current : { top, bottom });
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(svg);
+    if (card) observer.observe(card);
+    if (notices) observer.observe(notices);
+    return () => observer.disconnect();
+  }, [isCompactViewport, selectedHeroId, matchupHeroId]);
 
   useEffect(() => {
     const svg = svgRef.current;
@@ -304,10 +355,6 @@ export function GraphView({
   }, [selectedHeroId]);
 
 
-  const activeRelationships = useMemo(
-    () => [...selectedRelations.incoming, ...selectedRelations.outgoing],
-    [selectedRelations]
-  );
   const hoverRelationships = useMemo(
     () =>
       hoveredHeroId && !selectedHeroId
@@ -427,15 +474,56 @@ export function GraphView({
     };
   };
 
+  const edgeLabelInputs = activeRelationships.flatMap((relationship) => {
+      const source = byId.get(relationship.sourceHeroId);
+      const target = byId.get(relationship.targetHeroId);
+      if (!source || !target) return [];
+
+      const geometry = edgeGeometry(source, target);
+      const startPoint = projectGraphPoint(geometry.x1, geometry.y1);
+      const endPoint = projectGraphPoint(geometry.x2, geometry.y2);
+
+      return [{
+        id: relationship.id,
+        segment: {
+          x1: startPoint.x,
+          y1: startPoint.y,
+          x2: endPoint.x,
+          y2: endPoint.y
+        },
+        preferredT:
+          relationship.sourceHeroId === selectedHeroId ? 0.72 : 0.28,
+        ignoredObstacleIds: [
+          relationship.sourceHeroId,
+          relationship.targetHeroId
+        ]
+      }];
+    });
+
+  const portraitObstacles = heroes.filter((hero) => !isCompactViewport || activeIds.has(hero.id)).map((hero) => {
+      const point = projectGraphPoint(hero.x, hero.y);
+      return {
+        id: hero.id,
+        x: point.x,
+        y: point.y,
+        radius: radiusFor(hero.id) * cameraScale + 3
+      };
+    });
+
+  const compactBadgePlacements = isCompactViewport
+    ? layoutSourceAnchoredEdgeLabels(edgeLabelInputs, portraitObstacles, [], { sizeScale: 0.8 })
+    : null;
+
   const labelWidthFor = (hero: Hero) =>
     hero.id === selectedHeroId
-      ? Math.max(82, hero.name.length * 10.2 + 20)
-      : Math.max(48, hero.name.length * 7.2 + 14);
+      ? Math.max(62, hero.name.length * (isCompactViewport ? 8 : 10.2) + 16)
+      : Math.max(40, hero.name.length * (isCompactViewport ? 6 : 7.2) + 12);
 
   const labelHeroes = heroes.filter(
     (hero) =>
       hero.id === selectedHeroId ||
       activeIds.has(hero.id) ||
+      hero.id === matchupHeroId ||
       hero.id === hoveredHeroId
   );
 
@@ -490,7 +578,7 @@ export function GraphView({
     stableLabelNeighbors.set(hero.id, neighbors);
   }
 
-  const stableLabelScale = Math.max(overviewCamera.scale, 0.001);
+  const stableLabelScale = Math.max(isCompactViewport ? cameraScale : overviewCamera.scale, 0.001);
   const fixedLabelPlacements = new Map<
     string,
     { x: number; y: number; angle: number; width: number }
@@ -505,19 +593,27 @@ export function GraphView({
     (left, right) =>
       Number(right.id === selectedHeroId) -
         Number(left.id === selectedHeroId) ||
+      labelWidthFor(right) - labelWidthFor(left) ||
       left.id.localeCompare(right.id)
   );
 
   for (const hero of orderedLabelHeroes) {
     const width = labelWidthFor(hero);
-    const stableWidth = Math.max(82, hero.name.length * 10.2 + 20);
+    const stableWidth = width;
     const halfWidth = stableWidth / (2 * stableLabelScale);
     const halfHeight = 12 / stableLabelScale;
+    const incident = isCompactViewport && selectedHeroId
+      ? activeRelationships.filter((relationship) => relationship.sourceHeroId === hero.id || relationship.targetHeroId === hero.id)
+      : stableIncidentRelationships.get(hero.id) ?? [];
     const freeAngle = largestAngularGap(
       hero,
-      stableLabelNeighbors.get(hero.id) ?? []
+      isCompactViewport && selectedHeroId
+        ? incident.flatMap((relationship) => {
+            const neighbor = byId.get(relationship.sourceHeroId === hero.id ? relationship.targetHeroId : relationship.sourceHeroId);
+            return neighbor ? [neighbor] : [];
+          })
+        : stableLabelNeighbors.get(hero.id) ?? []
     );
-    const incident = stableIncidentRelationships.get(hero.id) ?? [];
 
     const segmentHitsRect = (
       x1: number,
@@ -556,27 +652,32 @@ export function GraphView({
     };
 
     const candidateAngles = Array.from(
-      { length: 16 },
-      (_, index) => index * Math.PI * 2 / 16
+      { length: 32 },
+      (_, index) => index * Math.PI * 2 / 32
     );
     const angularDistance = (left: number, right: number) => {
       const delta = Math.abs(normalizeAngle(left) - normalizeAngle(right));
       return Math.min(delta, Math.PI * 2 - delta);
     };
 
-    const radialOffsets = [0, 18, 34];
+    const radialOffsets = [0, 8, 16, 24, 32];
     const candidates = candidateAngles.flatMap((angle) =>
       radialOffsets.map((radialOffset) => {
       const cos = Math.cos(angle);
       const sin = Math.sin(angle);
-      const support =
-        Math.abs(cos) * halfWidth +
-        Math.abs(sin) * halfHeight;
-      const centerOffset =
-        BASE_NODE_RADIUS +
-        9 / stableLabelScale +
-        support +
-        radialOffset / stableLabelScale;
+      // Solve the distance to the actual rectangle, rather than its projection.
+      // A wide name at a diagonal should still sit beside its portrait.
+      const gap = BASE_NODE_RADIUS + ((isCompactViewport ? 12 : 6) + radialOffset) / stableLabelScale;
+      let near = 0;
+      let far = Math.hypot(halfWidth, halfHeight) + gap;
+      for (let iteration = 0; iteration < 20; iteration += 1) {
+        const distance = (near + far) / 2;
+        const dx = Math.max(0, Math.abs(cos) * distance - halfWidth);
+        const dy = Math.max(0, Math.abs(sin) * distance - halfHeight);
+        if (Math.hypot(dx, dy) < gap) near = distance;
+        else far = distance;
+      }
+      const centerOffset = far;
       const x = hero.x + cos * centerOffset;
       const y = hero.y + sin * centerOffset;
       const left = x - halfWidth - 5 / stableLabelScale;
@@ -597,10 +698,10 @@ export function GraphView({
             hero.y,
             neighbor.x,
             neighbor.y,
-            left,
-            top,
-            right,
-            bottom
+            left - (isCompactViewport ? EDGE_LABEL_WIDTH * 0.4 / stableLabelScale : 0),
+            top - (isCompactViewport ? EDGE_LABEL_HEIGHT * 0.4 / stableLabelScale : 0),
+            right + (isCompactViewport ? EDGE_LABEL_WIDTH * 0.4 / stableLabelScale : 0),
+            bottom + (isCompactViewport ? EDGE_LABEL_HEIGHT * 0.4 / stableLabelScale : 0)
           )
             ? 1
             : 0
@@ -609,6 +710,7 @@ export function GraphView({
 
       const portraitHits = heroes.reduce((hits, other) => {
         if (other.id === hero.id) return hits;
+        if (isCompactViewport && selectedHeroId && !activeIds.has(other.id)) return hits;
         const radius = 18 / stableLabelScale;
         const closestX = clamp(other.x, left, right);
         const closestY = clamp(other.y, top, bottom);
@@ -632,19 +734,30 @@ export function GraphView({
         0
       );
 
+      const screenTopLeft = projectGraphPoint(left, top);
+      const screenBottomRight = projectGraphPoint(right, bottom);
+      const badgeHits = compactBadgePlacements ? [...compactBadgePlacements.values()].filter((badge) =>
+        screenTopLeft.x < badge.x + EDGE_LABEL_WIDTH * badge.scale / 2 + 2 &&
+        screenBottomRight.x > badge.x - EDGE_LABEL_WIDTH * badge.scale / 2 - 2 &&
+        screenTopLeft.y < badge.y + EDGE_LABEL_HEIGHT * badge.scale / 2 + 2 &&
+        screenBottomRight.y > badge.y - EDGE_LABEL_HEIGHT * badge.scale / 2 - 2
+      ).length : 0;
+
       const outsideLayout =
         left < layoutMinX ||
         right > layoutMaxX ||
         top < layoutMinY ||
         bottom > layoutMaxY;
-      const overviewPoint = projectOverviewPoint(x, y);
+      const overviewPoint = isCompactViewport ? projectGraphPoint(x, y) : projectOverviewPoint(x, y);
       const screenHalfWidth = width / 2 + 5;
       const screenHalfHeight = 12;
+      const visibleLeft = isCompactViewport ? (WIDTH - visibleGraphSpan.width) / 2 : 0;
+      const visibleTop = isCompactViewport ? (HEIGHT - visibleGraphSpan.height) / 2 : 0;
       const viewportOverflow =
-        Math.max(0, screenHalfWidth - overviewPoint.x) +
-        Math.max(0, overviewPoint.x + screenHalfWidth - WIDTH) +
-        Math.max(0, screenHalfHeight - overviewPoint.y) +
-        Math.max(0, overviewPoint.y + screenHalfHeight - HEIGHT);
+        Math.max(0, visibleLeft + screenHalfWidth - overviewPoint.x) +
+        Math.max(0, overviewPoint.x + screenHalfWidth - (WIDTH - visibleLeft)) +
+        Math.max(0, visibleTop + screenHalfHeight - overviewPoint.y) +
+        Math.max(0, overviewPoint.y + screenHalfHeight - (HEIGHT - visibleTop));
 
       return {
         angle,
@@ -654,14 +767,16 @@ export function GraphView({
         right,
         top,
         bottom,
+        badgeHits,
         score:
+          badgeHits * 120_000 +
           viewportOverflow * 1_000_000 +
           (outsideLayout ? 100_000 : 0) +
           labelHits * 80_000 +
           edgeHits * 10_000 +
           portraitHits * 2_000 +
           angularDistance(angle, freeAngle) * 100 +
-          radialOffset * 8
+          radialOffset * 500
       };
     })
     );
@@ -673,6 +788,10 @@ export function GraphView({
           angularDistance(right.angle, freeAngle) ||
         left.angle - right.angle
     )[0];
+
+    // On narrow screens the percentages take priority over an extra name.
+    // The complete names remain available in the counter list and on focus.
+    if (isCompactViewport && best.badgeHits && hero.id !== selectedHeroId && hero.id !== matchupHeroId) continue;
 
     fixedLabelPlacements.set(hero.id, {
       x: best.x,
@@ -695,42 +814,6 @@ export function GraphView({
     const visibleTop = (HEIGHT - visibleGraphSpan.height) / 2;
     const visibleBottom = HEIGHT - visibleTop;
 
-    const inputs = activeRelationships.flatMap((relationship) => {
-      const source = byId.get(relationship.sourceHeroId);
-      const target = byId.get(relationship.targetHeroId);
-      if (!source || !target) return [];
-
-      const geometry = edgeGeometry(source, target);
-      const startPoint = projectGraphPoint(geometry.x1, geometry.y1);
-      const endPoint = projectGraphPoint(geometry.x2, geometry.y2);
-
-      return [{
-        id: relationship.id,
-        segment: {
-          x1: startPoint.x,
-          y1: startPoint.y,
-          x2: endPoint.x,
-          y2: endPoint.y
-        },
-        preferredT:
-          relationship.sourceHeroId === selectedHeroId ? 0.72 : 0.28,
-        ignoredObstacleIds: [
-          relationship.sourceHeroId,
-          relationship.targetHeroId
-        ]
-      }];
-    });
-
-    const portraitObstacles = heroes.map((hero) => {
-      const point = projectGraphPoint(hero.x, hero.y);
-      return {
-        id: hero.id,
-        x: point.x,
-        y: point.y,
-        radius: radiusFor(hero.id) * cameraScale + 3
-      };
-    });
-
     const heroLabelObstacles = labelHeroes.flatMap((hero) => {
       if (cardOccludedLabelIds.has(hero.id)) return [];
 
@@ -746,8 +829,8 @@ export function GraphView({
       }];
     });
 
-    const projectedPlacements = layoutSourceAnchoredEdgeLabels(
-      inputs,
+    const projectedPlacements = compactBadgePlacements ?? layoutSourceAnchoredEdgeLabels(
+      edgeLabelInputs,
       portraitObstacles,
       heroLabelObstacles,
       {
@@ -786,21 +869,58 @@ export function GraphView({
   const handlePointerDown = (event: ReactPointerEvent<SVGSVGElement>) => {
     if (event.button !== 0) return;
     const target = event.target;
-    if (target instanceof Element && target.closest(".hero-node")) return;
+    const startedOnHero = Boolean(target instanceof Element && target.closest(".hero-node"));
+    if (startedOnHero && event.pointerType !== "touch") return;
 
     cancelCameraAnimation();
+    ignoreNextNodeClickRef.current = false;
+    pointersRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    if (pointersRef.current.size >= 2) {
+      const [first, second] = [...pointersRef.current.values()];
+      pinchRef.current = { distance: Math.hypot(second.x - first.x, second.y - first.y), x: (first.x + second.x) / 2, y: (first.y + second.y) / 2 };
+      if (dragRef.current) dragRef.current.moved = true;
+      ignoreNextNodeClickRef.current = true;
+      event.currentTarget.setPointerCapture(event.pointerId);
+      return;
+    }
     dragRef.current = {
       pointerId: event.pointerId,
       startX: event.clientX,
       startY: event.clientY,
       lastX: event.clientX,
       lastY: event.clientY,
-      moved: false
+      moved: false,
+      startedOnHero
     };
-    event.currentTarget.setPointerCapture(event.pointerId);
+    if (!startedOnHero) event.currentTarget.setPointerCapture(event.pointerId);
   };
 
   const handlePointerMove = (event: ReactPointerEvent<SVGSVGElement>) => {
+    if (pointersRef.current.has(event.pointerId)) {
+      pointersRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    }
+    const pinch = pinchRef.current;
+    if (pinch && pointersRef.current.size >= 2) {
+      const [first, second] = [...pointersRef.current.values()];
+      const distance = Math.hypot(second.x - first.x, second.y - first.y);
+      const x = (first.x + second.x) / 2;
+      const y = (first.y + second.y) / 2;
+      const matrix = event.currentTarget.getScreenCTM()?.inverse();
+      if (!matrix || pinch.distance <= 0) return;
+      const previous = new DOMPoint(pinch.x, pinch.y).matrixTransform(matrix);
+      const next = new DOMPoint(x, y).matrixTransform(matrix);
+      setCamera((current) => {
+        const zoom = clamp(current.zoom * distance / pinch.distance, MIN_ZOOM, MAX_ZOOM);
+        const ratio = zoom / current.zoom;
+        return { ...current, zoom,
+          panX: next.x - WIDTH / 2 - ratio * (previous.x - WIDTH / 2 - current.panX),
+          panY: next.y - HEIGHT / 2 - ratio * (previous.y - HEIGHT / 2 - current.panY)
+        };
+      });
+      pinchRef.current = { distance, x, y };
+      setIsPanning(true);
+      return;
+    }
     const drag = dragRef.current;
     if (!drag || drag.pointerId !== event.pointerId) return;
 
@@ -811,6 +931,7 @@ export function GraphView({
 
     if (!drag.moved && totalDistance >= DRAG_THRESHOLD) {
       drag.moved = true;
+      ignoreNextNodeClickRef.current = true;
       setIsPanning(true);
     }
 
@@ -832,10 +953,20 @@ export function GraphView({
   };
 
   const finishPointer = (event: ReactPointerEvent<SVGSVGElement>, cancelled = false) => {
+    const wasPinching = Boolean(pinchRef.current);
+    pointersRef.current.delete(event.pointerId);
+    if (wasPinching) {
+      pinchRef.current = null;
+      const remaining = [...pointersRef.current.entries()][0];
+      dragRef.current = remaining ? { pointerId: remaining[0], startX: remaining[1].x, startY: remaining[1].y, lastX: remaining[1].x, lastY: remaining[1].y, moved: true } : null;
+      if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+      if (!remaining) setIsPanning(false);
+      return;
+    }
     const drag = dragRef.current;
     if (!drag || drag.pointerId !== event.pointerId) return;
 
-    if (!cancelled && !drag.moved && selectedHeroId) {
+    if (!cancelled && !drag.moved && !drag.startedOnHero && selectedHeroId) {
       onClearSelection();
     }
 
@@ -987,61 +1118,6 @@ export function GraphView({
           })}
         </g>
 
-        <g className="edge-label-layer" aria-hidden="true">
-          {activeRelationships.map((relationship) => {
-            const labelPlacement = edgeLabelPlacements.get(relationship.id);
-            if (!labelPlacement) return null;
-
-            const isIncoming = selectedHeroId === relationship.targetHeroId;
-            const isOutgoing = selectedHeroId === relationship.sourceHeroId;
-            const isMatchup = Boolean(
-              matchupHeroId &&
-              (relationship.sourceHeroId === matchupHeroId ||
-                relationship.targetHeroId === matchupHeroId)
-            );
-            const labelScreenScale =
-              labelPlacement.scale /
-              Math.max(cameraScale, 0.001);
-
-            return (
-              <g
-                key={relationship.id}
-                className={[
-                  "edge-label",
-                  isIncoming ? "label-incoming" : isOutgoing ? "label-outgoing" : "",
-                  matchupHeroId && !isMatchup ? "edge-label-deemphasized" : ""
-                ].filter(Boolean).join(" ")}
-                transform={`translate(${labelPlacement.x} ${labelPlacement.y}) scale(${labelScreenScale})`}
-                data-source-hero={relationship.sourceHeroId}
-                data-target-hero={relationship.targetHeroId}
-                data-label-t={labelPlacement.t.toFixed(3)}
-                data-label-offset="0.0"
-                data-label-scale={labelPlacement.scale.toFixed(2)}
-                data-label-external="false"
-              >
-                <rect
-                  x={-EDGE_LABEL_WIDTH / 2}
-                  y={-EDGE_LABEL_HEIGHT / 2}
-                  width={EDGE_LABEL_WIDTH}
-                  height={EDGE_LABEL_HEIGHT}
-                  rx={EDGE_LABEL_HEIGHT / 2}
-                />
-                <text
-                  textAnchor="middle"
-                  dominantBaseline="central"
-                  style={
-                    isCompactViewport
-                      ? undefined
-                      : { fontSize: `${10 / Math.max(labelPlacement.scale, 0.001)}px` }
-                  }
-                >
-                  {formatPercent(relationship.sourceWinRate)}
-                </text>
-              </g>
-            );
-          })}
-        </g>
-
         <g className="nodes">
           {heroes.map((hero) => {
             const isSelected = hero.id === selectedHeroId;
@@ -1071,8 +1147,8 @@ export function GraphView({
                 ? `${hero.name}. ${source.name} counters ${target.name}; ${source.name} win rate ${formatPercent(activeRelationship.sourceWinRate)}`
                 : `Select ${hero.name}`;
 
-            const activate = () => {
-              if (selectedHeroId && isActive && !isSelected) onSelectMatchup(hero.id);
+            const activate = (keyboard = false) => {
+              if (selectedHeroId && isActive && !isSelected) onSelectMatchup(hero.id, keyboard);
               else onSelectHero(hero.id);
             };
 
@@ -1116,12 +1192,17 @@ export function GraphView({
                   onHoverHero(hero.id);
                 }}
                 onBlur={() => onHoverHero(null)}
-                onClick={activate}
-                onPointerDown={(event) => event.stopPropagation()}
+                onClick={(event) => {
+                  if (ignoreNextNodeClickRef.current) { ignoreNextNodeClickRef.current = false; return; }
+                  activate(event.detail === 0);
+                }}
+                onPointerDown={(event) => {
+                  if (event.pointerType !== "touch") { ignoreNextNodeClickRef.current = false; event.stopPropagation(); }
+                }}
                 onKeyDown={(event) => {
                   if (event.key === "Enter" || event.key === " ") {
                     event.preventDefault();
-                    activate();
+                    activate(true);
                     return;
                   }
 
@@ -1168,11 +1249,63 @@ export function GraphView({
           })}
         </g>
 
+        <g className="edge-label-layer" aria-hidden="true">
+          {activeRelationships.map((relationship) => {
+            const labelPlacement = edgeLabelPlacements.get(relationship.id);
+            if (!labelPlacement) return null;
+
+            const isIncoming = selectedHeroId === relationship.targetHeroId;
+            const isOutgoing = selectedHeroId === relationship.sourceHeroId;
+            const isMatchup = Boolean(
+              matchupHeroId &&
+              (relationship.sourceHeroId === matchupHeroId ||
+                relationship.targetHeroId === matchupHeroId)
+            );
+            const labelScreenScale =
+              labelPlacement.scale /
+              Math.max(cameraScale, 0.001);
+
+            return (
+              <g
+                key={relationship.id}
+                className={[
+                  "edge-label",
+                  isIncoming ? "label-incoming" : isOutgoing ? "label-outgoing" : "",
+                  matchupHeroId && !isMatchup ? "edge-label-deemphasized" : ""
+                ].filter(Boolean).join(" ")}
+                transform={`translate(${labelPlacement.x} ${labelPlacement.y}) scale(${labelScreenScale})`}
+                data-source-hero={relationship.sourceHeroId}
+                data-target-hero={relationship.targetHeroId}
+                data-label-t={labelPlacement.t.toFixed(3)}
+                data-label-offset="0.0"
+                data-label-scale={labelPlacement.scale.toFixed(2)}
+                data-label-external="false"
+              >
+                <rect
+                  x={-EDGE_LABEL_WIDTH / 2}
+                  y={-EDGE_LABEL_HEIGHT / 2}
+                  width={EDGE_LABEL_WIDTH}
+                  height={EDGE_LABEL_HEIGHT}
+                  rx={EDGE_LABEL_HEIGHT / 2}
+                />
+                <text
+                  textAnchor="middle"
+                  dominantBaseline="central"
+                  style={{ fontSize: `${10 / Math.max(labelPlacement.scale, 0.001)}px` }}
+                >
+                  {formatPercent(relationship.sourceWinRate)}
+                </text>
+              </g>
+            );
+          })}
+        </g>
+
         <g className="hero-label-layer" aria-hidden="true">
           {heroes.map((hero) => {
             const showLabel =
               hero.id === selectedHeroId ||
               activeIds.has(hero.id) ||
+              hero.id === matchupHeroId ||
               hero.id === hoveredHeroId;
 
             if (!showLabel || cardOccludedLabelIds.has(hero.id)) return null;

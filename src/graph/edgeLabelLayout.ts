@@ -59,20 +59,22 @@ const MAX_T = 0.88;
 const PREFERRED_T = 0.34;
 const MIN_LABEL_SCALE = 0.8;
 
-const safeEndMargin = (scale: number) =>
-  Math.hypot(
-    EDGE_LABEL_WIDTH * scale / 2 + LABEL_GAP,
-    EDGE_LABEL_HEIGHT * scale / 2 + LABEL_GAP
-  );
+const safeEndMargin = (scale: number, segment: EdgeSegment) => {
+  const dx = segment.x2 - segment.x1;
+  const dy = segment.y2 - segment.y1;
+  const length = Math.hypot(dx, dy) || 1;
+  return Math.abs(dx / length) * (EDGE_LABEL_WIDTH * scale / 2 + LABEL_GAP)
+    + Math.abs(dy / length) * (EDGE_LABEL_HEIGHT * scale / 2 + LABEL_GAP);
+};
 
-const scaleForLength = (length: number, sizeScale: number) => {
+const scaleForLength = (length: number, sizeScale: number, segment: EdgeSegment) => {
   const minimumScale = MIN_LABEL_SCALE * sizeScale;
   for (
     let scale = sizeScale;
     scale >= minimumScale;
     scale -= 0.05 * sizeScale
   ) {
-    if (safeEndMargin(scale) * 2 <= length) return scale;
+    if (safeEndMargin(scale, segment) * 2 <= length) return scale;
   }
   return minimumScale;
 };
@@ -250,8 +252,8 @@ export function layoutSourceAnchoredEdgeLabels(
     const segments = segmentsFor(input);
     const segment = segments[0];
     const length = pathLength(segments) || 1;
-    const scale = scaleForLength(length, sizeScale);
-    const margin = safeEndMargin(scale);
+    const scale = scaleForLength(length, sizeScale, segment);
+    const margin = safeEndMargin(scale, segment);
     const safeMinT = clamp(margin / length, MIN_T, 0.46);
     const safeMaxT = clamp(1 - margin / length, 0.54, MAX_T);
     const preferredT = clamp(

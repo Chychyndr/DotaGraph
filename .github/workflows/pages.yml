@@ -19,7 +19,7 @@ permissions:
   id-token: write
 
 concurrency:
-  group: pages-${{ github.event.inputs.target_sha || github.event.workflow_run.head_sha || github.sha }}
+  group: pages-${{ github.event_name == 'workflow_run' && github.event.workflow_run.event == 'workflow_dispatch' && format('skipped-{0}', github.run_id) || github.event.inputs.target_sha || github.event.workflow_run.head_sha || github.sha }}
   cancel-in-progress: true
 
 env:
@@ -31,7 +31,8 @@ jobs:
       github.event_name == 'workflow_dispatch' ||
       (
         github.event.workflow_run.conclusion == 'success' &&
-        github.event.workflow_run.head_branch == 'main'
+        github.event.workflow_run.head_branch == 'main' &&
+        github.event.workflow_run.event != 'workflow_dispatch'
       )
     runs-on: ubuntu-latest
     outputs:
@@ -79,7 +80,7 @@ jobs:
             {
               echo "## Pages deployment deferred"
               echo
-              echo "Commit `$TARGET_SHA` changes data-sensitive code."
+              printf 'Commit `%s` changes data-sensitive code.\n' "$TARGET_SHA"
               echo "The current-data workflow must regenerate/validate the production bundle and explicitly deploy the resulting exact SHA."
             } >> "$GITHUB_STEP_SUMMARY"
             exit 0
@@ -108,7 +109,7 @@ jobs:
           path: |
             public/assets/heroes-atlas.webp
             public/assets/heroes-atlas.manifest.json
-          key: hero-atlas-${{ hashFiles('src/data/heroCatalog.json', 'scripts/generate-hero-atlas.mjs') }}
+          key: hero-atlas-${{ hashFiles('src/data/heroCatalog.json', 'src/data/heroAtlasConfig.json', 'scripts/generate-hero-atlas.mjs') }}
 
       - run: npm run typecheck
       - run: npm test

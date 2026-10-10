@@ -105,7 +105,7 @@ Initial headline statistics are Ancient+.
 
 Do not add a rank selector unless explicitly requested.
 
-Immortal/professional evidence belongs in detailed views as separate evidence and must not silently replace the Ancient+ headline statistic. The current OpenDota Immortal adapter uses `avg_rank_tier >= 80` inside the same production query; keep its sample count and population label separate from Ancient+.
+Immortal/professional evidence belongs in detailed views as separate evidence and must not silently replace the Ancient+ headline statistic. The current OpenDota query records the `avg_rank_tier >= 80` subset, but the reviewed provider medal-average implementation maps rank 80 to 75, also used for Divine 5. This field alone cannot reliably establish an Immortal population. Retain an explicit unavailable/diagnostic state when it supplies no usable evidence; never lower the predicate to 75 and relabel those mixed matches as Immortal. See `docs/SOURCES_AND_LICENSING.md`. Verified Immortal observations must keep their own sample count and population label separate from Ancient+.
 
 ## UX principles
 

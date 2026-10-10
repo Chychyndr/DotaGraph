@@ -153,8 +153,8 @@ describe("buildDatasetFromProductionSnapshot", () => {
 
   it("marks snapshots stale after 36 hours", () => {
     const result = buildDatasetFromProductionSnapshot(
-      snapshot("2026-09-17T00:00:00Z"),
-      Date.parse("2026-09-19T00:01:00Z")
+      snapshot("2026-09-19T08:00:00Z"),
+      Date.parse("2026-09-21T08:01:00Z")
     );
 
     expect(result.ok).toBe(true);
@@ -170,5 +170,32 @@ describe("buildDatasetFromProductionSnapshot", () => {
 
     const result = buildDatasetFromProductionSnapshot(raw);
     expect(result.ok).toBe(false);
+  });
+
+  it.each(["javascript:alert(1)", "data:text/html,hello", "file:///tmp/provider", "ftp://example.com/data"])(
+    "rejects non-web provenance links: %s", (url) => {
+      const raw = snapshot();
+      raw.provenance.sourceUrl = url;
+      expect(buildDatasetFromProductionSnapshot(raw).ok).toBe(false);
+      raw.provenance.sourceUrl = "https://www.opendota.com/";
+      raw.evidenceObservations[0].provenance.sourceUrl = url;
+      expect(buildDatasetFromProductionSnapshot(raw).ok).toBe(false);
+    }
+  );
+
+  it("rejects future-dated snapshots outside the five-minute clock tolerance", () => {
+    expect(buildDatasetFromProductionSnapshot(snapshot(), Date.parse("2026-09-19T07:54:59Z")).ok).toBe(false);
+    expect(buildDatasetFromProductionSnapshot(snapshot(), Date.parse("2026-09-19T07:56:00Z")).ok).toBe(true);
+  });
+
+  it("rejects reversed, empty, or post-generation observation windows", () => {
+    const raw = snapshot();
+    raw.scope.observationWindowStart = raw.scope.observationWindowEndExclusive;
+    expect(buildDatasetFromProductionSnapshot(raw).ok).toBe(false);
+    raw.scope.observationWindowStart = "2026-09-20T00:00:00Z";
+    expect(buildDatasetFromProductionSnapshot(raw).ok).toBe(false);
+    raw.scope.observationWindowStart = "2026-09-16T00:00:00Z";
+    raw.scope.observationWindowEndExclusive = "2026-09-19T08:01:00Z";
+    expect(buildDatasetFromProductionSnapshot(raw).ok).toBe(false);
   });
 });

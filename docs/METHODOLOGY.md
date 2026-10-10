@@ -172,8 +172,8 @@ For ordered matchup `A -> B`:
 ```text
 p = wins(A vs B) / matches(A vs B)
 
-baselineA = A win rate against all other heroes
-baselineB = B win rate against all other heroes
+baselineA = A win rate in distinct matches without B on the opposing team
+baselineB = B win rate in distinct matches without A on the opposing team
 
 expected = 0.5 + (baselineA - baselineB) / 2
 delta = p - expected
@@ -187,7 +187,9 @@ se = sqrt(
 rankingScore = delta - 1.645 * se
 ```
 
-The direct A-vs-B observation is excluded from both hero baselines.
+The direct A-vs-B matches are excluded entirely from both hero baselines. In the complete 5v5 Explorer corpus, each hero-match contributes the same outcome to five opponent-pair rows. Therefore `heroMatchCount = pairObservationGames / 5` and `heroMatchWins = pairObservationWins / 5`; both divisions must be exact. The independent baseline counts are `nBaselineA = heroMatchCountA - nPair` and `nBaselineB = heroMatchCountB - nPair`, with direct-pair wins removed from the corresponding hero match wins. Removing only one pair row would leave four correlated copies of those direct-match outcomes in the baseline and incorrectly inflate its sample size.
+
+The pipeline rejects inconsistent or incomplete hero totals rather than approximating these divisions. A pair with no remaining baseline matches cannot qualify. This repairs the independent sample counts used by the approved confidence formula; it does not change the displayed raw win rate, pair sample size, 500-match gate, confidence multiplier, or provider aggregation rules.
 
 Eligibility:
 - exact current patch/scope;
@@ -207,7 +209,7 @@ Show at most five relationships per direction. Never fill missing slots with wea
 
 ## Separate Immortal detail evidence
 
-The current OpenDota production query derives an Immortal observation as a nested subset of the same current-patch ranked All Draft corpus.
+The current OpenDota production query records a candidate Immortal subset of the same current-patch ranked All Draft corpus.
 
 Exact adapter predicate:
 - `avg_rank_tier >= 80`;
@@ -220,6 +222,8 @@ This observation is detail evidence only. It does not alter the Ancient+ headlin
 The Immortal `sampleSize` is the source-local count for that Immortal subset. It is displayed as its own sample count and is never added to the Ancient+ count. Because this section is descriptive evidence rather than a headline qualification path, an available Immortal observation may be shown even when its sample size is below 500; the UI must keep the population label and separation explicit.
 
 The pipeline computes the subset with conditional aggregates inside the existing OpenDota Explorer query, so this feature does not add another provider request or a new source-access method.
+
+Provider limitation verified from OpenDota source on 2026-10-10: its `averageMedal()` transformation maps an individual rank 80 to a stored average medal of 75; Divine 5 also maps to 75. The query field therefore does not reliably distinguish Immortal from Divine 5, and an empty `>= 80` subset does not prove that no Immortal matches occurred. Preserve the diagnostic and show evidence as unavailable when the provider cannot establish it. Do not lower the threshold to 75 or fabricate observations to fill the section. A corrected provider field or another approved source with verified population semantics is required before treating that mixed group as Immortal evidence. Exact upstream references are in `docs/SOURCES_AND_LICENSING.md`.
 
 ## Cross-source detail aggregation
 

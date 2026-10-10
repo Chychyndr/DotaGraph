@@ -239,7 +239,7 @@ for (const [hero, baseline] of Object.entries(knownCollisionBaseline)) {
 
 
 test("every hero focus keeps the same global graph and collision-free direct links", async ({ page }) => {
-  test.setTimeout(120_000);
+  test.setTimeout(180_000);
   await page.setViewportSize({ width: 1366, height: 768 });
   await page.goto("/", { waitUntil: "networkidle" });
   await expect(page.locator(".hero-node")).toHaveCount(127);

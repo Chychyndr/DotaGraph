@@ -17,21 +17,28 @@ The custom workflow is `.github/workflows/pages.yml`.
 `.github/workflows/update-current-data.yml` targets a 12-hour cadence at 03:17 and 15:17 UTC and can also be started manually. GitHub's scheduler is best-effort, so an individual run may begin a little later than the cron time.
 
 It:
-1. runs all Python/uv pipeline tests;
-2. queries the current-patch OpenDota scope with bounded retries, honors provider retry hints up to 120 seconds, and uses timeout splitting;
+1. runs Python/uv pipeline code tests, temporarily skipping only the committed snapshot layout check so an older invalid snapshot cannot block its own regeneration;
+2. queries the current-patch OpenDota scope in non-overlapping 12-hour chunks with bounded retries, honors provider retry hints up to 120 seconds, and uses timeout splitting;
 3. writes `public/data/current-matchups.json`;
-4. uploads pipeline test/generation logs as a 14-day debug artifact;
-5. publishes the JSON on an automation branch only when the generated snapshot changed;
-6. opens a pull request, dispatches full CI for that branch, and waits for it to pass;
-7. merges the validated pull request and explicitly dispatches `CI` on `main` so Pages deployment still runs even though the merge was performed with `GITHUB_TOKEN`.
+4. runs the complete pipeline test suite against the newly generated file, including snapshot layout quality, before publishing any branch;
+5. uploads pipeline code-test, generation, and generated-data validation logs as a 14-day debug artifact;
+6. publishes the JSON on an automation branch only when the generated snapshot changed;
+7. opens a pull request, dispatches full CI for the generated branch's exact commit SHA, and waits for that revision to pass; merge refuses any changed pull-request head;
+8. merges the validated pull request, explicitly dispatches `CI` on `main`, then dispatches Pages for the exact tested SHA and waits for live Chromium verification.
 
-The default branch requires pull requests, so scheduled refreshes never push generated data directly to `main`. Each refresh uses a short-lived automation branch and pull request, validates that exact branch with the normal `CI` workflow, merges only after CI succeeds, then explicitly dispatches `CI` on `main`. The explicit main dispatch is required because GitHub suppresses ordinary workflow chaining for events created with `GITHUB_TOKEN`. A successful main CI run then triggers the Pages workflow below through `workflow_run`, keeping automated refreshes behind the same validation and live-browser deployment gates as ordinary code changes.
+`DOTAGRAPH_SKIP_COMMITTED_SNAPSHOT_CHECK=1` is scoped to the pre-generation code-test step. It is absent from generated-data validation and normal CI. A failed new layout therefore stops the refresh before branch publication, preserving the last published bundle.
+
+For a PR branch, dispatch this workflow on that branch with `validate_only=true`. It checks out the selected ref, runs the same generation and complete pipeline validation, then uploads the generated JSON and debug logs as artifacts. Every publication, merge, CI dispatch, and deployment step is skipped. Manual runs on a non-main ref without this flag fail before checkout. Scheduled runs and ordinary publishing runs continue to check out `main`.
+
+The default branch requires pull requests, so scheduled refreshes never push generated data directly to `main`. Each refresh uses a short-lived automation branch and pull request, validates that exact branch with the normal `CI` workflow, merges only after CI succeeds, then explicitly dispatches `CI` on `main`. The explicit main dispatch is required because GitHub suppresses ordinary workflow chaining for events created with `GITHUB_TOKEN`. After exact-SHA main CI passes, the updater rechecks that its target is still current `main`, explicitly dispatches Pages, and waits for deployment and live-browser verification. If `main` moved during CI, the refresh stops before dispatching a stale target.
+
+Pages does not automatically deploy the completion of a manually dispatched CI run. Those skipped `workflow_run` events use a unique concurrency group, so they cannot cancel an explicit Pages run for the same SHA before the job guard is evaluated. Ordinary successful push-to-main CI completions retain automatic Pages deployment, and direct manual Pages dispatch remains available.
 
 ## Deployment sequence
 
 1. A commit reaches `main`.
 2. The normal `CI` workflow runs type checking, unit tests, build checks, Impeccable, Playwright E2E tests, and a Pages-specific artifact verification.
-3. `Deploy GitHub Pages` starts only after that main CI run succeeds.
+3. `Deploy GitHub Pages` starts automatically after ordinary main CI succeeds, or the data updater dispatches it after validating the exact main SHA.
 4. The workflow checks out the exact tested SHA.
 5. Vite builds with `base=/DotaGraph/`.
 6. The compiled artifact is tagged with the exact Git commit SHA.

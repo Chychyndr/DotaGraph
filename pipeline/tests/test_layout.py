@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+from statistics import median
 import unittest
 
 from dotagraph_pipeline.layout import (
@@ -101,6 +102,50 @@ class LayoutTests(unittest.TestCase):
         )
         metrics = layout_metrics(positions, [])
 
+        self.assertGreaterEqual(metrics["minimumNodeDistance"], 39.8)
+        self.assertLessEqual(metrics["maxNearestNodeDistance"], 70.1)
+
+    def test_sparse_gap_compaction_caps_connected_hull_nodes_without_spacing_loss(self) -> None:
+        core = [f"core-{index:02}" for index in range(24)]
+        nodes = [*core, "hull"]
+        edges = [
+            WeightedEdge(source, target, 0.9)
+            for index, source in enumerate(core)
+            for target in core[index + 1 :]
+        ] + [WeightedEdge("hull", neighbor, 0.0) for neighbor in core[:3]]
+
+        # A permissive gap target exposes the force layout before compaction.
+        # The hull has three real edges, but is detached from a dense core.
+        baseline = compute_layout(
+            nodes,
+            edges,
+            width=600,
+            height=400,
+            min_distance=40,
+            max_nearest_distance=300,
+            iterations=100,
+        )
+        baseline_gaps = {
+            node: min(math.dist(point, other) for other_node, other in baseline.items() if other_node != node)
+            for node, point in baseline.items()
+        }
+        self.assertEqual(sum(edge.source == "hull" or edge.target == "hull" for edge in edges), 3)
+        self.assertLessEqual(median(baseline_gaps.values()) * 1.5, 70)
+        self.assertGreater(baseline_gaps["hull"], 70 * 1.5)
+
+        positions = compute_layout(
+            nodes,
+            edges,
+            width=600,
+            height=400,
+            min_distance=40,
+            max_nearest_distance=70,
+            iterations=100,
+        )
+        metrics = layout_metrics(positions, edges)
+
+        self.assertEqual(metrics["coveredNodeCount"], len(nodes))
+        self.assertEqual(metrics["isolatedNodeCount"], 0)
         self.assertGreaterEqual(metrics["minimumNodeDistance"], 39.8)
         self.assertLessEqual(metrics["maxNearestNodeDistance"], 70.1)
 

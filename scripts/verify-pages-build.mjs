@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import sharp from "sharp";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const dist = join(root, "dist");
@@ -56,6 +57,18 @@ if (!existsSync(atlasPath)) {
 const atlasBytes = readFileSync(atlasPath);
 if (atlasBytes.length === 0 || atlasBytes.length > 1_500_000) {
   fail(`hero atlas size is invalid: ${atlasBytes.length} bytes.`);
+}
+
+const atlasConfig = JSON.parse(readFileSync(join(root, "src/data/heroAtlasConfig.json"), "utf8"));
+const catalog = JSON.parse(readFileSync(join(root, "src/data/heroCatalog.json"), "utf8"));
+const manifest = JSON.parse(readFileSync(join(dist, "assets/heroes-atlas.manifest.json"), "utf8"));
+const dimensions = await sharp(atlasBytes).metadata();
+const rows = Math.ceil(catalog.length / atlasConfig.columns);
+if (manifest.heroCount !== catalog.length || manifest.rows !== rows ||
+    manifest.columns !== atlasConfig.columns || manifest.cellSize !== atlasConfig.cellSize ||
+    dimensions.width !== atlasConfig.columns * atlasConfig.cellSize ||
+    dimensions.height !== rows * atlasConfig.cellSize) {
+  fail("hero portrait geometry disagrees with the catalog or shared atlas configuration.");
 }
 
 if (expectedBuildSha) {

@@ -6,7 +6,7 @@ interface HeroCardProps {
   hero: Hero;
   incoming: MatchupRelationship[];
   outgoing: MatchupRelationship[];
-  onMatchup: (neighborHeroId: string) => void;
+  onMatchup: (neighborHeroId: string, keyboard?: boolean) => void;
   heroesById: ReadonlyMap<string, Hero>;
 }
 
@@ -18,7 +18,7 @@ function RelationRows({
 }: {
   relationships: MatchupRelationship[];
   selectedHeroId: string;
-  onMatchup: (neighborHeroId: string) => void;
+  onMatchup: (neighborHeroId: string, keyboard?: boolean) => void;
   heroesById: ReadonlyMap<string, Hero>;
 }) {
   if (!relationships.length) {
@@ -41,8 +41,9 @@ function RelationRows({
             key={relationship.id}
             className="relation-row"
             type="button"
+            data-neighbor-hero={neighborId}
             aria-label={`${source.name} counters ${target.name}; ${source.name} win rate ${formatPercent(relationship.sourceWinRate)}`}
-            onClick={() => onMatchup(neighborId)}
+            onClick={(event) => onMatchup(neighborId, event.detail === 0)}
           >
             <span className="relation-hero">
               <HeroPortrait hero={neighbor} />
@@ -77,6 +78,10 @@ export function HeroCard({ hero, incoming, outgoing, onMatchup, heroesById }: He
           <strong className="overall-rate">{formatPercent(hero.overallWinRate)}</strong>
         )}
       </div>
+
+      {(incoming.length > 3 || outgoing.length > 3) && (
+        <p className="compact-graph-hint">Graph shows the top 3 per side. Full list below.</p>
+      )}
 
       <div className="card-section">
         <div className="section-heading incoming-text">

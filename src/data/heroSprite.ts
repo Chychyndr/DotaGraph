@@ -1,8 +1,10 @@
 import type { CSSProperties } from "react";
+import heroCatalog from "./heroCatalog.json";
+import atlasConfig from "./heroAtlasConfig.json";
 
-export const HERO_ATLAS_COLUMNS = 16;
-export const HERO_ATLAS_ROWS = 8;
-export const HERO_ATLAS_CELL_SIZE = 96;
+export const HERO_ATLAS_COLUMNS = atlasConfig.columns;
+export const HERO_ATLAS_ROWS = Math.ceil(heroCatalog.length / HERO_ATLAS_COLUMNS);
+export const HERO_ATLAS_CELL_SIZE = atlasConfig.cellSize;
 export const HERO_ATLAS_WIDTH = HERO_ATLAS_COLUMNS * HERO_ATLAS_CELL_SIZE;
 export const HERO_ATLAS_HEIGHT = HERO_ATLAS_ROWS * HERO_ATLAS_CELL_SIZE;
 

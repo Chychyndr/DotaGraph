@@ -15,7 +15,7 @@ interface MatchupCardProps {
   scope: ScopeConfig;
   metadata: DatasetMetadata;
   evidenceObservations: MatchupEvidenceObservation[];
-  onBack: () => void;
+  onBack: (keyboard?: boolean) => void;
 }
 
 const formatUtcTimestamp = (value: string) =>
@@ -53,7 +53,7 @@ export function MatchupCard({
 
   return (
     <aside className="context-card matchup-card" aria-label={`${source.name} counters ${target.name}`}>
-      <button className="card-back" type="button" onClick={onBack}>← Hero overview</button>
+      <button className="card-back" type="button" onClick={(event) => onBack(event.detail === 0)}>← Hero overview</button>
 
       <div className="matchup-title">
         <span className="matchup-hero">
@@ -137,6 +137,12 @@ export function MatchupCard({
                 </time>
               </dd>
             </div>
+            {metadata.immortalEvidence?.status === "unavailable" && (
+              <div>
+                <dt>Immortal</dt>
+                <dd>{metadata.immortalEvidence.reason}</dd>
+              </div>
+            )}
           </dl>
         </details>
       )}

@@ -26,7 +26,7 @@ from .ranking import PairObservation, RankedRelationship, hero_totals, rank_rela
 OPENDOTA_BASE_URL = "https://api.opendota.com/api"
 USER_AGENT = "DotaGraph/0.1 (+https://github.com/Chychyndr/DotaGraph)"
 MIN_QUERY_SECONDS = 6 * 60 * 60
-QUERY_CHUNK_SECONDS = 24 * 60 * 60
+QUERY_CHUNK_SECONDS = 12 * 60 * 60
 MAX_RETRY_DELAY_SECONDS = 120
 
 
@@ -188,6 +188,7 @@ WITH scoped_matches AS (
     AND avg_rank_tier >= {scope.avg_rank_tier_min}
     AND game_mode = {scope.game_mode}
     AND lobby_type = {scope.lobby_type}
+    AND radiant_win IS NOT NULL
     AND array_length(radiant_team, 1) = 5
     AND array_length(dire_team, 1) = 5
 )
@@ -279,7 +280,9 @@ def _fetch_range(
     if not isinstance(rows, list):
         raise RuntimeError("OpenDota Explorer response did not contain rows")
 
-    result = [row for row in rows if isinstance(row, dict)]
+    if any(not isinstance(row, dict) for row in rows):
+        raise RuntimeError("OpenDota Explorer returned a malformed aggregate row")
+    result = rows
     log_event(
         logger,
         "opendota_chunk_success",
@@ -317,6 +320,17 @@ def _fetch_pair_rows(
     return rows
 
 
+def _aggregate_count(value: Any) -> int:
+    if isinstance(value, bool) or not isinstance(value, (int, str)):
+        raise RuntimeError("OpenDota aggregate count must be an integer")
+    if isinstance(value, str) and (not value or not value.isascii() or not value.isdecimal()):
+        raise RuntimeError("OpenDota aggregate count must be a nonnegative integer")
+    result = int(value)
+    if result < 0:
+        raise RuntimeError("OpenDota aggregate count must be nonnegative")
+    return result
+
+
 def _normalize_pairs(
     rows: list[dict[str, Any]],
     hero_map: dict[int, str],
@@ -324,13 +338,15 @@ def _normalize_pairs(
     aggregated: dict[tuple[str, str], list[int]] = {}
 
     for row in rows:
-        radiant_slug = hero_map.get(int(row["radiant_hero_id"]))
-        dire_slug = hero_map.get(int(row["dire_hero_id"]))
+        radiant_slug = hero_map.get(_aggregate_count(row["radiant_hero_id"]))
+        dire_slug = hero_map.get(_aggregate_count(row["dire_hero_id"]))
         if radiant_slug is None or dire_slug is None or radiant_slug == dire_slug:
-            continue
+            raise RuntimeError("OpenDota aggregate references an unknown or repeated hero; refusing a partial match corpus")
 
-        matches = int(row["matches"])
-        radiant_wins = int(row["radiant_wins"])
+        matches = _aggregate_count(row["matches"])
+        radiant_wins = _aggregate_count(row["radiant_wins"])
+        if matches < 0 or not 0 <= radiant_wins <= matches:
+            raise RuntimeError("OpenDota aggregate has invalid match or win counts")
         first_slug, second_slug = sorted((radiant_slug, dire_slug))
         key = (first_slug, second_slug)
         totals = aggregated.setdefault(key, [0, 0])
@@ -359,17 +375,24 @@ def _normalize_immortal_pairs(
     aggregated: dict[tuple[str, str], list[int]] = {}
 
     for row in rows:
-        radiant_slug = hero_map.get(int(row["radiant_hero_id"]))
-        dire_slug = hero_map.get(int(row["dire_hero_id"]))
+        radiant_slug = hero_map.get(_aggregate_count(row["radiant_hero_id"]))
+        dire_slug = hero_map.get(_aggregate_count(row["dire_hero_id"]))
         if radiant_slug is None or dire_slug is None or radiant_slug == dire_slug:
-            continue
+            raise RuntimeError("OpenDota aggregate references an unknown or repeated hero")
 
-        matches = int(row.get("immortal_matches", 0))
-        radiant_wins = int(row.get("immortal_radiant_wins", 0))
-        if matches <= 0:
-            continue
-        if radiant_wins < 0 or radiant_wins > matches:
+        matches = _aggregate_count(row.get("immortal_matches", 0))
+        radiant_wins = _aggregate_count(row.get("immortal_radiant_wins", 0))
+        headline_matches = _aggregate_count(row["matches"])
+        headline_wins = _aggregate_count(row["radiant_wins"])
+        if (
+            matches > headline_matches
+            or radiant_wins > matches
+            or radiant_wins > headline_wins
+            or matches - radiant_wins > headline_matches - headline_wins
+        ):
             raise RuntimeError("OpenDota Immortal aggregate has invalid win counts")
+        if matches == 0:
+            continue
 
         first_slug, second_slug = sorted((radiant_slug, dire_slug))
         key = (first_slug, second_slug)
@@ -588,6 +611,13 @@ def generate(
         layoutRelationshipCount=len(layout_relationships),
     )
     log_event(logger, "layout_complete", **metrics)
+    if not immortal_pairs:
+        log_event(
+            logger,
+            "immortal_evidence_unavailable",
+            level=logging.WARNING,
+            reason="No separately identifiable Immortal observations in the public-match aggregate. Average medal cannot distinguish Immortal from Divine 5; do not relabel the >=75 bucket.",
+        )
 
     hero_stats = {}
     for slug in sorted(catalog_slugs):
@@ -714,6 +744,11 @@ def generate(
             "rankedRelationshipCount": len(ranked),
             "layoutRelationshipCount": len(layout_relationships),
             "immortalEvidenceCount": len(evidence_observations),
+            "immortalEvidenceStatus": "available" if evidence_observations else "unavailable",
+            "immortalEvidenceReason": (
+                None if evidence_observations else
+                "This OpenDota public-match aggregate provides no separately identifiable Immortal observations. Its average-medal field does not distinguish Immortal from Divine 5."
+            ),
         },
         "layoutMetrics": metrics,
         "heroStats": hero_stats,

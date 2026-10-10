@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { HeroCard } from "./components/HeroCard";
 import { MatchupCard } from "./components/MatchupCard";
 import { usePortraitAsset } from "./components/PortraitProvider";
@@ -101,6 +101,42 @@ function ReadyApp({ data }: { data: DatasetBundle }) {
   const [selectedHeroId, setSelectedHeroId] = useState<string | null>(initial.hero);
   const [matchupHeroId, setMatchupHeroId] = useState<string | null>(initial.matchup);
   const [hoveredHeroId, setHoveredHeroId] = useState<string | null>(null);
+  const matchupFocusRef = useRef<{ heroId: string; originId: string; keyboard: boolean } | null>(null);
+
+  const openMatchup = (heroId: string, keyboard = false) => {
+    matchupFocusRef.current = {
+      heroId,
+      originId: document.activeElement?.id ?? "",
+      keyboard
+    };
+    setMatchupHeroId(heroId);
+  };
+
+  const closeMatchup = (keyboard = false) => {
+    if (matchupHeroId) {
+      const pending = matchupFocusRef.current;
+      matchupFocusRef.current = pending
+        ? { ...pending, keyboard: pending.keyboard || keyboard }
+        : { heroId: matchupHeroId, originId: "", keyboard };
+    }
+    setMatchupHeroId(null);
+  };
+
+  useEffect(() => {
+    const pending = matchupFocusRef.current;
+    if (!pending) return;
+    if (matchupHeroId) {
+      if (pending.keyboard) document.querySelector<HTMLButtonElement>(".card-back")?.focus({ preventScroll: true });
+      return;
+    }
+    matchupFocusRef.current = null;
+    if (pending.keyboard && selectedHeroId) {
+      const origin = pending.originId ? document.getElementById(pending.originId) : null;
+      const row = [...document.querySelectorAll<HTMLButtonElement>(".relation-row")]
+        .find((element) => element.dataset.neighborHero === pending.heroId);
+      (origin ?? row ?? document.getElementById(`graph-hero-${selectedHeroId}`))?.focus({ preventScroll: true });
+    }
+  }, [matchupHeroId, selectedHeroId]);
 
   const selectedHero = selectedHeroId ? heroById.get(selectedHeroId) : undefined;
   const selectedRelations = useMemo(
@@ -157,8 +193,8 @@ function ReadyApp({ data }: { data: DatasetBundle }) {
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
-      if (document.activeElement instanceof HTMLInputElement) return;
-      if (matchupHeroId) setMatchupHeroId(null);
+      if (event.defaultPrevented || event.target instanceof HTMLInputElement) return;
+      if (matchupHeroId) closeMatchup(true);
       else if (selectedHeroId) setSelectedHeroId(null);
     };
     window.addEventListener("keydown", onKeyDown);
@@ -226,7 +262,7 @@ function ReadyApp({ data }: { data: DatasetBundle }) {
           matchupHeroId={matchupHeroId}
           selectedRelations={selectedRelations}
           onSelectHero={selectHero}
-          onSelectMatchup={setMatchupHeroId}
+          onSelectMatchup={openMatchup}
           onHoverHero={setHoveredHeroId}
           onClearSelection={reset}
         />
@@ -243,7 +279,7 @@ function ReadyApp({ data }: { data: DatasetBundle }) {
             hero={selectedHero}
             incoming={selectedRelations.incoming}
             outgoing={selectedRelations.outgoing}
-            onMatchup={setMatchupHeroId}
+            onMatchup={openMatchup}
             heroesById={heroById}
           />
         )}
@@ -256,7 +292,7 @@ function ReadyApp({ data }: { data: DatasetBundle }) {
             scope={scope}
             metadata={metadata}
             evidenceObservations={matchupEvidence}
-            onBack={() => setMatchupHeroId(null)}
+            onBack={closeMatchup}
           />
         )}
       </section>

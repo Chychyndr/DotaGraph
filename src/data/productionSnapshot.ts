@@ -5,9 +5,11 @@ import type {
   StatisticalProvider
 } from "../domain/types";
 import { buildHeroes } from "./heroes";
+import { isHttpUrl } from "../domain/url";
 import type { DatasetBundle } from "./dataset";
 
 const STALE_AFTER_MS = 36 * 60 * 60 * 1000;
+const CLOCK_SKEW_TOLERANCE_MS = 5 * 60 * 1000;
 
 type ConversionResult =
   | { ok: true; data: DatasetBundle }
@@ -107,6 +109,20 @@ export function buildDatasetFromProductionSnapshot(
   if (!timestampIsValid(scopeValue.observationWindowEndExclusive)) {
     issues.push("Production snapshot observationWindowEndExclusive is invalid.");
   }
+  if (Date.parse(value.generatedAt) > now + CLOCK_SKEW_TOLERANCE_MS) {
+    issues.push("Production snapshot generatedAt is in the future.");
+  }
+  if (
+    timestampIsValid(scopeValue.observationWindowStart) &&
+    timestampIsValid(scopeValue.observationWindowEndExclusive)
+  ) {
+    const start = Date.parse(scopeValue.observationWindowStart);
+    const end = Date.parse(scopeValue.observationWindowEndExclusive);
+    if (end <= start) issues.push("Production snapshot observation window must have positive duration.");
+    if (end > Date.parse(value.generatedAt)) {
+      issues.push("Production snapshot observation window ends after generation.");
+    }
+  }
   if (
     typeof provenance.headlineSource !== "string" ||
     !provenance.headlineSource.trim()
@@ -115,16 +131,7 @@ export function buildDatasetFromProductionSnapshot(
   }
   if (
     provenance.sourceUrl !== undefined &&
-    (typeof provenance.sourceUrl !== "string" ||
-      !provenance.sourceUrl.trim() ||
-      (() => {
-        try {
-          new URL(provenance.sourceUrl);
-          return false;
-        } catch {
-          return true;
-        }
-      })())
+    !isHttpUrl(provenance.sourceUrl)
   ) {
     issues.push("Production snapshot provenance sourceUrl is invalid.");
   }
@@ -275,16 +282,7 @@ export function buildDatasetFromProductionSnapshot(
         Date.parse(evidenceScope.observationWindowEndExclusive) <=
           Date.parse(evidenceScope.observationWindowStart) ||
         !isRecord(evidenceProvenance) ||
-        typeof evidenceProvenance.sourceUrl !== "string" ||
-        !evidenceProvenance.sourceUrl.trim() ||
-        (() => {
-          try {
-            new URL(evidenceProvenance.sourceUrl);
-            return false;
-          } catch {
-            return true;
-          }
-        })() ||
+        !isHttpUrl(evidenceProvenance.sourceUrl) ||
         typeof evidenceProvenance.queryScope !== "string" ||
         !evidenceProvenance.queryScope.trim() ||
         !timestampIsValid(evidenceProvenance.collectedAt)
@@ -422,6 +420,14 @@ export function buildDatasetFromProductionSnapshot(
         observationWindowStart: scopeValue.observationWindowStart as string,
         observationWindowEndExclusive:
           scopeValue.observationWindowEndExclusive as string,
+        ...(evidenceObservations.length === 0 && isRecord(value.coverage) && value.coverage.immortalEvidenceStatus === "unavailable"
+          ? { immortalEvidence: {
+              status: "unavailable" as const,
+              reason: typeof value.coverage.immortalEvidenceReason === "string"
+                ? value.coverage.immortalEvidenceReason
+                : "No separate Immortal observations were published in this snapshot."
+            } }
+          : {}),
         freshness: stale
           ? {
               status: "stale",

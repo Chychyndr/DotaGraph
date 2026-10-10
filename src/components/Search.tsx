@@ -12,11 +12,24 @@ export function Search({ heroes, onSelect }: SearchProps) {
   const [query, setQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
+  const resultsRef = useRef<HTMLDivElement>(null);
   const results = useMemo(() => searchHeroes(heroes, query), [heroes, query]);
 
   useEffect(() => {
     setActiveIndex(0);
   }, [query]);
+
+  useEffect(() => {
+    const list = resultsRef.current;
+    const option = list?.querySelector<HTMLElement>('[aria-selected="true"]');
+    if (!list || !option) return;
+    const top = option.offsetTop;
+    const bottom = top + option.offsetHeight;
+    if (top < list.scrollTop) list.scrollTop = top;
+    else if (bottom > list.scrollTop + list.clientHeight) {
+      list.scrollTop = bottom - list.clientHeight;
+    }
+  }, [activeIndex, results]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -63,6 +76,8 @@ export function Search({ heroes, onSelect }: SearchProps) {
               choose(results[activeIndex]);
             }
             if (event.key === "Escape") {
+              event.preventDefault();
+              event.stopPropagation();
               setQuery("");
               inputRef.current?.blur();
             }
@@ -80,6 +95,7 @@ export function Search({ heroes, onSelect }: SearchProps) {
 
       {query && (
         <div
+          ref={resultsRef}
           className="search-results"
           id="hero-search-results"
           role="listbox"
@@ -94,6 +110,7 @@ export function Search({ heroes, onSelect }: SearchProps) {
             <button
               id={`hero-result-${hero.id}`}
               type="button"
+              tabIndex={-1}
               role="option"
               aria-selected={index === activeIndex}
               className={index === activeIndex ? "search-result active" : "search-result"}

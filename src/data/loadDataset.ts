@@ -8,7 +8,8 @@ export type DatasetLoadResult =
 
 async function fetchProductionSnapshot(): Promise<unknown> {
   const response = await fetch(`${import.meta.env.BASE_URL}data/current-matchups.json`, {
-    cache: "no-store"
+    cache: "no-store",
+    signal: AbortSignal.timeout(15_000)
   });
 
   if (!response.ok) {

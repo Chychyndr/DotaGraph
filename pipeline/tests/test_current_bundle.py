@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from io import BytesIO
 import logging
+import os
 from pathlib import Path
 import unittest
 from unittest.mock import MagicMock, patch
@@ -10,6 +11,7 @@ from urllib.error import HTTPError
 
 from dotagraph_pipeline.generate_current_bundle import (
     _ensure_layout_neighbors,
+    _fetch_range,
     _normalize_immortal_pairs,
     _normalize_pairs,
     _pair_query,
@@ -20,6 +22,28 @@ from dotagraph_pipeline.generate_current_bundle import (
 )
 from dotagraph_pipeline.logging_utils import configure_logging
 from dotagraph_pipeline.ranking import RankedRelationship
+
+
+def complete_match_rows(*, immortal_evidence: bool = True) -> list[dict]:
+    """Three complete 5v5 groups with independent outcomes for both baselines."""
+    match_groups = [
+        ([2, 3, 4, 5, 6], [47, 7, 8, 9, 10], 1000, 620, 240, 156),
+        ([2, 11, 12, 13, 14], [59, 15, 16, 17, 18], 5000, 2500, 900, 450),
+        ([47, 19, 20, 21, 22], [59, 23, 25, 26, 27], 5000, 2500, 850, 425),
+    ]
+    return [
+        {
+            "radiant_hero_id": radiant_hero,
+            "dire_hero_id": dire_hero,
+            "matches": matches,
+            "radiant_wins": wins,
+            "immortal_matches": immortal_matches if immortal_evidence else 0,
+            "immortal_radiant_wins": immortal_wins if immortal_evidence else 0,
+        }
+        for radiant, dire, matches, wins, immortal_matches, immortal_wins in match_groups
+        for radiant_hero in radiant
+        for dire_hero in dire
+    ]
 
 
 class CurrentBundleTests(unittest.TestCase):
@@ -76,8 +100,8 @@ class CurrentBundleTests(unittest.TestCase):
             {
                 "radiant_hero_id": 2,
                 "dire_hero_id": 1,
-                "matches": 400,
-                "radiant_wins": 180,
+                "matches": "400",
+                "radiant_wins": "180",
             },
         ]
         pairs = _normalize_pairs(rows, {1: "axe", 2: "viper"})
@@ -85,11 +109,47 @@ class CurrentBundleTests(unittest.TestCase):
         self.assertEqual(pairs[0].matches, 1000)
         self.assertEqual(pairs[0].first_wins, 580)
 
+    def test_normalize_pairs_rejects_unknown_and_repeated_heroes(self) -> None:
+        for radiant_id, dire_id in ((999, 2), (1, 999), (1, 1)):
+            with self.subTest(pair=(radiant_id, dire_id)):
+                row = {
+                    "radiant_hero_id": radiant_id,
+                    "dire_hero_id": dire_id,
+                    "matches": 600,
+                    "radiant_wins": 360,
+                }
+                with self.assertRaisesRegex(RuntimeError, "unknown or repeated hero"):
+                    _normalize_pairs([row], {1: "axe", 2: "viper"})
+
+    def test_normalize_pairs_rejects_invalid_aggregate_counts(self) -> None:
+        for matches, wins in ((-1, 0), (100, -1), (100, 101), (100.5, 50), (100, 50.5), (True, 1), (100, False), (None, 0)):
+            with self.subTest(matches=matches, wins=wins):
+                row = {
+                    "radiant_hero_id": 1,
+                    "dire_hero_id": 2,
+                    "matches": matches,
+                    "radiant_wins": wins,
+                }
+                with self.assertRaises((RuntimeError, ValueError, TypeError)):
+                    _normalize_pairs([row], {1: "axe", 2: "viper"})
+
+    def test_fetch_range_rejects_non_object_aggregate_rows(self) -> None:
+        for invalid_row in (None, "row", [], 123):
+            with self.subTest(row=invalid_row):
+                with patch(
+                    "dotagraph_pipeline.generate_current_bundle._request_json",
+                    return_value={"rows": [invalid_row]},
+                ):
+                    with self.assertRaisesRegex(RuntimeError, "malformed aggregate row"):
+                        _fetch_range(1, 2, logger=logging.getLogger("test.invalid.rows"))
+
     def test_pair_query_collects_immortal_subset_without_second_request(self) -> None:
         query = _pair_query(1, 2)
 
         self.assertIn("avg_rank_tier >= 60", query)
         self.assertIn("avg_rank_tier >= 80", query)
+        self.assertNotIn("avg_rank_tier >= 75", query)
+        self.assertIn("radiant_win IS NOT NULL", query)
         self.assertIn("immortal_matches", query)
         self.assertIn("immortal_radiant_wins", query)
 
@@ -108,8 +168,8 @@ class CurrentBundleTests(unittest.TestCase):
                 "dire_hero_id": 1,
                 "matches": 400,
                 "radiant_wins": 180,
-                "immortal_matches": 80,
-                "immortal_radiant_wins": 28,
+                "immortal_matches": "80",
+                "immortal_radiant_wins": "28",
             },
         ]
 
@@ -118,6 +178,37 @@ class CurrentBundleTests(unittest.TestCase):
         self.assertEqual(len(pairs), 1)
         self.assertEqual(pairs[0].matches, 200)
         self.assertEqual(pairs[0].first_wins, 130)
+
+    def test_normalize_immortal_pairs_rejects_invalid_subset_counts(self) -> None:
+        for matches, wins in ((-1, 0), (10, -1), (10, 11), (0, 1), (10.5, 5), (10, False), (601, 360), (600, 361), (600, 359)):
+            with self.subTest(matches=matches, wins=wins):
+                row = {
+                    "radiant_hero_id": 1,
+                    "dire_hero_id": 2,
+                    "matches": 600,
+                    "radiant_wins": 360,
+                    "immortal_matches": matches,
+                    "immortal_radiant_wins": wins,
+                }
+                with self.assertRaises((RuntimeError, ValueError, TypeError)):
+                    _normalize_immortal_pairs([row], {1: "axe", 2: "viper"})
+
+    def test_generate_preserves_unavailable_immortal_evidence_without_fabrication(self) -> None:
+        repo_root = Path(__file__).resolve().parents[2]
+        with patch(
+            "dotagraph_pipeline.generate_current_bundle._fetch_pair_rows",
+            return_value=complete_match_rows(immortal_evidence=False),
+        ):
+            payload = generate(
+                repo_root,
+                now=datetime(2026, 9, 19, 8, 0, tzinfo=timezone.utc),
+                logger=configure_logging(),
+            )
+        self.assertGreater(len(payload["relationships"]), 0)
+        self.assertEqual(payload["evidenceObservations"], [])
+        self.assertEqual(payload["coverage"]["immortalEvidenceCount"], 0)
+        self.assertEqual(payload["coverage"]["immortalEvidenceStatus"], "unavailable")
+        self.assertIn("does not distinguish Immortal from Divine 5", payload["coverage"]["immortalEvidenceReason"])
 
     def test_layout_selection_covers_every_hero_with_affinity_evidence(self) -> None:
         def relationship(source: str, target: str, delta: float) -> RankedRelationship:
@@ -234,6 +325,8 @@ class CurrentBundleTests(unittest.TestCase):
         self.assertGreaterEqual(len(chen_neighbors), 2)
 
     def test_committed_snapshot_layout_quality(self) -> None:
+        if os.environ.get("DOTAGRAPH_SKIP_COMMITTED_SNAPSHOT_CHECK") == "1":
+            self.skipTest("The refresh workflow validates the regenerated snapshot next")
         repo_root = Path(__file__).resolve().parents[2]
         payload = __import__("json").loads(
             (repo_root / "public" / "data" / "current-matchups.json").read_text(
@@ -251,32 +344,7 @@ class CurrentBundleTests(unittest.TestCase):
     def test_generate_emits_741f_production_contract(self) -> None:
         repo_root = Path(__file__).resolve().parents[2]
         now = datetime(2026, 9, 19, 8, 0, tzinfo=timezone.utc)
-        rows = [
-            {
-                "radiant_hero_id": 2,
-                "dire_hero_id": 47,
-                "matches": 1000,
-                "radiant_wins": 620,
-                "immortal_matches": 240,
-                "immortal_radiant_wins": 156,
-            },
-            {
-                "radiant_hero_id": 2,
-                "dire_hero_id": 59,
-                "matches": 5000,
-                "radiant_wins": 2500,
-                "immortal_matches": 900,
-                "immortal_radiant_wins": 450,
-            },
-            {
-                "radiant_hero_id": 47,
-                "dire_hero_id": 59,
-                "matches": 5000,
-                "radiant_wins": 2500,
-                "immortal_matches": 850,
-                "immortal_radiant_wins": 425,
-            },
-        ]
+        rows = complete_match_rows()
 
         with patch(
             "dotagraph_pipeline.generate_current_bundle._fetch_pair_rows",
@@ -325,6 +393,8 @@ class CurrentBundleTests(unittest.TestCase):
             payload["coverage"]["immortalEvidenceCount"],
             len(payload["evidenceObservations"]),
         )
+        self.assertEqual(payload["coverage"]["immortalEvidenceStatus"], "available")
+        self.assertIsNone(payload["coverage"]["immortalEvidenceReason"])
 
 
 if __name__ == "__main__":

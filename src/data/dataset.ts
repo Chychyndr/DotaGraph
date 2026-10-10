@@ -1,3 +1,4 @@
+import { isHttpUrl } from "../domain/url";
 import type {
   Hero,
   MatchupEvidenceObservation,
@@ -20,6 +21,7 @@ export interface DatasetMetadata {
   provenance?: DatasetProvenance;
   observationWindowStart?: string;
   observationWindowEndExclusive?: string;
+  immortalEvidence?: { status: "available" | "unavailable"; reason?: string };
   freshness: {
     status: "current" | "stale";
     reason?: string;
@@ -54,18 +56,6 @@ const STATISTICAL_PROVIDERS = new Set([
 const isValidTimestamp = (value: unknown): value is string =>
   typeof value === "string" && !Number.isNaN(Date.parse(value));
 
-const isValidUrl = (value: unknown): value is string => {
-  if (typeof value !== "string" || !value.trim()) {
-    return false;
-  }
-
-  try {
-    new URL(value);
-    return true;
-  } catch {
-    return false;
-  }
-};
 
 export function validateDataset(value: unknown): DatasetValidationResult {
   const issues: string[] = [];
@@ -141,16 +131,7 @@ export function validateDataset(value: unknown): DatasetValidationResult {
         }
         if (
           provenance.sourceUrl !== undefined &&
-          (typeof provenance.sourceUrl !== "string" ||
-            !provenance.sourceUrl.trim() ||
-            (() => {
-              try {
-                new URL(provenance.sourceUrl);
-                return false;
-              } catch {
-                return true;
-              }
-            })())
+          !isHttpUrl(provenance.sourceUrl)
         ) {
           issues.push("Dataset provenance sourceUrl must be a valid URL.");
         }
@@ -317,7 +298,7 @@ export function validateDataset(value: unknown): DatasetValidationResult {
       if (!isRecord(evidenceProvenance)) {
         issues.push(`${prefix} has malformed provenance.`);
       } else {
-        if (!isValidUrl(evidenceProvenance.sourceUrl)) {
+        if (!isHttpUrl(evidenceProvenance.sourceUrl)) {
           issues.push(`${prefix} provenance sourceUrl must be a valid URL.`);
         }
         if (
