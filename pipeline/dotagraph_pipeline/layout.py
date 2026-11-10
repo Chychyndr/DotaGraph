@@ -240,20 +240,26 @@ def compute_layout(
         if not moved:
             break
 
-    # Keep a lone hull node from looking detached from the rest of the graph.
-    # A node is moved only when every other node is farther away than the
-    # approved visual-gap target. Moving it toward its current nearest node by
-    # exactly the excess distance cannot violate the minimum spacing because
-    # every current pair is at least that far apart at the time of the move.
-    sparse_gap_target = max(min_distance, max_nearest_distance)
+    _compact_sparse_gaps(pixel_positions, max(min_distance, max_nearest_distance))
+
+    return {
+        node_id: (round(pixel_positions[i][0], 2), round(pixel_positions[i][1], 2))
+        for i, node_id in enumerate(nodes)
+    }
+
+
+def _compact_sparse_gaps(positions: list[list[float]], target_gap: float) -> None:
+    # A detached node can move toward its nearest peer by exactly the excess
+    # gap. The triangle inequality keeps every distance to that node at or
+    # above the target, so the move preserves minimum portrait spacing.
     for _ in range(12):
         moved = False
-        for node_index in range(count):
-            x, y = pixel_positions[node_index]
+        for node_index in range(len(positions)):
+            x, y = positions[node_index]
             nearest_index = -1
             nearest_distance = math.inf
 
-            for other_index, (other_x, other_y) in enumerate(pixel_positions):
+            for other_index, (other_x, other_y) in enumerate(positions):
                 if other_index == node_index:
                     continue
                 distance = math.hypot(other_x - x, other_y - y)
@@ -263,27 +269,22 @@ def compute_layout(
 
             if (
                 nearest_index < 0
-                or nearest_distance <= sparse_gap_target + 1e-8
+                or nearest_distance <= target_gap + 1e-8
             ):
                 continue
 
-            target_x, target_y = pixel_positions[nearest_index]
-            excess = nearest_distance - sparse_gap_target
-            pixel_positions[node_index][0] += (
+            target_x, target_y = positions[nearest_index]
+            excess = nearest_distance - target_gap
+            positions[node_index][0] += (
                 (target_x - x) / nearest_distance * excess
             )
-            pixel_positions[node_index][1] += (
+            positions[node_index][1] += (
                 (target_y - y) / nearest_distance * excess
             )
             moved = True
 
         if not moved:
             break
-
-    return {
-        node_id: (round(pixel_positions[i][0], 2), round(pixel_positions[i][1], 2))
-        for i, node_id in enumerate(nodes)
-    }
 
 
 def spread_layout_positions(
@@ -293,13 +294,12 @@ def spread_layout_positions(
     height: float = 760.0,
     margin: float = 24.0,
     max_scale: float = 1.18,
+    max_nearest_distance: float | None = None,
 ) -> dict[str, tuple[float, float]]:
     """Expand an already-stable layout uniformly into more of the graph canvas.
 
-    This pass preserves topology and all relative angles. It only changes the
-    presentation scale around the current bounds center, so Overview, Hover,
-    Focus, and Matchup can keep one stable coordinate system while gaining more
-    breathing room between portraits.
+    Uniform scaling preserves all relative angles. When a gap limit is set,
+    compact detached nodes in the expanded coordinate system before rounding.
     """
 
     if not positions:
@@ -328,12 +328,20 @@ def spread_layout_positions(
     target_x = width / 2.0
     target_y = height / 2.0
 
+    expanded = [
+        [
+            target_x + (x - center_x) * scale,
+            target_y + (y - center_y) * scale,
+        ]
+        for x, y in positions.values()
+    ]
+    if max_nearest_distance is not None:
+        # Leave room for both endpoints to round to two decimal places.
+        _compact_sparse_gaps(expanded, max_nearest_distance - 0.02)
+
     return {
-        node_id: (
-            round(target_x + (point[0] - center_x) * scale, 2),
-            round(target_y + (point[1] - center_y) * scale, 2),
-        )
-        for node_id, point in positions.items()
+        node_id: (round(x, 2), round(y, 2))
+        for node_id, (x, y) in zip(positions, expanded, strict=True)
     }
 
 

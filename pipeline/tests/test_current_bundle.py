@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from io import BytesIO
 import logging
+import os
 from pathlib import Path
 import unittest
 from unittest.mock import MagicMock, patch
@@ -18,6 +19,7 @@ from dotagraph_pipeline.generate_current_bundle import (
     _select_layout_relationships,
     generate,
 )
+from dotagraph_pipeline.layout import layout_metrics
 from dotagraph_pipeline.logging_utils import configure_logging
 from dotagraph_pipeline.ranking import RankedRelationship
 
@@ -194,6 +196,10 @@ class CurrentBundleTests(unittest.TestCase):
         ]
         self.assertGreaterEqual(len(chen_neighbors), 2)
 
+    @unittest.skipIf(
+        os.environ.get("DOTAGRAPH_SKIP_SNAPSHOT_TEST") == "1",
+        "The refresh workflow validates the new snapshot after generation",
+    )
     def test_committed_snapshot_layout_quality(self) -> None:
         repo_root = Path(__file__).resolve().parents[2]
         payload = __import__("json").loads(
@@ -202,6 +208,17 @@ class CurrentBundleTests(unittest.TestCase):
             )
         )
         metrics = payload["layoutMetrics"]
+        positions = {
+            slug: (point["x"], point["y"])
+            for slug, point in payload["positions"].items()
+        }
+        measured = layout_metrics(positions, [])
+        for key in (
+            "minimumNodeDistance",
+            "medianNearestNodeDistance",
+            "maxNearestNodeDistance",
+        ):
+            self.assertEqual(metrics[key], measured[key])
 
         self.assertEqual(metrics["coveredNodeCount"], 127)
         self.assertEqual(metrics["isolatedNodeCount"], 0)

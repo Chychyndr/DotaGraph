@@ -129,6 +129,21 @@ class LayoutTests(unittest.TestCase):
         self.assertGreaterEqual(min(y for _, y in spread.values()), 24.0)
         self.assertLessEqual(max(y for _, y in spread.values()), 736.0)
 
+    def test_spread_layout_caps_gaps_after_scaling(self) -> None:
+        positions = {
+            "axe": (0.0, 0.0),
+            "viper": (58.0, 0.0),
+            "chen": (146.0, 0.0),
+        }
+        uncapped = layout_metrics(spread_layout_positions(positions), [])
+        capped = layout_metrics(
+            spread_layout_positions(positions, max_nearest_distance=96.0), []
+        )
+
+        self.assertGreater(uncapped["maxNearestNodeDistance"], 96.0)
+        self.assertLessEqual(capped["maxNearestNodeDistance"], 96.0)
+        self.assertEqual(capped["minimumNodeDistance"], uncapped["minimumNodeDistance"])
+
     def test_spread_layout_preserves_relative_angles(self) -> None:
         positions = {
             "origin": (400.0, 300.0),

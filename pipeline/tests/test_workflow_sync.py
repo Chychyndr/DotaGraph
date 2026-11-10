@@ -56,6 +56,21 @@ class WorkflowSynchronizationTests(unittest.TestCase):
         self.assertIn("EXPECTED_BUILD_SHA: ${{ env.TARGET_SHA }}", self.pages)
         self.assertIn("ref: ${{ env.TARGET_SHA }}", self.pages)
 
+    def test_refresh_validates_new_snapshot_before_publishing(self) -> None:
+        before, generation = self.update.split("name: Generate current matchup bundle", 1)
+        validation, _ = generation.split("name: Publish generated data branch", 1)
+
+        self.assertIn('DOTAGRAPH_SKIP_SNAPSHOT_TEST: "1"', before)
+        self.assertIn("Validate generated bundle with all pipeline tests", validation)
+        self.assertIn("python -m unittest discover -s pipeline/tests -v", validation)
+        self.assertNotIn("DOTAGRAPH_SKIP_SNAPSHOT_TEST", validation)
+
+    def test_refresh_ci_and_merge_are_pinned_to_the_published_sha(self) -> None:
+        self.assertIn('echo "sha=$(git rev-parse HEAD)"', self.update)
+        self.assertIn("REFRESH_SHA: ${{ steps.publish.outputs.sha }}", self.update)
+        self.assertIn(r'select(.headSha == \"$REFRESH_SHA\")', self.update)
+        self.assertIn('--match-head-commit "$REFRESH_SHA"', self.update)
+
     def test_refresh_waits_for_main_ci_and_pages_live_verification(self) -> None:
         self.assertIn("Validate merged main revision with CI", self.update)
         self.assertIn("select(.headSha ==", self.update)
