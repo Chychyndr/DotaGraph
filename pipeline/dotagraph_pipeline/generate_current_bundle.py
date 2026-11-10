@@ -28,6 +28,7 @@ USER_AGENT = "DotaGraph/0.1 (+https://github.com/Chychyndr/DotaGraph)"
 MIN_QUERY_SECONDS = 6 * 60 * 60
 QUERY_CHUNK_SECONDS = 24 * 60 * 60
 MAX_RETRY_DELAY_SECONDS = 120
+MAX_LAYOUT_NEAREST_DISTANCE = 96.0
 
 
 def _retry_after_seconds(body: str, headers: Any) -> float | None:
@@ -571,7 +572,9 @@ def generate(
     )
     weighted_edges = _layout_edges(layout_relationships)
     positions = compute_layout(catalog_slugs, weighted_edges)
-    positions = spread_layout_positions(positions)
+    positions = spread_layout_positions(
+        positions, max_nearest_distance=MAX_LAYOUT_NEAREST_DISTANCE
+    )
     metrics = layout_metrics(positions, weighted_edges)
 
     qualifying_pair_count = sum(
