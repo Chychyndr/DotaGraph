@@ -62,9 +62,9 @@ class StratzPreviewTests(unittest.TestCase):
         )
 
     @patch("dotagraph_pipeline.stratz_preview.build_opener")
-    def test_http_failure_reports_status_only(self, opener):
+    def test_http_failure_filters_provider_details(self, opener):
         opener.return_value.open.side_effect = HTTPError(
-            "https://api.stratz.com/graphql", 403, "provider response", {}, None,
+            "https://api.stratz.com/graphql", 403, "provider response", {}, BytesIO(b'{"message":"Access denied for token sensitiveValue"}'),
         )
-        with self.assertRaisesRegex(RuntimeError, r"^STRATZ returned HTTP 403\.$"):
+        with self.assertRaisesRegex(RuntimeError, r"^STRATZ returned HTTP 403\. Provider hint: access denied token\.$"):
             fetch_matches([9085800147], "test-token", rank_only=True)

@@ -8,6 +8,7 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 import json
 import os
+import re
 from urllib.error import HTTPError, URLError
 from urllib.request import HTTPRedirectHandler, Request, build_opener
 
@@ -26,6 +27,24 @@ MATCH_FIELDS = f"""
 class NoRedirects(HTTPRedirectHandler):
     def redirect_request(self, req, fp, code, msg, headers, newurl):
         return None
+
+
+def forbidden_hint(error: HTTPError) -> str:
+    if error.headers.get("cf-mitigated") == "challenge":
+        return "Cloudflare challenge."
+    # The repository logs are public. Report known error words only, never
+    # the response text, authorization header, or reflected request values.
+    safe_words = set(
+        "access account address api authentication authorization blocked "
+        "cloudflare denied disabled expired forbidden host invalid ip key "
+        "limit missing network permission policy proxy rate restricted "
+        "secret token unauthorized user agent required request origin "
+        "not allowed plan subscription whitelisted allowlisted".split()
+    )
+    body = error.read(2048).decode("utf-8", errors="replace").lower() if error.fp else ""
+    words = re.findall(r"[a-z]+", body)
+    hint = " ".join(word for word in words if word in safe_words)[:160]
+    return f"Provider hint: {hint}." if hint else "No recognized reason in the response."
 
 
 def fetch_matches(ids: list[int], token: str, *, rank_only: bool = False) -> list[dict]:
@@ -52,7 +71,10 @@ def fetch_matches(ids: list[int], token: str, *, rank_only: bool = False) -> lis
         with build_opener(NoRedirects()).open(request, timeout=25) as response:
             payload = json.load(response)
     except HTTPError as exc:
-        raise RuntimeError(f"STRATZ returned HTTP {exc.code}.") from None
+        message = f"STRATZ returned HTTP {exc.code}."
+        if exc.code == 403:
+            message += " " + forbidden_hint(exc)
+        raise RuntimeError(message) from None
     except (URLError, TimeoutError, ValueError):
         raise RuntimeError("STRATZ request failed or returned invalid JSON.") from None
     if not isinstance(payload, dict) or payload.get("errors"):
