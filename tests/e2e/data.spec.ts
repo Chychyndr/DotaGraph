@@ -1,4 +1,6 @@
 import { expect, test } from "@playwright/test";
+import { buildDatasetFromProductionSnapshot } from "../../src/data/productionSnapshot";
+import { selectRelations } from "../../src/domain/relationships";
 
 test("published current matchup bundle satisfies production invariants", async ({ request }) => {
   const response = await request.get("/data/current-matchups.json");
@@ -49,26 +51,27 @@ test("published current matchup bundle satisfies production invariants", async (
 test("published STRATZ evidence is shown in matchup details", async ({ request, page }) => {
   const response = await request.get("/data/current-matchups.json");
   expect(response.ok()).toBe(true);
-  const data = await response.json();
-  const stratzObservations = (data.evidenceObservations ?? []).filter(
-    (item: { provider: string }) => item.provider === "STRATZ"
+  const conversion = buildDatasetFromProductionSnapshot(await response.json());
+  if (!conversion.ok) throw new Error(conversion.issues.join("\n"));
+  const { evidenceObservations, relationships, scope } = conversion.data;
+  const observations = (evidenceObservations ?? []).filter((item) => item.provider === "STRATZ");
+  test.skip(observations.length === 0, "The committed snapshot predates STRATZ evidence.");
+
+  const observation = observations.find((item) =>
+    selectRelations(item.sourceHeroId, relationships, scope).outgoing.some(
+      (row) => row.targetHeroId === item.targetHeroId
+    )
   );
-  test.skip(stratzObservations.length === 0, "The committed snapshot predates STRATZ evidence.");
-  // Deep links open relationships the graph actually shows for the selected hero.
-  // The generator publishes relationships in ranking order.
-  const observation = stratzObservations.find(
-    (item: { sourceSlug: string; targetSlug: string }) =>
-      data.relationships
-        .filter((row: { sourceSlug: string }) => row.sourceSlug === item.sourceSlug)
-        .slice(0, data.scope.maxVisiblePerDirection)
-        .some((row: { targetSlug: string }) => row.targetSlug === item.targetSlug)
-  );
-  expect(observation, "STRATZ evidence should overlap a visible matchup").toBeDefined();
+  if (!observation) throw new Error("STRATZ evidence should overlap a visible matchup");
   expect(observation.sampleSize).toBeGreaterThan(0);
-  expect(observation.scope.patch).toBe(data.patch);
+  expect(observation.scope.patch).toBe(scope.patch);
   expect(observation.scope.rankScope).toBe("immortal");
 
-  await page.goto(`/?hero=${observation.sourceSlug}&matchup=${observation.targetSlug}`);
+  const params = new URLSearchParams({
+    hero: observation.sourceHeroId,
+    matchup: observation.targetHeroId
+  });
+  await page.goto(`/?${params}`);
   const matchup = page.locator(".matchup-card");
   await expect(matchup).toBeVisible();
   await matchup.getByText("Immortal / pro evidence", { exact: true }).click();
