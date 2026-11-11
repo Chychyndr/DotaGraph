@@ -50,16 +50,28 @@ test("published STRATZ evidence is shown in matchup details", async ({ request, 
   const response = await request.get("/data/current-matchups.json");
   expect(response.ok()).toBe(true);
   const data = await response.json();
-  const observation = data.evidenceObservations?.find(
+  const stratzObservations = (data.evidenceObservations ?? []).filter(
     (item: { provider: string }) => item.provider === "STRATZ"
   );
-  test.skip(!observation, "The committed snapshot predates STRATZ evidence.");
+  test.skip(stratzObservations.length === 0, "The committed snapshot predates STRATZ evidence.");
+  // Deep links open relationships the graph actually shows for the selected hero.
+  // The generator publishes relationships in ranking order.
+  const observation = stratzObservations.find(
+    (item: { sourceSlug: string; targetSlug: string }) =>
+      data.relationships
+        .filter((row: { sourceSlug: string }) => row.sourceSlug === item.sourceSlug)
+        .slice(0, data.scope.maxVisiblePerDirection)
+        .some((row: { targetSlug: string }) => row.targetSlug === item.targetSlug)
+  );
+  expect(observation, "STRATZ evidence should overlap a visible matchup").toBeDefined();
   expect(observation.sampleSize).toBeGreaterThan(0);
   expect(observation.scope.patch).toBe(data.patch);
   expect(observation.scope.rankScope).toBe("immortal");
 
   await page.goto(`/?hero=${observation.sourceSlug}&matchup=${observation.targetSlug}`);
-  await page.getByText("Immortal / pro evidence", { exact: true }).click();
+  const matchup = page.locator(".matchup-card");
+  await expect(matchup).toBeVisible();
+  await matchup.getByText("Immortal / pro evidence", { exact: true }).click();
   const evidence = page.locator(".population-evidence-item").filter({
     has: page.getByRole("link", { name: "STRATZ", exact: true })
   });
