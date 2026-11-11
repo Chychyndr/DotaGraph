@@ -1,3 +1,4 @@
+import type { Ref } from "react";
 import type {
   Hero,
   MatchupEvidenceObservation,
@@ -15,7 +16,8 @@ interface MatchupCardProps {
   scope: ScopeConfig;
   metadata: DatasetMetadata;
   evidenceObservations: MatchupEvidenceObservation[];
-  onBack: () => void;
+  backButtonRef: Ref<HTMLButtonElement>;
+  onBack: (restoreFocus: boolean) => void;
 }
 
 const formatUtcTimestamp = (value: string) =>
@@ -38,6 +40,7 @@ export function MatchupCard({
   scope,
   metadata,
   evidenceObservations,
+  backButtonRef,
   onBack
 }: MatchupCardProps) {
   const provenance = metadata.provenance;
@@ -53,7 +56,14 @@ export function MatchupCard({
 
   return (
     <aside className="context-card matchup-card" aria-label={`${source.name} counters ${target.name}`}>
-      <button className="card-back" type="button" onClick={onBack}>← Hero overview</button>
+      <button
+        ref={backButtonRef}
+        className="card-back"
+        type="button"
+        onClick={(event) => onBack(event.detail === 0)}
+      >
+        ← Hero overview
+      </button>
 
       <div className="matchup-title">
         <span className="matchup-hero">

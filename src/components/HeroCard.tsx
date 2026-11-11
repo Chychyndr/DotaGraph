@@ -6,7 +6,7 @@ interface HeroCardProps {
   hero: Hero;
   incoming: MatchupRelationship[];
   outgoing: MatchupRelationship[];
-  onMatchup: (neighborHeroId: string) => void;
+  onMatchup: (neighborHeroId: string, rowId: string, keyboard: boolean) => void;
   heroesById: ReadonlyMap<string, Hero>;
 }
 
@@ -18,7 +18,7 @@ function RelationRows({
 }: {
   relationships: MatchupRelationship[];
   selectedHeroId: string;
-  onMatchup: (neighborHeroId: string) => void;
+  onMatchup: HeroCardProps["onMatchup"];
   heroesById: ReadonlyMap<string, Hero>;
 }) {
   if (!relationships.length) {
@@ -39,10 +39,11 @@ function RelationRows({
         return (
           <button
             key={relationship.id}
+            id={`relation-row-${relationship.id}`}
             className="relation-row"
             type="button"
             aria-label={`${source.name} counters ${target.name}; ${source.name} win rate ${formatPercent(relationship.sourceWinRate)}`}
-            onClick={() => onMatchup(neighborId)}
+            onClick={(event) => onMatchup(neighborId, event.currentTarget.id, event.detail === 0)}
           >
             <span className="relation-hero">
               <HeroPortrait hero={neighbor} />
