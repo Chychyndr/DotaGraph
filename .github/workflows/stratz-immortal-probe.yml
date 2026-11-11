@@ -1,0 +1,121 @@
+name: Probe STRATZ Immortal data
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - .github/workflows/stratz-immortal-probe.yml
+
+permissions: {}
+
+jobs:
+  probe:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.pull_request.head.repo.full_name == github.repository &&
+       github.head_ref == 'research/stratz-immortal-probe')
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Inspect rank filters and sample matchup
+        env:
+          STRATZ_API_TOKEN: ${{ secrets.STRATZ_API_TOKEN }}
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          import urllib.error
+          import urllib.request
+
+          token = os.environ.get("STRATZ_API_TOKEN", "").strip()
+          if not token:
+              raise SystemExit("Repository secret STRATZ_API_TOKEN is unavailable to this job.")
+
+          class NoRedirects(urllib.request.HTTPRedirectHandler):
+              def redirect_request(self, *args, **kwargs):
+                  return None
+
+          opener = urllib.request.build_opener(NoRedirects())
+
+          def query(document, *, required=True):
+              request = urllib.request.Request(
+                  "https://api.stratz.com/graphql",
+                  data=json.dumps({"query": document}).encode(),
+                  headers={
+                      "Authorization": f"Bearer {token}",
+                      "Content-Type": "application/json",
+                      "User-Agent": "STRATZ_API",
+                  },
+              )
+              try:
+                  with opener.open(request, timeout=25) as response:
+                      payload = json.load(response)
+              except urllib.error.HTTPError as exc:
+                  print(f"STRATZ HTTP status: {exc.code}")
+                  if required:
+                      raise SystemExit(1) from None
+                  return {}
+              if payload.get("errors"):
+                  print(f"STRATZ returned {len(payload['errors'])} GraphQL error(s).")
+                  if required:
+                      raise SystemExit(1)
+              return payload.get("data") or {}
+
+          def named_type(ref):
+              while ref and not ref["name"]:
+                  ref = ref.get("ofType")
+              return ref["name"] if ref else None
+
+          type_ref = "name kind ofType { name kind ofType { name kind ofType { name kind } } }"
+          fields = f"fields {{ name type {{ {type_ref} }} args {{ name type {{ {type_ref} }} }} }}"
+          schema = query(f"""{{
+              __schema {{ queryType {{ name {fields} }} }}
+              basic: __type(name: "RankBracketBasicEnum") {{ enumValues {{ name }} }}
+              detailed: __type(name: "RankBracket") {{ enumValues {{ name }} }}
+          }}""")
+          root = schema["__schema"]["queryType"]["fields"]
+          root_matches = [field for field in root if "match" in field["name"].lower()]
+          print("Match queries:", json.dumps([
+              (f["name"], named_type(f["type"]), [(a["name"], named_type(a["type"])) for a in f["args"]])
+              for f in root_matches
+          ]))
+          for key in ("basic", "detailed"):
+              enum = schema.get(key) or {}
+              print(f"{key} ranks:", [v["name"] for v in enum.get("enumValues") or []])
+
+          types = {named_type(f["type"]) for f in root_matches}
+          types.update(named_type(a["type"]) for f in root_matches for a in f["args"])
+          types.update(named_type(f["type"]) for f in root if f["name"] == "heroStats")
+          types.difference_update({None, "Long", "Int", "Short", "String", "ID", "Boolean"})
+          selections = " ".join(
+              f't{i}: __type(name: "{name}") {{ name {fields} inputFields {{ name type {{ {type_ref} }} }} }}'
+              for i, name in enumerate(sorted(types))
+          )
+          for t in query("{ " + selections + " }", required=False).values():
+              if not t:
+                  continue
+              relevant = [
+                  (f["name"], [(a["name"], named_type(a["type"])) for a in f["args"]])
+                  for f in t.get("fields") or []
+                  if any(part in f["name"].lower() for part in ("match", "rank", "player", "bracket"))
+              ]
+              inputs = [(f["name"], named_type(f["type"])) for f in t.get("inputFields") or []]
+              print(t["name"], json.dumps({"fields": relevant, "inputs": inputs}))
+
+          sample = query("""{
+              heroStats {
+                  matchUp(heroId: 2, bracketBasicIds: [DIVINE_IMMORTAL], take: 20) {
+                      vs { heroId1 heroId2 bracketBasicIds matchCount winCount }
+                  }
+              }
+          }""", required=False)
+          rows = (sample.get("heroStats") or {}).get("matchUp") or []
+          pairs = [pair for row in rows for pair in row.get("vs") or []]
+          print("Sample opponent rows:", len(pairs))
+          print("Sample bracket labels:", sorted({
+              label for pair in pairs for label in pair.get("bracketBasicIds") or []
+          }))
+          axe_viper = [p for p in pairs if {p["heroId1"], p["heroId2"]} == {2, 47}]
+          print("Axe vs Viper counts from sample:", json.dumps(axe_viper))
+          PY
