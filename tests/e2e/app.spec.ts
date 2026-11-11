@@ -734,6 +734,19 @@ test("hero artwork loads from one local atlas without Steamstatic requests", asy
 
   expect(steamstaticRequests).toBe(0);
   expect(atlasResponses).toBe(1);
+
+  const renderedAtlas = page.locator("#hero-atlas-image");
+  const dimensions = await renderedAtlas.evaluate(async (element) => {
+    const image = new Image();
+    image.src = element.getAttribute("href")!;
+    await image.decode();
+    return {
+      width: image.naturalWidth,
+      height: image.naturalHeight
+    };
+  });
+  await expect(renderedAtlas).toHaveAttribute("width", String(dimensions.width));
+  await expect(renderedAtlas).toHaveAttribute("height", String(dimensions.height));
 });
 
 test("portrait atlas failure keeps the graph usable with text fallbacks", async ({ page }) => {
