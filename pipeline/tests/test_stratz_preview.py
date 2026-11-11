@@ -4,7 +4,7 @@ import unittest
 from unittest.mock import patch
 from urllib.error import HTTPError
 
-from dotagraph_pipeline.stratz_preview import PairCount, aggregate_immortal_pairs, fetch_matches
+from dotagraph_pipeline.stratz_preview import PairCount, StratzNetworkDenied, aggregate_immortal_pairs, fetch_matches
 
 
 def match(match_id=1, patch=190, *, bracket=8, rank=80, radiant_won=True):
@@ -66,5 +66,15 @@ class StratzPreviewTests(unittest.TestCase):
         opener.return_value.open.side_effect = HTTPError(
             "https://api.stratz.com/graphql", 403, "provider response", {}, BytesIO(b'{"message":"Access denied for token sensitiveValue"}'),
         )
-        with self.assertRaisesRegex(RuntimeError, r"^STRATZ returned HTTP 403\. Provider hint: access denied token\.$"):
+        with self.assertRaisesRegex(RuntimeError, r"^STRATZ returned HTTP 403\. Provider hint: access denied token\.$") as error:
+            fetch_matches([9085800147], "test-token", rank_only=True)
+        self.assertNotIsInstance(error.exception, StratzNetworkDenied)
+
+    @patch("dotagraph_pipeline.stratz_preview.build_opener")
+    def test_http_failure_identifies_network_denial(self, opener):
+        opener.return_value.open.side_effect = HTTPError(
+            "https://api.stratz.com/graphql", 403, "Forbidden", {},
+            BytesIO(b'{"message":"Requests from this IP cannot access the API"}'),
+        )
+        with self.assertRaises(StratzNetworkDenied):
             fetch_matches([9085800147], "test-token", rank_only=True)

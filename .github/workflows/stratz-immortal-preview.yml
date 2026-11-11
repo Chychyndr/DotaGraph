@@ -46,6 +46,7 @@ jobs:
           python-version: "3.13"
       - uses: astral-sh/setup-uv@v10.2.0
       - name: Enrich the production bundle with live STRATZ evidence
+        id: enrichment
         env:
           OPENDOTA_API_KEY: ${{ secrets.OPENDOTA_API_KEY }}
           STRATZ_API_TOKEN: ${{ secrets.STRATZ_API_TOKEN }}
@@ -59,21 +60,33 @@ jobs:
               _load_catalog, _load_opendota_hero_map, add_stratz_evidence,
           )
           from dotagraph_pipeline.logging_utils import configure_logging
+          from dotagraph_pipeline.stratz_preview import StratzNetworkDenied
 
           path = Path("public/data/current-matchups.json")
           data = json.loads(path.read_text())
           end = datetime.fromisoformat(data["scope"]["observationWindowEndExclusive"])
           hero_map = _load_opendota_hero_map(Path.cwd(), _load_catalog(Path.cwd()))
-          count = add_stratz_evidence(
-              data, hero_map, end_epoch=int(end.timestamp()),
-              collected_at=datetime.now(timezone.utc).isoformat(),
-              token=os.environ["STRATZ_API_TOKEN"].strip(),
-              logger=configure_logging(),
-          )
+          try:
+              count = add_stratz_evidence(
+                  data, hero_map, end_epoch=int(end.timestamp()),
+                  collected_at=datetime.now(timezone.utc).isoformat(),
+                  token=os.environ["STRATZ_API_TOKEN"].strip(),
+                  logger=configure_logging(),
+              )
+          except StratzNetworkDenied as exc:
+              if os.environ["GITHUB_EVENT_NAME"] != "pull_request":
+                  raise
+              print(f"::warning::Live STRATZ check unavailable from this runner. {exc}")
+              with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as summary:
+                  print("Live STRATZ: unavailable (network-related HTTP 403).", file=summary)
+                  print("The matchup card will be verified with fixture data.", file=summary)
+              raise SystemExit(0) from None
           print(f"STRATZ observations in generated bundle: {count}")
           if count == 0:
               raise SystemExit("No live STRATZ evidence reached the generated bundle.")
           path.write_text(json.dumps(data), encoding="utf-8")
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
+              print("live=true", file=output)
           PY
       - uses: actions/setup-node@v7
         with:
@@ -81,4 +94,8 @@ jobs:
       - run: npm ci
       - run: npx playwright install chromium
       - name: Verify the real evidence in a matchup card
+        if: steps.enrichment.outputs.live == 'true'
         run: npm run test:e2e -- tests/e2e/data.spec.ts
+      - name: Verify the matchup card with fixture data
+        if: steps.enrichment.outputs.live != 'true'
+        run: npm run test:e2e -- tests/e2e/app.spec.ts -g 'matchup details keep Immortal evidence separate from the headline'

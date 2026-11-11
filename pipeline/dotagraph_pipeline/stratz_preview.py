@@ -30,6 +30,10 @@ class NoRedirects(HTTPRedirectHandler):
         return None
 
 
+class StratzNetworkDenied(RuntimeError):
+    """STRATZ refused the request based on its originating network."""
+
+
 def forbidden_hint(error: HTTPError) -> str:
     if error.headers.get("cf-mitigated") == "challenge":
         return "Cloudflare challenge."
@@ -69,7 +73,10 @@ def query_stratz(selection: str, token: str) -> dict:
         except HTTPError as exc:
             message = f"STRATZ returned HTTP {exc.code}."
             if exc.code == 403:
-                message += " " + forbidden_hint(exc)
+                hint = forbidden_hint(exc)
+                message += " " + hint
+                if hint == "Cloudflare challenge." or re.search(r"\bip\b", hint):
+                    raise StratzNetworkDenied(message) from None
             if attempt == 2 or (exc.code != 429 and not 500 <= exc.code < 600):
                 raise RuntimeError(message) from None
             retry_after = (exc.headers.get("Retry-After") or "").strip()
