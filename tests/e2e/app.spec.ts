@@ -1038,6 +1038,14 @@ test("matchup details keep Immortal evidence separate from the headline", async 
   await page.setViewportSize({ width: 390, height: 844 });
   await details.scrollIntoViewIfNeeded();
 
+  for (const selector of [".card-back", ".provenance-details summary", ".population-evidence-details summary"]) {
+    const target = page.locator(selector);
+    await expect(target).toBeVisible();
+    const bounds = await target.boundingBox();
+    expect(bounds!.width).toBeGreaterThanOrEqual(24);
+    expect(bounds!.height).toBeGreaterThanOrEqual(24);
+  }
+
   const mobileTypography = await details.evaluate((element) => {
     const metadataTerm = element.querySelector(".population-evidence-meta dt");
     const metadataValue = element.querySelector(".population-evidence-meta dd");
