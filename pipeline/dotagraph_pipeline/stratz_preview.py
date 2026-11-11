@@ -9,6 +9,7 @@ from dataclasses import dataclass
 import json
 import os
 import re
+import time
 from urllib.error import HTTPError, URLError
 from urllib.request import HTTPRedirectHandler, Request, build_opener
 
@@ -140,10 +141,16 @@ def main() -> None:
     args = parser.parse_args()
     token = os.environ.get("STRATZ_API_TOKEN", "").strip()
     ids = args.match_ids
+    if len(ids) > MAX_MATCH_IDS:
+        parser.error(f"Provide at most {MAX_MATCH_IDS} match IDs.")
     try:
         rank_sample = fetch_matches(ids[:1], token, rank_only=True)
         print("Single match rank fields:", json.dumps(rank_sample), flush=True)
-        matches = fetch_matches(ids, token)
+        matches = []
+        for match_id in dict.fromkeys(ids):
+            # A short pause keeps the bounded preview within per-second quotas.
+            time.sleep(1)
+            matches.extend(fetch_matches([match_id], token))
     except (ValueError, RuntimeError) as exc:
         raise SystemExit(str(exc)) from None
 
