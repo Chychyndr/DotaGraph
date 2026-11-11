@@ -75,7 +75,7 @@ def query_stratz(selection: str, token: str) -> dict:
             retry_after = (exc.headers.get("Retry-After") or "").strip()
             delay = min(60, int(retry_after)) if retry_after.isascii() and retry_after.isdecimal() else 0
             time.sleep(max(delay, 2 ** (attempt + 1)))
-        except (URLError, TimeoutError):
+        except (URLError, TimeoutError, ConnectionError):
             if attempt == 2:
                 raise RuntimeError("STRATZ request timed out or failed to connect.") from None
             time.sleep(2 ** (attempt + 1))

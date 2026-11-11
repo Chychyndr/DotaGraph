@@ -183,7 +183,8 @@ discovery filter selects average medal 75, the tier where OpenDota folds
 Immortal matches. STRATZ independently verifies the match rank and game version
 before DotaGraph publishes pair-level aggregates. Match IDs and player data
 stay out of the published dataset. The PR verification workflow exercises the
-same generator with live sources and checks a rendered matchup card.
+same enrichment step with live sources on the committed headline snapshot and
+checks a rendered matchup card.
 
 
 ## DOTABUFF

@@ -32,6 +32,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Fetch and process a bounded match sample
+        if: github.event_name == 'workflow_dispatch'
         env:
           STRATZ_API_TOKEN: ${{ secrets.STRATZ_API_TOKEN }}
           STRATZ_MATCH_IDS: ${{ inputs.match_ids || '9085800147 9085798479 9085791811' }}
@@ -44,20 +45,35 @@ jobs:
         with:
           python-version: "3.13"
       - uses: astral-sh/setup-uv@v10.2.0
-      - name: Generate production-format evidence from live sources
+      - name: Enrich the production bundle with live STRATZ evidence
         env:
           OPENDOTA_API_KEY: ${{ secrets.OPENDOTA_API_KEY }}
           STRATZ_API_TOKEN: ${{ secrets.STRATZ_API_TOKEN }}
         run: |
-          uv run --locked --project pipeline python -m dotagraph_pipeline.generate_current_bundle
-          python3 - <<'PY'
+          uv run --locked --project pipeline python - <<'PY'
+          from datetime import datetime, timezone
           import json
+          import os
           from pathlib import Path
-          data = json.loads(Path("public/data/current-matchups.json").read_text())
-          count = sum(row["provider"] == "STRATZ" for row in data["evidenceObservations"])
+          from dotagraph_pipeline.generate_current_bundle import (
+              _load_catalog, _load_opendota_hero_map, add_stratz_evidence,
+          )
+          from dotagraph_pipeline.logging_utils import configure_logging
+
+          path = Path("public/data/current-matchups.json")
+          data = json.loads(path.read_text())
+          end = datetime.fromisoformat(data["scope"]["observationWindowEndExclusive"])
+          hero_map = _load_opendota_hero_map(Path.cwd(), _load_catalog(Path.cwd()))
+          count = add_stratz_evidence(
+              data, hero_map, end_epoch=int(end.timestamp()),
+              collected_at=datetime.now(timezone.utc).isoformat(),
+              token=os.environ["STRATZ_API_TOKEN"].strip(),
+              logger=configure_logging(),
+          )
           print(f"STRATZ observations in generated bundle: {count}")
           if count == 0:
               raise SystemExit("No live STRATZ evidence reached the generated bundle.")
+          path.write_text(json.dumps(data), encoding="utf-8")
           PY
       - uses: actions/setup-node@v7
         with:

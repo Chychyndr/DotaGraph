@@ -17,6 +17,7 @@ from dotagraph_pipeline.generate_current_bundle import (
     _request_json,
     _retry_after_seconds,
     _select_layout_relationships,
+    add_stratz_evidence,
     collect_stratz_evidence,
     generate,
 )
@@ -309,6 +310,26 @@ class CurrentBundleTests(unittest.TestCase):
             payload["coverage"]["immortalEvidenceCount"],
             len(payload["evidenceObservations"]),
         )
+
+    def test_stratz_enrichment_replaces_its_own_evidence_only(self) -> None:
+        payload = {
+            "relationships": [],
+            "evidenceObservations": [{"provider": "OpenDota"}, {"provider": "STRATZ", "old": True}],
+            "coverage": {"immortalEvidenceCount": 2},
+        }
+        replacement = {"provider": "STRATZ"}
+        with patch(
+            "dotagraph_pipeline.generate_current_bundle.collect_stratz_evidence",
+            return_value=[replacement],
+        ):
+            count = add_stratz_evidence(
+                payload, {}, end_epoch=CURRENT_SCOPE.start_epoch + 1,
+                collected_at="2026-09-16T00:01:00Z", token="test-token",
+                logger=configure_logging(),
+            )
+        self.assertEqual(count, 1)
+        self.assertEqual(payload["evidenceObservations"], [{"provider": "OpenDota"}, replacement])
+        self.assertEqual(payload["coverage"]["immortalEvidenceCount"], 2)
 
     def test_stratz_evidence_confirms_patch_and_keeps_headline_direction(self) -> None:
         module = "dotagraph_pipeline.generate_current_bundle"

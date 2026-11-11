@@ -109,7 +109,7 @@ def _request_json(
             )
             if exc.code != 429 and not 500 <= exc.code < 600:
                 raise last_error from exc
-        except (URLError, TimeoutError) as exc:
+        except (URLError, TimeoutError, ConnectionError) as exc:
             last_error = exc
             log_event(
                 logger,
@@ -623,6 +623,29 @@ LIMIT {candidate_limit}
     return evidence
 
 
+def add_stratz_evidence(
+    payload: dict[str, Any],
+    hero_map: dict[int, str],
+    *,
+    end_epoch: int,
+    collected_at: str,
+    token: str,
+    logger: logging.Logger,
+) -> int:
+    evidence = collect_stratz_evidence(
+        payload["relationships"], hero_map, end_epoch=end_epoch,
+        collected_at=collected_at, token=token, logger=logger,
+    )
+    observations = [
+        row for row in payload.get("evidenceObservations", [])
+        if row["provider"] != "STRATZ"
+    ]
+    observations.extend(evidence)
+    payload["evidenceObservations"] = observations
+    payload["coverage"]["immortalEvidenceCount"] = len(observations)
+    return len(evidence)
+
+
 def generate(
     repo_root: Path,
     *,
@@ -777,33 +800,6 @@ def generate(
             }
         )
 
-    if stratz_token:
-        try:
-            evidence_observations.extend(collect_stratz_evidence(
-                relationships, hero_map, end_epoch=end_epoch,
-                collected_at=generated_at_iso, token=stratz_token, logger=logger,
-            ))
-        except RuntimeError as exc:
-            log_event(
-                logger, "stratz_evidence_unavailable", level=logging.WARNING,
-                detail=str(exc),
-            )
-
-    if not evidence_observations:
-        log_event(
-            logger,
-            "immortal_evidence_empty",
-            level=logging.WARNING,
-            reason=(
-                "no_ranked_pair_overlap" if immortal_pairs else "no_immortal_pairs"
-            ),
-            immortalPairCount=len(immortal_pairs),
-            rankedRelationshipCount=len(ranked),
-            avgRankTierMin=CURRENT_SCOPE.immortal_avg_rank_tier_min,
-            windowStart=CURRENT_SCOPE.start_iso,
-            windowEnd=observation_end_iso,
-        )
-
     payload = {
         "schemaVersion": 2,
         "kind": "current-production-matchups",
@@ -855,6 +851,33 @@ def generate(
             for slug, (x, y) in sorted(positions.items())
         },
     }
+
+    if stratz_token:
+        try:
+            add_stratz_evidence(
+                payload, hero_map, end_epoch=end_epoch,
+                collected_at=generated_at_iso, token=stratz_token, logger=logger,
+            )
+        except RuntimeError as exc:
+            log_event(
+                logger, "stratz_evidence_unavailable", level=logging.WARNING,
+                detail=str(exc),
+            )
+
+    if not payload["evidenceObservations"]:
+        log_event(
+            logger,
+            "immortal_evidence_empty",
+            level=logging.WARNING,
+            reason=(
+                "no_ranked_pair_overlap" if immortal_pairs else "no_immortal_pairs"
+            ),
+            immortalPairCount=len(immortal_pairs),
+            rankedRelationshipCount=len(ranked),
+            avgRankTierMin=CURRENT_SCOPE.immortal_avg_rank_tier_min,
+            windowStart=CURRENT_SCOPE.start_iso,
+            windowEnd=observation_end_iso,
+        )
 
     log_event(
         logger,
