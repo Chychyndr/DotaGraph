@@ -226,10 +226,9 @@ class CurrentBundleTests(unittest.TestCase):
         self.assertGreaterEqual(metrics["medianNearestNodeDistance"], 67.0)
         self.assertLessEqual(metrics["maxNearestNodeDistance"], 96.0)
 
-    def test_generate_emits_741f_production_contract(self) -> None:
-        repo_root = Path(__file__).resolve().parents[2]
-        now = datetime(2026, 9, 19, 8, 0, tzinfo=timezone.utc)
-        rows = [
+    @staticmethod
+    def production_pair_rows() -> list[dict[str, int]]:
+        return [
             {
                 "radiant_hero_id": 2,
                 "dire_hero_id": 47,
@@ -255,6 +254,11 @@ class CurrentBundleTests(unittest.TestCase):
                 "immortal_radiant_wins": 425,
             },
         ]
+
+    def test_generate_emits_741f_production_contract(self) -> None:
+        repo_root = Path(__file__).resolve().parents[2]
+        now = datetime(2026, 9, 19, 8, 0, tzinfo=timezone.utc)
+        rows = self.production_pair_rows()
 
         with patch(
             "dotagraph_pipeline.generate_current_bundle._fetch_pair_rows",
@@ -303,6 +307,27 @@ class CurrentBundleTests(unittest.TestCase):
             payload["coverage"]["immortalEvidenceCount"],
             len(payload["evidenceObservations"]),
         )
+
+    def test_generate_warns_when_immortal_evidence_is_empty(self) -> None:
+        repo_root = Path(__file__).resolve().parents[2]
+        now = datetime(2026, 9, 19, 8, 0, tzinfo=timezone.utc)
+        rows = [
+            dict(row, immortal_matches=0, immortal_radiant_wins=0)
+            for row in self.production_pair_rows()
+        ]
+
+        logger = configure_logging()
+        with patch(
+            "dotagraph_pipeline.generate_current_bundle._fetch_pair_rows",
+            return_value=rows,
+        ), self.assertLogs(logger, level="WARNING") as logs:
+            payload = generate(repo_root, now=now, logger=logger)
+
+        self.assertTrue(payload["relationships"])
+        self.assertEqual(payload["evidenceObservations"], [])
+        self.assertEqual(payload["coverage"]["immortalEvidenceCount"], 0)
+        self.assertIn('"event": "immortal_evidence_empty"', logs.output[0])
+        self.assertIn('"reason": "no_immortal_pairs"', logs.output[0])
 
 
 if __name__ == "__main__":

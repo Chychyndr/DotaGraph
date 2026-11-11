@@ -675,6 +675,21 @@ def generate(
             }
         )
 
+    if not evidence_observations:
+        log_event(
+            logger,
+            "immortal_evidence_empty",
+            level=logging.WARNING,
+            reason=(
+                "no_ranked_pair_overlap" if immortal_pairs else "no_immortal_pairs"
+            ),
+            immortalPairCount=len(immortal_pairs),
+            rankedRelationshipCount=len(ranked),
+            avgRankTierMin=CURRENT_SCOPE.immortal_avg_rank_tier_min,
+            windowStart=CURRENT_SCOPE.start_iso,
+            windowEnd=observation_end_iso,
+        )
+
     payload = {
         "schemaVersion": 2,
         "kind": "current-production-matchups",
