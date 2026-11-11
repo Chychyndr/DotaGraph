@@ -3,6 +3,7 @@ import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import sharp from "sharp";
+import geometry from "../src/data/heroAtlasGeometry.json" with { type: "json" };
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const catalogPath = join(root, "src", "data", "heroCatalog.json");
@@ -10,8 +11,7 @@ const outputDir = join(root, "public", "assets");
 const atlasPath = join(outputDir, "heroes-atlas.webp");
 const manifestPath = join(outputDir, "heroes-atlas.manifest.json");
 
-const COLUMNS = 16;
-const CELL_SIZE = 96;
+const { columns: COLUMNS, cellSize: CELL_SIZE } = geometry;
 const QUALITY = 76;
 const MAX_BYTES = 1_500_000;
 const SOURCE_ROOT =
