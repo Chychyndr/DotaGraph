@@ -14,6 +14,8 @@ from urllib.request import HTTPRedirectHandler, Request, build_opener
 
 ENDPOINT = "https://api.stratz.com/graphql"
 MAX_MATCH_IDS = 20
+IMMORTAL_RANK = 80
+IMMORTAL_BRACKET = 8
 RANK_FIELDS = "actualRank averageRank rank bracket"
 MATCH_FIELDS = f"""
     id gameVersionId gameMode lobbyType didRadiantWin {RANK_FIELDS}
@@ -74,9 +76,8 @@ def aggregate_immortal_pairs(matches: Iterable[dict]) -> dict[tuple[int, int, in
     pairs: dict[tuple[int, int, int], PairCount] = {}
     seen: set[int] = set()
     for match in matches:
-        # Only an explicit single-rank label qualifies. Numeric ratings and
-        # DIVINE_IMMORTAL cannot establish the rank of a match here.
-        if match.get("bracket") != "IMMORTAL":
+        # Require both rank fields observed in the STRATZ Immortal sample.
+        if match.get("rank") != IMMORTAL_RANK or match.get("bracket") != IMMORTAL_BRACKET:
             continue
         if match.get("gameMode") not in (22, "ALL_PICK_RANKED") or match.get("lobbyType") not in (7, "RANKED"):
             continue

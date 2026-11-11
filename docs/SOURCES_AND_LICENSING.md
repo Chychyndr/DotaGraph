@@ -179,8 +179,9 @@ Review date: 2026-09-18.
 
 The `STRATZ Immortal preview` workflow checks up to 20 known public match IDs
 using the `STRATZ_API_TOKEN` repository secret. It counts opposing hero pairs
-by game version only when STRATZ returns the explicit `IMMORTAL` match bracket,
-a ranked All Draft lobby, a result, and two complete lineups. This small
+by game version only for ranked All Draft matches with a result, two complete
+lineups, and both numeric rank markers observed in the STRATZ Immortal sample
+(`rank: 80`, `bracket: 8`). This small
 diagnostic sample is independent of the production data refresh.
 
 

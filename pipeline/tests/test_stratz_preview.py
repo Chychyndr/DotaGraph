@@ -7,7 +7,7 @@ from urllib.error import HTTPError
 from dotagraph_pipeline.stratz_preview import PairCount, aggregate_immortal_pairs, fetch_matches
 
 
-def match(match_id=1, patch=190, *, bracket="IMMORTAL", radiant_won=True):
+def match(match_id=1, patch=190, *, bracket=8, rank=80, radiant_won=True):
     return {
         "id": match_id,
         "gameVersionId": patch,
@@ -15,6 +15,7 @@ def match(match_id=1, patch=190, *, bracket="IMMORTAL", radiant_won=True):
         "lobbyType": "RANKED",
         "didRadiantWin": radiant_won,
         "bracket": bracket,
+        "rank": rank,
         "players": [{"heroId": hero, "isRadiant": hero <= 5} for hero in range(1, 11)],
     }
 
@@ -34,8 +35,9 @@ class StratzPreviewTests(unittest.TestCase):
         incomplete = match(4)
         incomplete["players"].pop()
         self.assertEqual(aggregate_immortal_pairs([
-            match(bracket="DIVINE_IMMORTAL"), match(2, bracket="DIVINE"),
+            match(bracket="DIVINE_IMMORTAL"), match(2, bracket=7, rank=75),
             match(3, bracket=None), incomplete, dict(match(5), lobbyType=0),
+            match(6, rank=75), match(7, rank=None),
         ]), {})
 
     def test_credits_dire_when_the_lower_hero_id_is_on_dire(self):
@@ -47,10 +49,10 @@ class StratzPreviewTests(unittest.TestCase):
 
     @patch("dotagraph_pipeline.stratz_preview.build_opener")
     def test_fetch_requests_only_rank_fields_in_single_match_probe(self, opener):
-        opener.return_value.open.return_value = BytesIO(b'{"data":{"match":{"bracket":"IMMORTAL"}}}')
+        opener.return_value.open.return_value = BytesIO(b'{"data":{"match":{"actualRank":80,"averageRank":null,"rank":80,"bracket":8}}}')
 
         self.assertEqual(fetch_matches([9085800147], "test-token", rank_only=True), [
-            {"bracket": "IMMORTAL"},
+            {"actualRank": 80, "averageRank": None, "rank": 80, "bracket": 8},
         ])
         request = opener.return_value.open.call_args.args[0]
         self.assertEqual(request.get_header("Authorization"), "Bearer test-token")
