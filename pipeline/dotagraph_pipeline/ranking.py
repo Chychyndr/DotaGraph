@@ -6,6 +6,7 @@ from typing import Iterable
 
 
 ONE_SIDED_95_Z = 1.645
+OPPONENTS_PER_MATCH = 5
 
 
 @dataclass(frozen=True)
@@ -61,12 +62,24 @@ def _baseline_excluding_pair(
     total: HeroTotals,
     pair_wins: int,
     pair_matches: int,
-) -> tuple[float, int] | None:
-    games = total.games - pair_matches
-    wins = total.wins - pair_wins
-    if games <= 0:
+) -> tuple[float, float] | None:
+    distinct_matches, remainder = divmod(total.games, OPPONENTS_PER_MATCH)
+    if remainder or distinct_matches < pair_matches:
         return None
-    return wins / games, games
+
+    observations = total.games - pair_matches
+    if observations <= 0:
+        return None
+
+    # Removing the direct opponent leaves four copies of its match outcome.
+    # Every other match still contributes five copies of its outcome.
+    other_matches = distinct_matches - pair_matches
+    squared_weights = (
+        pair_matches * (OPPONENTS_PER_MATCH - 1) ** 2
+        + other_matches * OPPONENTS_PER_MATCH ** 2
+    )
+    effective_matches = observations ** 2 / squared_weights
+    return (total.wins - pair_wins) / observations, effective_matches
 
 
 def rank_pair(
@@ -100,8 +113,8 @@ def rank_pair(
     if first_baseline is None or second_baseline is None:
         return None
 
-    first_baseline_rate, first_baseline_games = first_baseline
-    second_baseline_rate, second_baseline_games = second_baseline
+    first_baseline_rate, first_baseline_effective_matches = first_baseline
+    second_baseline_rate, second_baseline_effective_matches = second_baseline
 
     first_rate = pair.first_wins / pair.matches
     expected_first = 0.5 + (first_baseline_rate - second_baseline_rate) / 2.0
@@ -114,8 +127,6 @@ def rank_pair(
         source_rate = first_rate
         source_baseline_rate = first_baseline_rate
         target_baseline_rate = second_baseline_rate
-        source_baseline_games = first_baseline_games
-        target_baseline_games = second_baseline_games
         expected = expected_first
         delta = first_delta
     else:
@@ -124,19 +135,17 @@ def rank_pair(
         source_rate = 1.0 - first_rate
         source_baseline_rate = second_baseline_rate
         target_baseline_rate = first_baseline_rate
-        source_baseline_games = second_baseline_games
-        target_baseline_games = first_baseline_games
         expected = 1.0 - expected_first
         delta = -first_delta
 
     variance = (
         source_rate * (1.0 - source_rate) / pair.matches
-        + source_baseline_rate
-        * (1.0 - source_baseline_rate)
-        / (4.0 * source_baseline_games)
-        + target_baseline_rate
-        * (1.0 - target_baseline_rate)
-        / (4.0 * target_baseline_games)
+        + first_baseline_rate
+        * (1.0 - first_baseline_rate)
+        / (4.0 * first_baseline_effective_matches)
+        + second_baseline_rate
+        * (1.0 - second_baseline_rate)
+        / (4.0 * second_baseline_effective_matches)
     )
     standard_error = math.sqrt(max(variance, 0.0))
     score = delta - confidence_z * standard_error
