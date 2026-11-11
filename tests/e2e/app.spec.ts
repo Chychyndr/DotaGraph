@@ -842,6 +842,33 @@ test("keyboard search selection moves focus to the selected graph hero", async (
   await expect(page).toHaveURL(/hero=viper/);
 });
 
+test("keyboard search keeps the active result inside the listbox", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 360 });
+  await page.goto("/");
+  const search = page.getByRole("combobox");
+  const list = page.getByRole("listbox");
+  await search.fill("a");
+  await expect(list.getByRole("option")).toHaveCount(8);
+
+  const options = list.getByRole("option");
+  const active = list.getByRole("option", { selected: true });
+  const activeIsInView = () => active.evaluate((option) => {
+    const list = option.parentElement!;
+    const top = list.getBoundingClientRect().top + list.clientTop;
+    const bounds = option.getBoundingClientRect();
+    return bounds.top >= top - 1 && bounds.bottom <= top + list.clientHeight + 1;
+  });
+
+  await search.press("ArrowUp");
+  await expect(options.last()).toHaveAttribute("aria-selected", "true");
+  await expect.poll(activeIsInView).toBe(true);
+  await expect.poll(() => list.evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
+
+  await search.press("ArrowDown");
+  await expect(options.first()).toHaveAttribute("aria-selected", "true");
+  await expect.poll(activeIsInView).toBe(true);
+});
+
 test("hero alias search resolves from metadata", async ({ page }) => {
   await page.goto("/");
   const search = page.getByRole("combobox", { name: "Search for a hero" });
