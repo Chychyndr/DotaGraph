@@ -141,7 +141,7 @@ button:focus-visible, input:focus-visible, [role="button"]:focus-visible {
   font-size: 12px;
 }
 
-.search-input-wrap input::placeholder { color: #6e7681; }
+.search-input-wrap input::placeholder { color: var(--muted); opacity: 1; }
 
 .search-input-wrap kbd {
   min-width: 20px;
