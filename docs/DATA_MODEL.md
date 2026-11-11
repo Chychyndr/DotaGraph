@@ -106,7 +106,7 @@ Runtime validation rejects:
 
 `evidenceObservations` use the existing `MatchupEvidenceObservation` model. Runtime validation checks the observation id, approved provider, directed hero references, win rate, optional source-local sample size, explicit scope/window, source URL, query description, and collection timestamp.
 
-The current generator emits OpenDota Immortal observations for published headline pairs when the same production query contains qualifying Immortal matches. Those observations use `rankScope = immortal` and remain separate from the Ancient+ relationship and consensus.
+The current generator emits OpenDota Immortal observations for published headline pairs when the same production query contains qualifying Immortal matches. STRATZ adds separate observations for published headline pairs based on its recent, rank-verified match sample. Both providers use `rankScope = immortal` and remain separate from the Ancient+ relationship and consensus.
 
 ## Selection
 

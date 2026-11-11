@@ -12,6 +12,9 @@ on:
     paths:
       - .github/workflows/stratz-immortal-preview.yml
       - pipeline/dotagraph_pipeline/stratz_preview.py
+      - pipeline/dotagraph_pipeline/generate_current_bundle.py
+      - .github/workflows/update-current-data.yml
+      - tests/e2e/data.spec.ts
 
 permissions:
   contents: read
@@ -23,7 +26,7 @@ jobs:
       (github.event.pull_request.head.repo.full_name == github.repository &&
        github.head_ref == 'feat/stratz-immortal-preview')
     runs-on: ubuntu-26.04
-    timeout-minutes: 3
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v7
         with:
@@ -36,3 +39,30 @@ jobs:
         run: |
           read -r -a match_ids <<< "$STRATZ_MATCH_IDS"
           python3 -m dotagraph_pipeline.stratz_preview "${match_ids[@]}"
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - uses: astral-sh/setup-uv@v10.2.0
+      - name: Generate production-format evidence from live sources
+        env:
+          OPENDOTA_API_KEY: ${{ secrets.OPENDOTA_API_KEY }}
+          STRATZ_API_TOKEN: ${{ secrets.STRATZ_API_TOKEN }}
+        run: |
+          uv run --locked --project pipeline python -m dotagraph_pipeline.generate_current_bundle
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          data = json.loads(Path("public/data/current-matchups.json").read_text())
+          count = sum(row["provider"] == "STRATZ" for row in data["evidenceObservations"])
+          print(f"STRATZ observations in generated bundle: {count}")
+          if count == 0:
+              raise SystemExit("No live STRATZ evidence reached the generated bundle.")
+          PY
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+      - run: npm ci
+      - run: npx playwright install chromium
+      - name: Verify the real evidence in a matchup card
+        run: npm run test:e2e -- tests/e2e/data.spec.ts

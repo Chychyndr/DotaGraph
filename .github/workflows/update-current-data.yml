@@ -62,6 +62,7 @@ jobs:
         shell: bash
         env:
           OPENDOTA_API_KEY: ${{ secrets.OPENDOTA_API_KEY }}
+          STRATZ_API_TOKEN: ${{ secrets.STRATZ_API_TOKEN }}
         run: |
           set -o pipefail
           mkdir -p artifacts/pipeline
@@ -99,6 +100,10 @@ jobs:
           print(f"- Qualifying pairs: **{coverage['qualifyingPairCount']}**")
           print(f"- Layout relationships: **{coverage['layoutRelationshipCount']}**")
           print(f"- Immortal evidence observations: **{coverage['immortalEvidenceCount']}**")
+          stratz_count = sum(
+              row["provider"] == "STRATZ" for row in data.get("evidenceObservations", [])
+          )
+          print(f"- STRATZ evidence observations: **{stratz_count}**")
           if coverage["immortalEvidenceCount"] == 0:
               print("- Warning: no Immortal evidence. See the generation logs for the reason.")
           print(f"- Layout median distance: **{metrics['medianDistance']} px**")

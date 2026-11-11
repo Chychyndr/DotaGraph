@@ -45,3 +45,24 @@ test("published current matchup bundle satisfies production invariants", async (
     ids.add(id);
   }
 });
+
+test("published STRATZ evidence is shown in matchup details", async ({ request, page }) => {
+  const response = await request.get("/data/current-matchups.json");
+  expect(response.ok()).toBe(true);
+  const data = await response.json();
+  const observation = data.evidenceObservations?.find(
+    (item: { provider: string }) => item.provider === "STRATZ"
+  );
+  test.skip(!observation, "The committed snapshot predates STRATZ evidence.");
+  expect(observation.sampleSize).toBeGreaterThan(0);
+  expect(observation.scope.patch).toBe(data.patch);
+  expect(observation.scope.rankScope).toBe("immortal");
+
+  await page.goto(`/?hero=${observation.sourceSlug}&matchup=${observation.targetSlug}`);
+  await page.getByText("Immortal / pro evidence", { exact: true }).click();
+  const evidence = page.locator(".population-evidence-item").filter({
+    has: page.getByRole("link", { name: "STRATZ", exact: true })
+  });
+  await expect(evidence.getByText("Sample of recent matches.", { exact: false })).toBeVisible();
+  await expect(evidence.getByRole("link", { name: "STRATZ" })).toHaveAttribute("href", "https://stratz.com/api");
+});

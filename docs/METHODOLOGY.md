@@ -249,6 +249,17 @@ The refresh workflow reports the published Immortal observation count.
 
 [OpenDota's average-medal regression test](https://github.com/odota/core/blob/728b5f320fd0c16b3557d6465b9589b89465b32a/test/test.ts#L185-L191)
 
+The scheduled refresh also collects STRATZ Immortal evidence. It starts with
+at most the 120 newest OpenDota public matches labeled average medal 75 in
+the preceding 24 hours of the current patch, then retrieves them individually
+from STRATZ. A match contributes only when STRATZ confirms `rank = 80`,
+`bracket = 8`, the current game version, ranked All Draft, and a complete 5v5
+result. The displayed sample is limited by the discovery filter and request
+budget. Each accepted match contributes one result per opposing hero pair.
+STRATZ counts are reported separately and do not influence Ancient+ ranking
+or consensus. If STRATZ is unavailable, the headline refresh can still
+publish and logs the secondary-source failure.
+
 ## Cross-source detail aggregation
 
 Status: **approved for secondary-source detail views**.

@@ -22,6 +22,8 @@ from .layout import (
 from .logging_utils import configure_logging, log_event
 from .ranking import PairObservation, RankedRelationship, hero_totals, rank_relationships
 
+from .stratz_preview import aggregate_immortal_pairs, fetch_matches, game_version_id
+
 
 OPENDOTA_BASE_URL = "https://api.opendota.com/api"
 USER_AGENT = "DotaGraph/0.1 (+https://github.com/Chychyndr/DotaGraph)"
@@ -522,11 +524,111 @@ def _iso_from_epoch(epoch: int) -> str:
     )
 
 
+STRATZ_LOOKBACK_SECONDS = 24 * 60 * 60
+STRATZ_CANDIDATE_LIMIT = 120
+
+
+def collect_stratz_evidence(
+    relationships: list[dict[str, Any]],
+    hero_map: dict[int, str],
+    *,
+    end_epoch: int,
+    collected_at: str,
+    token: str,
+    logger: logging.Logger,
+    candidate_limit: int = STRATZ_CANDIDATE_LIMIT,
+) -> list[dict[str, Any]]:
+    scope = CURRENT_SCOPE
+    start_epoch = max(scope.start_epoch, end_epoch - STRATZ_LOOKBACK_SECONDS)
+    if start_epoch >= end_epoch:
+        return []
+    # OpenDota folds Immortal 80 into average medal 75. Use 75 as a
+    # discovery filter only. STRATZ independently verifies rank and patch.
+    sql = f"""
+SELECT match_id, start_time FROM public_matches
+WHERE avg_rank_tier = 75
+  AND start_time >= {start_epoch} AND start_time < {end_epoch}
+  AND game_mode = {scope.game_mode} AND lobby_type = {scope.lobby_type}
+  AND array_length(radiant_team, 1) = 5 AND array_length(dire_team, 1) = 5
+ORDER BY start_time DESC, match_id DESC
+LIMIT {candidate_limit}
+""".strip()
+    data = _request_json(_api_url("/explorer", {"sql": sql}), logger=logger, attempts=3)
+    rows = data.get("rows") if isinstance(data, dict) else None
+    if not isinstance(rows, list):
+        raise RuntimeError("OpenDota did not return STRATZ candidate rows.")
+    try:
+        candidates = {
+            int(row["match_id"]): int(row["start_time"])
+            for row in rows[:candidate_limit]
+        }
+    except (KeyError, TypeError, ValueError):
+        raise RuntimeError("OpenDota returned invalid STRATZ candidate rows.") from None
+    candidates = {
+        match_id: started for match_id, started in candidates.items()
+        if match_id > 0 and start_epoch <= started < end_epoch
+    }
+    if not candidates:
+        log_event(logger, "stratz_no_candidates", level=logging.WARNING)
+        return []
+
+    version = game_version_id(scope.patch, token)
+    time.sleep(1)
+    matches = fetch_matches(list(candidates), token)
+    counts = aggregate_immortal_pairs(
+        match for match in matches if match.get("gameVersionId") == version
+    )
+    ids_by_slug = {slug: hero_id for hero_id, slug in hero_map.items()}
+    evidence = []
+    window_start = _iso_from_epoch(min(candidates.values()))
+    window_end = _iso_from_epoch(end_epoch)
+    for row in relationships:
+        source, target = row["sourceSlug"], row["targetSlug"]
+        source_id, target_id = ids_by_slug[source], ids_by_slug[target]
+        first, second = sorted((source_id, target_id))
+        pair = counts.get((version, first, second))
+        if pair is None:
+            continue
+        wins = pair.first_wins if source_id == first else pair.matches - pair.first_wins
+        evidence.append({
+            "id": f"stratz-immortal-{source}--{target}",
+            "provider": "STRATZ",
+            "sourceSlug": source,
+            "targetSlug": target,
+            "sourceWinRate": wins / pair.matches,
+            "sampleSize": pair.matches,
+            "scope": {
+                "patch": scope.patch,
+                "rankScope": "immortal",
+                "matchPopulation": "ranked_all_draft_5v5",
+                "observationWindowStart": window_start,
+                "observationWindowEndExclusive": window_end,
+            },
+            "provenance": {
+                "sourceUrl": "https://stratz.com/api",
+                "queryScope": (
+                    "recent OpenDota medal-75 sample; STRATZ ranked All Draft;"
+                    f" rank=80; bracket=8; gameVersionId={version};"
+                    f" {len(candidates)} candidates"
+                ),
+                "collectedAt": collected_at,
+            },
+        })
+    log_event(
+        logger, "stratz_evidence_complete",
+        candidateCount=len(candidates), returnedMatchCount=len(matches),
+        eligibleMatchCount=sum(pair.matches for pair in counts.values()) // 25,
+        evidenceCount=len(evidence),
+    )
+    return evidence
+
+
 def generate(
     repo_root: Path,
     *,
     now: datetime | None = None,
     logger: logging.Logger,
+    stratz_token: str = "",
 ) -> dict[str, Any]:
     generated_at = now or datetime.now(timezone.utc)
     end_epoch = generation_end_epoch(generated_at)
@@ -675,6 +777,18 @@ def generate(
             }
         )
 
+    if stratz_token:
+        try:
+            evidence_observations.extend(collect_stratz_evidence(
+                relationships, hero_map, end_epoch=end_epoch,
+                collected_at=generated_at_iso, token=stratz_token, logger=logger,
+            ))
+        except RuntimeError as exc:
+            log_event(
+                logger, "stratz_evidence_unavailable", level=logging.WARNING,
+                detail=str(exc),
+            )
+
     if not evidence_observations:
         log_event(
             logger,
@@ -771,7 +885,9 @@ def main() -> None:
         output_path = repo_root / output_path
 
     try:
-        payload = generate(repo_root, logger=logger)
+        payload = generate(
+            repo_root, logger=logger, stratz_token=os.getenv("STRATZ_API_TOKEN", "").strip(),
+        )
         output_path.parent.mkdir(parents=True, exist_ok=True)
         output_path.write_text(
             json.dumps(payload, ensure_ascii=False, indent=2) + "\n",

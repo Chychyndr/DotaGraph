@@ -17,8 +17,10 @@ from dotagraph_pipeline.generate_current_bundle import (
     _request_json,
     _retry_after_seconds,
     _select_layout_relationships,
+    collect_stratz_evidence,
     generate,
 )
+from dotagraph_pipeline.config import CURRENT_SCOPE
 from dotagraph_pipeline.layout import layout_metrics
 from dotagraph_pipeline.logging_utils import configure_logging
 from dotagraph_pipeline.ranking import RankedRelationship
@@ -307,6 +309,46 @@ class CurrentBundleTests(unittest.TestCase):
             payload["coverage"]["immortalEvidenceCount"],
             len(payload["evidenceObservations"]),
         )
+
+    def test_stratz_evidence_confirms_patch_and_keeps_headline_direction(self) -> None:
+        module = "dotagraph_pipeline.generate_current_bundle"
+        start = CURRENT_SCOPE.start_epoch
+        end = start + 60
+        players = [
+            {"heroId": hero, "isRadiant": hero <= 5} for hero in range(1, 11)
+        ]
+        match = {
+            "id": 100, "gameVersionId": 190, "rank": 80, "bracket": 8,
+            "gameMode": 22, "lobbyType": 7, "didRadiantWin": True,
+            "players": players,
+        }
+        rows = [
+            {"match_id": 100, "start_time": start},
+            {"match_id": 101, "start_time": start + 1},
+            {"match_id": 102, "start_time": end},
+        ]
+        relationships = [{"sourceSlug": "dire-hero", "targetSlug": "radiant-hero"}]
+        with (
+            patch(f"{module}._request_json", return_value={"rows": rows}) as discovery,
+            patch(f"{module}.game_version_id", return_value=190),
+            patch(f"{module}.time.sleep"),
+            patch(f"{module}.fetch_matches", return_value=[
+                match, dict(match, id=101, gameVersionId=191),
+            ]) as fetch,
+        ):
+            evidence = collect_stratz_evidence(
+                relationships, {6: "dire-hero", 1: "radiant-hero"},
+                end_epoch=end, collected_at="2026-09-16T00:01:00Z",
+                token="test-token", logger=configure_logging(),
+            )
+
+        self.assertIn("avg_rank_tier%20%3D%2075", discovery.call_args.args[0].replace("+", "%20"))
+        fetch.assert_called_once_with([100, 101], "test-token")
+        self.assertEqual(len(evidence), 1)
+        self.assertEqual(evidence[0]["provider"], "STRATZ")
+        self.assertEqual(evidence[0]["sampleSize"], 1)
+        self.assertEqual(evidence[0]["sourceWinRate"], 0)
+        self.assertEqual(evidence[0]["scope"]["patch"], CURRENT_SCOPE.patch)
 
     def test_generate_warns_when_immortal_evidence_is_empty(self) -> None:
         repo_root = Path(__file__).resolve().parents[2]

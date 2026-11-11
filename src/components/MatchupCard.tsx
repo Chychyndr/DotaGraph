@@ -196,6 +196,9 @@ export function MatchupCard({
                   </div>
                 </dl>
                 <p className="population-evidence-note">
+                  {observation.provider === "STRATZ" && observation.scope.rankScope === "immortal"
+                    ? "Sample of recent matches. "
+                    : ""}
                   Separate population; excluded from the {scope.rankLabel} headline
                   and cross-source consensus.
                 </p>
