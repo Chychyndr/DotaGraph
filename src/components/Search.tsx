@@ -79,6 +79,7 @@ export function Search({ heroes, onSelect }: SearchProps) {
               choose(results[activeIndex]);
             }
             if (event.key === "Escape") {
+              event.stopPropagation();
               setQuery("");
               inputRef.current?.blur();
             }

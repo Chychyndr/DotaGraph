@@ -882,6 +882,43 @@ test("keyboard search keeps the active result inside the listbox", async ({ page
   await expect.poll(activeIsInView).toBe(true);
 });
 
+for (const withMatchup of [false, true]) {
+  test(`Escape closes search without leaving ${withMatchup ? "matchup" : "hero focus"}`, async ({ page }) => {
+    await page.goto("/?hero=viper");
+    const heroCard = page.getByLabel("Viper counter summary");
+    await expect(heroCard).toBeVisible();
+
+    const matchupCard = page.locator(".matchup-card");
+    if (withMatchup) {
+      await heroCard.locator(".relation-row").first().click();
+      await expect(matchupCard).toBeVisible();
+      await expect(page).toHaveURL(/matchup=/);
+    }
+    const currentUrl = page.url();
+
+    const search = page.getByRole("combobox", { name: "Search for a hero" });
+    await search.fill("axe");
+    await expect(page.getByRole("listbox")).toBeVisible();
+    await page.keyboard.press("Escape");
+
+    await expect(search).toHaveValue("");
+    await expect(search).not.toBeFocused();
+    await expect(page.getByRole("listbox")).toBeHidden();
+    await expect(withMatchup ? matchupCard : heroCard).toBeVisible();
+    await expect(page).toHaveURL(currentUrl);
+
+    await page.keyboard.press("Escape");
+    if (withMatchup) {
+      await expect(matchupCard).toBeHidden();
+      await expect(heroCard).toBeVisible();
+      await expect(page).toHaveURL(/\?hero=viper$/);
+    } else {
+      await expect(heroCard).toBeHidden();
+      await expect(page).not.toHaveURL(/hero=/);
+    }
+  });
+}
+
 test("hero alias search resolves from metadata", async ({ page }) => {
   await page.goto("/");
   const search = page.getByRole("combobox", { name: "Search for a hero" });
