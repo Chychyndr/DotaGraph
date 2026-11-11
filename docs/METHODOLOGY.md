@@ -187,7 +187,25 @@ se = sqrt(
 rankingScore = delta - 1.645 * se
 ```
 
-The direct A-vs-B observation is excluded from both hero baselines.
+The direct A-vs-B observation is excluded from both hero baselines. The
+baseline rate is still computed over the remaining opponent observations.
+
+For each hero, let `M` be its distinct match count (total opponent observations
+divided by five) and `D = nPair` its direct matches against the other hero. A
+direct match contributes four copies of the same outcome to the baseline.
+Each of the other `M - D` matches contributes five copies. The baseline terms
+use the effective count of independent, weighted match outcomes:
+
+```text
+nBaseline = (4 * D + 5 * (M - D))² / (16 * D + 25 * (M - D))
+```
+
+This is the squared sum of match weights divided by the sum of squared match
+weights. It follows from the variance of a weighted average under independent
+matches with a common outcome variance, estimated here as `baseline * (1 - baseline)`.
+The combined standard error remains a ranking approximation. It omits
+covariance between the pair and baseline estimates and between the two heroes'
+baselines.
 
 Eligibility:
 - exact current patch/scope;

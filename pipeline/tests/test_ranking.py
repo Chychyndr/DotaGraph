@@ -4,6 +4,7 @@ import math
 import unittest
 
 from dotagraph_pipeline.ranking import (
+    HeroTotals,
     PairObservation,
     hero_totals,
     rank_pair,
@@ -15,8 +16,8 @@ class RankingTests(unittest.TestCase):
     def test_baseline_excludes_direct_pair(self) -> None:
         pairs = [
             PairObservation("axe", "viper", 1000, 600),
-            PairObservation("axe", "huskar", 2000, 1000),
-            PairObservation("viper", "huskar", 2000, 1000),
+            PairObservation("axe", "huskar", 9000, 4500),
+            PairObservation("viper", "huskar", 9000, 4500),
         ]
         totals = hero_totals(pairs)
 
@@ -52,8 +53,8 @@ class RankingTests(unittest.TestCase):
     def test_direction_flips_when_second_hero_overperforms(self) -> None:
         pairs = [
             PairObservation("axe", "viper", 1000, 400),
-            PairObservation("axe", "huskar", 2000, 1000),
-            PairObservation("viper", "huskar", 2000, 1000),
+            PairObservation("axe", "huskar", 9000, 4500),
+            PairObservation("viper", "huskar", 9000, 4500),
         ]
         relationship = rank_pair(
             pairs[0],
@@ -69,7 +70,7 @@ class RankingTests(unittest.TestCase):
 
     def test_confidence_penalty_can_reject_weak_edge(self) -> None:
         pairs = [
-            PairObservation("axe", "viper", 500, 267),
+            PairObservation("axe", "viper", 500, 269),
             PairObservation("axe", "huskar", 5000, 2500),
             PairObservation("viper", "huskar", 5000, 2500),
         ]
@@ -80,26 +81,23 @@ class RankingTests(unittest.TestCase):
         )
         self.assertIsNone(relationship)
 
-    def test_strong_edge_survives_confidence_penalty(self) -> None:
-        pairs = [
-            PairObservation("axe", "viper", 1000, 620),
-            PairObservation("axe", "huskar", 5000, 2500),
-            PairObservation("viper", "huskar", 5000, 2500),
-        ]
-        relationship = rank_pair(
-            pairs[0],
-            hero_totals(pairs),
-            minimum_sample=500,
-        )
+    def test_baseline_standard_error_groups_observations_by_match(self) -> None:
+        pair = PairObservation("axe", "viper", 1000, 620)
+        # Each hero played 1,000 direct matches and 2,000 against other lineups.
+        # Direct matches contribute four baseline observations, the rest five.
+        totals = {
+            "axe": HeroTotals(wins=5 * (620 + 904), games=5 * 3000),
+            "viper": HeroTotals(wins=5 * (380 + 1096), games=5 * 3000),
+        }
+        relationship = rank_pair(pair, totals, minimum_sample=500)
+
         self.assertIsNotNone(relationship)
         assert relationship is not None
-        self.assertGreater(relationship.ranking_score, 0)
         self.assertAlmostEqual(relationship.source_win_rate, 0.62)
-        expected_se = math.sqrt(
-            0.62 * 0.38 / 1000
-            + 0.5 * 0.5 / (4 * 5000)
-            + 0.5 * 0.5 / (4 * 5000)
-        )
+        self.assertAlmostEqual(relationship.source_baseline, 0.5)
+        self.assertAlmostEqual(relationship.target_baseline, 0.5)
+        baseline_variance = 0.25 * (1000 * 4**2 + 2000 * 5**2) / 14000**2
+        expected_se = math.sqrt(0.62 * 0.38 / 1000 + baseline_variance / 2)
         self.assertAlmostEqual(relationship.standard_error, expected_se)
 
     def test_sorting_is_deterministic(self) -> None:
