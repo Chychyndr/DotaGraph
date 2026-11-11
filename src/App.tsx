@@ -34,7 +34,7 @@ function Brand({ data }: { data?: DatasetBundle }) {
     <div className="brand">
       <img
         className="brand-logo"
-        src={`${import.meta.env.BASE_URL}favicon.svg`}
+        src={`${import.meta.env.BASE_URL}logo.svg`}
         alt=""
         aria-hidden="true"
       />

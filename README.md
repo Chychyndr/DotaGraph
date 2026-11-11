@@ -1,3 +1,5 @@
+<img src="./public/favicon.svg" alt="DotaGraph emblem" width="64" height="64" />
+
 # DotaGraph
 
 DotaGraph is an open-source, graph-first Dota 2 matchup project.

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="DotaGraph emblem">
+  <g class="emblem" fill="#ffffff">
+    <path d="M32 4 41 18 V52 L32 61 23 52 V18 Z"/>
+    <path d="M3 19 17 29 V53 L3 42 Z"/>
+    <path d="M61 19 47 29 V53 L61 42 Z"/>
+  </g>
+</svg>
