@@ -258,7 +258,10 @@ result. The displayed sample is limited by the discovery filter and request
 budget. Each accepted match contributes one result per opposing hero pair.
 STRATZ counts are reported separately and do not influence Ancient+ ranking
 or consensus. If STRATZ is unavailable, the headline refresh can still
-publish and logs the secondary-source failure.
+publish and logs the secondary-source failure. It retains previous STRATZ
+observations for eligible directed pairs on the same patch for up to 36 hours
+after the previous observation window ended. Retained observations keep their
+original dates.
 
 ## Cross-source detail aggregation
 

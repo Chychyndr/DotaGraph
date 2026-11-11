@@ -636,6 +636,13 @@ def add_stratz_evidence(
         payload["relationships"], hero_map, end_epoch=end_epoch,
         collected_at=collected_at, token=token, logger=logger,
     )
+    replace_stratz_evidence(payload, evidence)
+    return len(evidence)
+
+
+def replace_stratz_evidence(
+    payload: dict[str, Any], evidence: list[dict[str, Any]]
+) -> None:
     observations = [
         row for row in payload.get("evidenceObservations", [])
         if row["provider"] != "STRATZ"
@@ -643,7 +650,41 @@ def add_stratz_evidence(
     observations.extend(evidence)
     payload["evidenceObservations"] = observations
     payload["coverage"]["immortalEvidenceCount"] = len(observations)
-    return len(evidence)
+
+
+def previous_stratz_evidence(
+    repo_root: Path, payload: dict[str, Any], end_epoch: int,
+) -> list[dict[str, Any]]:
+    try:
+        previous = json.loads(
+            (repo_root / "public" / "data" / "current-matchups.json").read_text(encoding="utf-8")
+        )
+    except (OSError, ValueError):
+        return []
+    if not isinstance(previous, dict) or previous.get("patch") != payload["patch"]:
+        return []
+    observations = previous.get("evidenceObservations", [])
+    if not isinstance(observations, list):
+        return []
+    directions = {
+        (row["sourceSlug"], row["targetSlug"]) for row in payload["relationships"]
+    }
+    retained = []
+    cutoff = max(CURRENT_SCOPE.start_epoch, end_epoch - 36 * 60 * 60)
+    for row in observations:
+        if not isinstance(row, dict) or row.get("provider") != "STRATZ":
+            continue
+        if (row.get("sourceSlug"), row.get("targetSlug")) not in directions:
+            continue
+        try:
+            scope = row["scope"]
+            observed_end = datetime.fromisoformat(scope["observationWindowEndExclusive"])
+            observed_epoch = observed_end.timestamp() if observed_end.tzinfo else 0
+            if scope["patch"] == payload["patch"] and scope["rankScope"] == "immortal" and cutoff <= observed_epoch <= end_epoch:
+                retained.append(row)
+        except (KeyError, TypeError, ValueError):
+            continue
+    return retained
 
 
 def generate(
@@ -859,9 +900,11 @@ def generate(
                 collected_at=generated_at_iso, token=stratz_token, logger=logger,
             )
         except RuntimeError as exc:
+            retained = previous_stratz_evidence(repo_root, payload, end_epoch)
+            replace_stratz_evidence(payload, retained)
             log_event(
                 logger, "stratz_evidence_unavailable", level=logging.WARNING,
-                detail=str(exc),
+                detail=str(exc), retainedEvidenceCount=len(retained),
             )
 
     if not payload["evidenceObservations"]:

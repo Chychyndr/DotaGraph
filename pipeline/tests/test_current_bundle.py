@@ -2,9 +2,11 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from io import BytesIO
+import json
 import logging
 import os
 from pathlib import Path
+from tempfile import TemporaryDirectory
 import unittest
 from unittest.mock import MagicMock, patch
 from urllib.error import HTTPError
@@ -20,6 +22,7 @@ from dotagraph_pipeline.generate_current_bundle import (
     add_stratz_evidence,
     collect_stratz_evidence,
     generate,
+    previous_stratz_evidence,
 )
 from dotagraph_pipeline.config import CURRENT_SCOPE
 from dotagraph_pipeline.layout import layout_metrics
@@ -330,6 +333,32 @@ class CurrentBundleTests(unittest.TestCase):
         self.assertEqual(count, 1)
         self.assertEqual(payload["evidenceObservations"], [{"provider": "OpenDota"}, replacement])
         self.assertEqual(payload["coverage"]["immortalEvidenceCount"], 2)
+
+    def test_stratz_outage_retains_only_fresh_current_patch_visible_evidence(self) -> None:
+        end = int(datetime(2026, 11, 11, tzinfo=timezone.utc).timestamp())
+        relationships = [{"sourceSlug": "axe", "targetSlug": "viper"}]
+        fresh = {
+            **relationships[0], "provider": "STRATZ",
+            "scope": {
+                "patch": CURRENT_SCOPE.patch, "rankScope": "immortal",
+                "observationWindowEndExclusive": "2026-11-10T12:00:00Z",
+            },
+        }
+        stale = dict(fresh, scope={
+            **fresh["scope"], "observationWindowEndExclusive": "2026-11-09T10:00:00Z",
+        })
+        old_patch = dict(fresh, scope={**fresh["scope"], "patch": "7.41e"})
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            snapshot = root / "public/data/current-matchups.json"
+            snapshot.parent.mkdir(parents=True)
+            snapshot.write_text(json.dumps({
+                "patch": CURRENT_SCOPE.patch,
+                "evidenceObservations": [fresh, stale, old_patch, dict(fresh, targetSlug="lion")],
+            }), encoding="utf-8")
+            self.assertEqual(previous_stratz_evidence(
+                root, {"patch": CURRENT_SCOPE.patch, "relationships": relationships}, end,
+            ), [fresh])
 
     def test_stratz_evidence_confirms_patch_and_keeps_headline_direction(self) -> None:
         module = "dotagraph_pipeline.generate_current_bundle"
