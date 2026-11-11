@@ -66,6 +66,6 @@ The current OpenDota pipeline targets regeneration every 12 hours in GitHub Acti
 
 ## Portrait asset boundary
 
-All hero portraits come from one local WebP atlas. `PortraitProvider` performs one deduplicated fetch and decode check, including under React StrictMode.
+All hero portraits come from one local WebP atlas. The generator and renderer share the column count and cell size in `src/data/heroAtlasGeometry.json` and derive the row count from the hero catalog. `PortraitProvider` performs one deduplicated fetch and decode check, including under React StrictMode.
 
 Once ready, components and the SVG graph use the decoded atlas through a local object URL. If the request or decode fails, the graph and cards keep their dimensions and switch to text fallbacks while the UI shows a non-blocking portrait warning.

@@ -1,8 +1,11 @@
 import type { CSSProperties } from "react";
 
-export const HERO_ATLAS_COLUMNS = 16;
-export const HERO_ATLAS_ROWS = 8;
-export const HERO_ATLAS_CELL_SIZE = 96;
+import heroAtlasGeometry from "./heroAtlasGeometry.json";
+import heroCatalog from "./heroCatalog.json";
+
+export const HERO_ATLAS_COLUMNS = heroAtlasGeometry.columns;
+export const HERO_ATLAS_ROWS = Math.ceil(heroCatalog.length / HERO_ATLAS_COLUMNS);
+export const HERO_ATLAS_CELL_SIZE = heroAtlasGeometry.cellSize;
 export const HERO_ATLAS_WIDTH = HERO_ATLAS_COLUMNS * HERO_ATLAS_CELL_SIZE;
 export const HERO_ATLAS_HEIGHT = HERO_ATLAS_ROWS * HERO_ATLAS_CELL_SIZE;
 
@@ -33,8 +36,8 @@ export const getHeroSpriteCell = (spriteIndex: number) => {
 
 export const getHeroSpriteStyle = (spriteIndex: number, atlasUrl = HERO_ATLAS_URL): CSSProperties => {
   const { column, row } = getHeroSpriteCell(spriteIndex);
-  const x = (column / (HERO_ATLAS_COLUMNS - 1)) * 100;
-  const y = (row / (HERO_ATLAS_ROWS - 1)) * 100;
+  const x = (column / Math.max(1, HERO_ATLAS_COLUMNS - 1)) * 100;
+  const y = (row / Math.max(1, HERO_ATLAS_ROWS - 1)) * 100;
 
   return {
     backgroundImage: `url("${atlasUrl}")`,
