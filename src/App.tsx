@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { HeroCard } from "./components/HeroCard";
 import { MatchupCard } from "./components/MatchupCard";
 import { usePortraitAsset } from "./components/PortraitProvider";
@@ -101,6 +101,16 @@ function ReadyApp({ data }: { data: DatasetBundle }) {
   const [selectedHeroId, setSelectedHeroId] = useState<string | null>(initial.hero);
   const [matchupHeroId, setMatchupHeroId] = useState<string | null>(initial.matchup);
   const [hoveredHeroId, setHoveredHeroId] = useState<string | null>(null);
+  const matchupBackRef = useRef<HTMLButtonElement>(null);
+  const returnRowId = useRef<string | null>(null);
+  const pendingCardFocus = useRef<"back" | "return" | null>(null);
+
+  const closeMatchup = useCallback((restoreFocus: boolean) => {
+    pendingCardFocus.current = restoreFocus ? "return" : null;
+    if (!restoreFocus) returnRowId.current = null;
+    setMatchupHeroId(null);
+  }, []);
+
 
   const selectedHero = selectedHeroId ? heroById.get(selectedHeroId) : undefined;
   const selectedRelations = useMemo(
@@ -139,6 +149,20 @@ function ReadyApp({ data }: { data: DatasetBundle }) {
     [relationships, scope]
   );
 
+  useLayoutEffect(() => {
+    if (matchup && pendingCardFocus.current === "back") {
+      matchupBackRef.current?.focus();
+    } else if (!matchup && pendingCardFocus.current === "return") {
+      const row = returnRowId.current
+        ? document.getElementById(returnRowId.current)
+        : null;
+      const selectedNode = document.getElementById(`graph-hero-${selectedHeroId}`);
+      (row ?? selectedNode)?.focus();
+      returnRowId.current = null;
+    }
+    pendingCardFocus.current = null;
+  }, [matchup, selectedHeroId]);
+
   useEffect(() => {
     if (matchupHeroId && !matchup) setMatchupHeroId(null);
   }, [matchupHeroId, matchup]);
@@ -155,20 +179,20 @@ function ReadyApp({ data }: { data: DatasetBundle }) {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
       if (document.activeElement instanceof HTMLInputElement) return;
-      if (matchupHeroId) setMatchupHeroId(null);
+      if (matchupHeroId) closeMatchup(true);
       else if (selectedHeroId) setSelectedHeroId(null);
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [matchupHeroId, selectedHeroId]);
+  }, [closeMatchup, matchupHeroId, selectedHeroId]);
 
   const selectHero = (heroId: string) => {
     setSelectedHeroId(heroId);
-    setMatchupHeroId(null);
+    closeMatchup(false);
   };
 
   const reset = () => {
-    setMatchupHeroId(null);
+    closeMatchup(false);
     setSelectedHeroId(null);
     setHoveredHeroId(null);
   };
@@ -223,7 +247,10 @@ function ReadyApp({ data }: { data: DatasetBundle }) {
           matchupHeroId={matchupHeroId}
           selectedRelations={selectedRelations}
           onSelectHero={selectHero}
-          onSelectMatchup={setMatchupHeroId}
+          onSelectMatchup={(heroId) => {
+            returnRowId.current = null;
+            setMatchupHeroId(heroId);
+          }}
           onHoverHero={setHoveredHeroId}
           onClearSelection={reset}
         />
@@ -240,7 +267,11 @@ function ReadyApp({ data }: { data: DatasetBundle }) {
             hero={selectedHero}
             incoming={selectedRelations.incoming}
             outgoing={selectedRelations.outgoing}
-            onMatchup={setMatchupHeroId}
+            onMatchup={(heroId, rowId, keyboard) => {
+              returnRowId.current = rowId;
+              pendingCardFocus.current = keyboard ? "back" : null;
+              setMatchupHeroId(heroId);
+            }}
             heroesById={heroById}
           />
         )}
@@ -253,7 +284,8 @@ function ReadyApp({ data }: { data: DatasetBundle }) {
             scope={scope}
             metadata={metadata}
             evidenceObservations={matchupEvidence}
-            onBack={() => setMatchupHeroId(null)}
+            backButtonRef={matchupBackRef}
+            onBack={closeMatchup}
           />
         )}
       </section>

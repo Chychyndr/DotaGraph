@@ -91,6 +91,7 @@
 - Visible focus styling is drawn on the hero ring.
 - Hero search uses combobox/listbox semantics and exposes the `/` keyboard shortcut.
 - Search selection moves keyboard focus to the selected graph hero.
+- Keyboard activation of a relationship row focuses the matchup back button. Returning with the keyboard restores the original row, or the selected graph hero when there is no row.
 - Focus and matchup changes are announced through a polite live region.
 - Relationship controls describe direction and identify whose win rate is being shown.
 - Reduced-motion preferences bypass the camera animation.

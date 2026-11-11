@@ -919,6 +919,36 @@ for (const withMatchup of [false, true]) {
   });
 }
 
+test("keyboard matchup transitions restore focus to the opening row", async ({ page }) => {
+  await page.goto("/?hero=viper");
+  const heroCard = page.getByLabel("Viper counter summary");
+  const openingRow = heroCard.locator(".relation-row").first();
+  await openingRow.focus();
+  await openingRow.press("Enter");
+
+  const back = page.getByRole("button", { name: /Hero overview/ });
+  await expect(back).toBeFocused();
+  await back.press("Enter");
+  await expect(openingRow).toBeFocused();
+
+  await openingRow.press("Space");
+  await expect(back).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(openingRow).toBeFocused();
+});
+
+test("closing a deep-linked matchup focuses the selected graph hero", async ({ page }) => {
+  await page.goto("/?hero=viper");
+  await page.getByLabel("Viper counter summary").locator(".relation-row").first().click();
+  await expect(page).toHaveURL(/matchup=/);
+  await page.reload();
+
+  const back = page.getByRole("button", { name: /Hero overview/ });
+  await back.focus();
+  await back.press("Enter");
+  await expect(page.locator("#graph-hero-viper")).toBeFocused();
+});
+
 test("hero alias search resolves from metadata", async ({ page }) => {
   await page.goto("/");
   const search = page.getByRole("combobox", { name: "Search for a hero" });
