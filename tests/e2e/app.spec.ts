@@ -1169,7 +1169,7 @@ test("matchup details keep Immortal evidence separate from the headline", async 
     "href",
     "https://stratz.com/api"
   );
-  await expect(stratzEvidence).toContainText("Sample of recent matches.");
+  await expect(stratzEvidence).toContainText("Accumulated sample for this patch.");
   await expect(stratzEvidence).toContainText("50.0%");
 
   await page.setViewportSize({ width: 390, height: 844 });

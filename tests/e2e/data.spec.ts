@@ -78,6 +78,6 @@ test("published STRATZ evidence is shown in matchup details", async ({ request, 
   const evidence = page.locator(".population-evidence-item").filter({
     has: page.getByRole("link", { name: "STRATZ", exact: true })
   });
-  await expect(evidence.getByText("Sample of recent matches.", { exact: false })).toBeVisible();
+  await expect(evidence.getByText("Accumulated sample for this patch.", { exact: false })).toBeVisible();
   await expect(evidence.getByRole("link", { name: "STRATZ" })).toHaveAttribute("href", "https://stratz.com/api");
 });

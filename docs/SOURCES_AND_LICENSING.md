@@ -178,7 +178,7 @@ DotaGraph decision:
 Review date: 2026-09-18.
 
 The scheduled refresh uses the `STRATZ_API_TOKEN` repository secret to classify
-up to 120 recent public match IDs discovered through OpenDota Explorer. The
+up to 240 public match IDs from each new observation interval through OpenDota Explorer. The
 discovery filter selects average medal 75, the tier where OpenDota folds
 Immortal matches. STRATZ independently verifies the match rank and game version
 before DotaGraph publishes pair-level aggregates. Match IDs and player data

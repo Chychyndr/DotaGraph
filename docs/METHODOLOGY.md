@@ -249,19 +249,20 @@ The refresh workflow reports the published Immortal observation count.
 
 [OpenDota's average-medal regression test](https://github.com/odota/core/blob/728b5f320fd0c16b3557d6465b9589b89465b32a/test/test.ts#L185-L191)
 
-The scheduled refresh also collects STRATZ Immortal evidence. It starts with
-at most the 120 newest OpenDota public matches labeled average medal 75 in
-the preceding 24 hours of the current patch, then retrieves them individually
-from STRATZ. A match contributes only when STRATZ confirms `rank = 80`,
-`bracket = 8`, the current game version, ranked All Draft, and a complete 5v5
-result. The displayed sample is limited by the discovery filter and request
-budget. Each accepted match contributes one result per opposing hero pair.
-STRATZ counts are reported separately and do not influence Ancient+ ranking
-or consensus. If STRATZ is unavailable, the headline refresh can still
-publish and logs the secondary-source failure. It retains previous STRATZ
-observations for eligible directed pairs on the same patch for up to 36 hours
-after the previous observation window ended. Retained observations keep their
-original dates.
+The scheduled refresh accumulates STRATZ Immortal evidence across the current
+patch. The first successful refresh starts with a 24-hour interval. Subsequent
+refreshes sample only the interval after the previous checkpoint. The latest
+two hours are held back to give STRATZ time to index completed matches. Each
+refresh samples at most 240 OpenDota public matches with average medal 75 using
+a stable hash of the match ID across the interval. STRATZ verifies rank 80,
+bracket 8, patch, ranked All Draft, and a complete 5v5 result.
+
+The published snapshot stores aggregate pair counts and the exclusive
+checkpoint time, so reruns do not count a time interval twice. This is a
+sample of eligible matches and does not influence the Ancient+ ranking.
+If collection fails, the published sample and checkpoint are retained.
+The next successful run samples the missed interval within the same request
+budget. A patch change starts a new sample.
 
 ## Cross-source detail aggregation
 

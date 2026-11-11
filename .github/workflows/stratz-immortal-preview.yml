@@ -82,6 +82,8 @@ jobs:
                   print("The matchup card will be verified with fixture data.", file=summary)
               raise SystemExit(0) from None
           print(f"STRATZ observations in generated bundle: {count}")
+          history = data.get("stratzImmortalHistory") or {}
+          print(f"Accumulated STRATZ Immortal matches: {history.get('matchCount', 0)}")
           if count == 0:
               raise SystemExit("No live STRATZ evidence reached the generated bundle.")
           path.write_text(json.dumps(data), encoding="utf-8")
