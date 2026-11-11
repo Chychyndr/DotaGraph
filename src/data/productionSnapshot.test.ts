@@ -165,10 +165,36 @@ describe("buildDatasetFromProductionSnapshot", () => {
     expect(buildDatasetFromProductionSnapshot(raw).ok).toBe(true);
   });
 
+  it("accepts small clock skew but rejects a future-dated snapshot", () => {
+    expect(buildDatasetFromProductionSnapshot(
+      snapshot(), Date.parse("2026-09-19T07:55:00Z")
+    ).ok).toBe(true);
+    expect(buildDatasetFromProductionSnapshot(
+      snapshot(), Date.parse("2026-09-19T07:54:59Z")
+    )).toEqual({
+      ok: false,
+      issues: ["Production snapshot generatedAt is in the future."]
+    });
+  });
+
+  it.each([
+    ["2026-09-15T00:00:00Z", "must have positive duration"],
+    ["2026-09-16T00:00:00Z", "must have positive duration"],
+    ["2026-09-19T08:00:01Z", "ends after generatedAt"]
+  ])("rejects an impossible headline window ending at %s", (end, issue) => {
+    const raw = snapshot();
+    raw.scope.observationWindowEndExclusive = end;
+
+    expect(buildDatasetFromProductionSnapshot(raw, Date.parse("2026-09-19T09:00:00Z"))).toEqual({
+      ok: false,
+      issues: [`Production snapshot observation window ${issue}.`]
+    });
+  });
+
   it("marks snapshots stale after 36 hours", () => {
     const result = buildDatasetFromProductionSnapshot(
-      snapshot("2026-09-17T00:00:00Z"),
-      Date.parse("2026-09-19T00:01:00Z")
+      snapshot(),
+      Date.parse("2026-09-21T08:01:00Z")
     );
 
     expect(result.ok).toBe(true);
