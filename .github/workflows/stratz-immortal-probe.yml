@@ -119,8 +119,6 @@ jobs:
           axe_viper = [p for p in pairs if {p["heroId1"], p["heroId2"]} == {2, 47}]
           print("Axe vs Viper counts from sample:", json.dumps(axe_viper))
           from collections import Counter
-          from datetime import datetime, timedelta, timezone
-          from urllib.parse import urlencode
 
           match_type = query(f'{{ __type(name: "MatchType") {{ {fields} }} }}')["__type"]
           rank_fields = [
@@ -129,20 +127,8 @@ jobs:
               and field["type"]["kind"] in {"SCALAR", "ENUM", "NON_NULL"}
           ]
           print("Selectable match rank fields:", rank_fields)
-          start = int((datetime.now(timezone.utc) - timedelta(days=7)).timestamp())
-          sql = f"""
-              SELECT match_id FROM public_matches
-              WHERE avg_rank_tier = 75 AND start_time >= {start}
-                AND game_mode = 22 AND lobby_type = 7
-              ORDER BY match_id DESC LIMIT 20
-          """
-          url = "https://api.opendota.com/api/explorer?" + urlencode({"sql": sql})
-          try:
-              with opener.open(url, timeout=25) as response:
-                  candidate_rows = json.load(response).get("rows") or []
-          except urllib.error.HTTPError as exc:
-              raise SystemExit(f"OpenDota candidate query failed with HTTP {exc.code}.") from None
-          ids = [int(row["match_id"]) for row in candidate_rows]
+          # Recent public ranked All Draft matches tagged Divine 5 by OpenDota.
+          ids = [9085800147, 9085798479, 9085791811, 9085789797, 9085787366, 9085786984, 9085782317, 9085782121, 9085782062, 9085780728, 9085780596, 9085780594, 9085780422, 9085780369, 9085780024, 9085780014, 9085779859, 9085779283, 9085779165, 9085778126]
           if not ids or not rank_fields:
               raise SystemExit("No candidate IDs or selectable STRATZ rank fields.")
           print("OpenDota Divine 5 candidate matches:", len(ids))
