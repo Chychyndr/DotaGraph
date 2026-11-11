@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { Hero } from "../domain/types";
 import { searchHeroes } from "../domain/relationships";
 import { HeroPortrait } from "./HeroPortrait";
@@ -12,11 +12,27 @@ export function Search({ heroes, onSelect }: SearchProps) {
   const [query, setQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
   const results = useMemo(() => searchHeroes(heroes, query), [heroes, query]);
 
   useEffect(() => {
     setActiveIndex(0);
   }, [query]);
+
+  useLayoutEffect(() => {
+    const list = listRef.current;
+    const option = list?.querySelector('[aria-selected="true"]');
+    if (!list || !option) return;
+
+    const top = list.getBoundingClientRect().top + list.clientTop;
+    const bottom = top + list.clientHeight;
+    const bounds = option.getBoundingClientRect();
+    if (bounds.top < top) {
+      list.scrollTop += bounds.top - top;
+    } else if (bounds.bottom > bottom) {
+      list.scrollTop += bounds.bottom - bottom;
+    }
+  }, [activeIndex, results]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -80,6 +96,7 @@ export function Search({ heroes, onSelect }: SearchProps) {
 
       {query && (
         <div
+          ref={listRef}
           className="search-results"
           id="hero-search-results"
           role="listbox"
