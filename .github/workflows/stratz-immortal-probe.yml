@@ -53,6 +53,11 @@ jobs:
                       payload = json.load(response)
               except urllib.error.HTTPError as exc:
                   print(f"STRATZ HTTP status: {exc.code}")
+                  body = exc.read(4096).lower()
+                  print("Response is HTML:", "html" in (exc.headers.get("Content-Type") or "").lower())
+                  print("Cloudflare challenge:", exc.headers.get("cf-mitigated") == "challenge")
+                  print("Response mentions rate limit:", b"rate limit" in body)
+                  print("Response mentions token:", b"token" in body)
                   if required:
                       raise SystemExit(1) from None
                   return {}
@@ -62,71 +67,9 @@ jobs:
                       raise SystemExit(1)
               return payload.get("data") or {}
 
-          def named_type(ref):
-              while ref and not ref["name"]:
-                  ref = ref.get("ofType")
-              return ref["name"] if ref else None
-
-          type_ref = "name kind ofType { name kind ofType { name kind ofType { name kind } } }"
-          fields = f"fields {{ name type {{ {type_ref} }} args {{ name type {{ {type_ref} }} }} }}"
-          schema = query(f"""{{
-              __schema {{ queryType {{ name {fields} }} }}
-              basic: __type(name: "RankBracketBasicEnum") {{ enumValues {{ name }} }}
-              detailed: __type(name: "RankBracket") {{ enumValues {{ name }} }}
-          }}""")
-          root = schema["__schema"]["queryType"]["fields"]
-          root_matches = [field for field in root if "match" in field["name"].lower()]
-          print("Match queries:", json.dumps([
-              (f["name"], named_type(f["type"]), [(a["name"], named_type(a["type"])) for a in f["args"]])
-              for f in root_matches
-          ]))
-          for key in ("basic", "detailed"):
-              enum = schema.get(key) or {}
-              print(f"{key} ranks:", [v["name"] for v in enum.get("enumValues") or []])
-
-          types = {named_type(f["type"]) for f in root_matches}
-          types.update(named_type(a["type"]) for f in root_matches for a in f["args"])
-          types.update(named_type(f["type"]) for f in root if f["name"] == "heroStats")
-          types.difference_update({None, "Long", "Int", "Short", "String", "ID", "Boolean"})
-          selections = " ".join(
-              f't{i}: __type(name: "{name}") {{ name {fields} inputFields {{ name type {{ {type_ref} }} }} }}'
-              for i, name in enumerate(sorted(types))
-          )
-          for t in query("{ " + selections + " }", required=False).values():
-              if not t:
-                  continue
-              relevant = [
-                  (f["name"], [(a["name"], named_type(a["type"])) for a in f["args"]])
-                  for f in t.get("fields") or []
-                  if any(part in f["name"].lower() for part in ("match", "rank", "player", "bracket"))
-              ]
-              inputs = [(f["name"], named_type(f["type"])) for f in t.get("inputFields") or []]
-              print(t["name"], json.dumps({"fields": relevant, "inputs": inputs}))
-
-          sample = query("""{
-              heroStats {
-                  matchUp(heroId: 2, heroIds: [47], bracketBasicIds: [DIVINE_IMMORTAL], take: 5) {
-                      vs { heroId1 heroId2 bracketBasicIds matchCount winCount }
-                  }
-              }
-          }""", required=False)
-          rows = (sample.get("heroStats") or {}).get("matchUp") or []
-          pairs = [pair for row in rows for pair in row.get("vs") or []]
-          print("Sample opponent rows:", len(pairs))
-          print("Sample bracket labels:", sorted({
-              str(pair["bracketBasicIds"]) for pair in pairs if pair.get("bracketBasicIds")
-          }))
-          axe_viper = [p for p in pairs if {p["heroId1"], p["heroId2"]} == {2, 47}]
-          print("Axe vs Viper counts from sample:", json.dumps(axe_viper))
           from collections import Counter
 
-          match_type = query(f'{{ __type(name: "MatchType") {{ {fields} }} }}')["__type"]
-          rank_fields = [
-              field["name"] for field in match_type["fields"]
-              if field["name"] in {"rank", "actualRank", "averageRank", "bracket"}
-              and field["type"]["kind"] in {"SCALAR", "ENUM", "NON_NULL"}
-          ]
-          print("Selectable match rank fields:", rank_fields)
+          rank_fields = ["actualRank", "averageRank", "rank", "bracket"]
           # Recent public ranked All Draft matches tagged Divine 5 by OpenDota.
           ids = [9085800147, 9085798479, 9085791811, 9085789797, 9085787366, 9085786984, 9085782317, 9085782121, 9085782062, 9085780728, 9085780596, 9085780594, 9085780422, 9085780369, 9085780024, 9085780014, 9085779859, 9085779283, 9085779165, 9085778126]
           if not ids or not rank_fields:
