@@ -98,6 +98,9 @@ jobs:
           print(f"- Relationships: **{coverage['rankedRelationshipCount']}**")
           print(f"- Qualifying pairs: **{coverage['qualifyingPairCount']}**")
           print(f"- Layout relationships: **{coverage['layoutRelationshipCount']}**")
+          print(f"- Immortal evidence observations: **{coverage['immortalEvidenceCount']}**")
+          if coverage["immortalEvidenceCount"] == 0:
+              print("- Warning: no Immortal evidence. See the generation logs for the reason.")
           print(f"- Layout median distance: **{metrics['medianDistance']} px**")
           print(f"- Layout p95 distance: **{metrics['p95Distance']} px**")
           print(f"- Minimum node distance: **{metrics['minimumNodeDistance']} px**")

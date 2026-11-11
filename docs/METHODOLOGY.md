@@ -239,6 +239,16 @@ The Immortal `sampleSize` is the source-local count for that Immortal subset. It
 
 The pipeline computes the subset with conditional aggregates inside the existing OpenDota Explorer query, so this feature does not add another provider request or a new source-access method.
 
+OpenDota's average-medal calculation maps player rank `80` (Immortal) to
+average medal `75` (Divine 5) for an all-Immortal input. The provider's public
+match aggregate therefore cannot distinguish those matches from Divine 5
+matches. The generator leaves the Immortal evidence empty when the rank
+filter yields no pairs, and logs a warning with the window and filter. It
+also warns when Immortal pairs exist but none match an eligible relationship.
+The refresh workflow reports the published Immortal observation count.
+
+[OpenDota's average-medal regression test](https://github.com/odota/core/blob/728b5f320fd0c16b3557d6465b9589b89465b32a/test/test.ts#L185-L191)
+
 ## Cross-source detail aggregation
 
 Status: **approved for secondary-source detail views**.
