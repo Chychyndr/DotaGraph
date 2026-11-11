@@ -1,5 +1,5 @@
 import type { Hero } from "../domain/types";
-import heroCatalog from "./heroCatalog.json";
+import heroCatalog from "./heroCatalog.json" with { type: "json" };
 
 interface HeroSeed {
   slug: string;

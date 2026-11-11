@@ -1117,6 +1117,27 @@ test("matchup details keep Immortal evidence separate from the headline", async 
       }))
     ];
 
+    payload.evidenceObservations.push(...payload.relationships.map((relationship, index) => ({
+      id: `test-stratz-immortal-${index}`,
+      provider: "STRATZ",
+      sourceSlug: relationship.sourceSlug,
+      targetSlug: relationship.targetSlug,
+      sourceWinRate: 0.5,
+      sampleSize: 2,
+      scope: {
+        patch: payload.patch,
+        rankScope: "immortal",
+        matchPopulation: "ranked_all_draft_5v5",
+        observationWindowStart: payload.scope.observationWindowStart,
+        observationWindowEndExclusive: payload.scope.observationWindowEndExclusive
+      },
+      provenance: {
+        sourceUrl: "https://stratz.com/api",
+        queryScope: "recent OpenDota medal-75 sample; STRATZ ranked All Draft",
+        collectedAt: payload.generatedAt
+      }
+    })));
+
     await route.fulfill({ response, json: payload });
   });
 
@@ -1140,7 +1161,16 @@ test("matchup details keep Immortal evidence separate from the headline", async 
   await expect(details).toContainText(
     "Separate population; excluded from the Ancient+ headline and cross-source consensus."
   );
-  await expect(details.getByText("STRATZ", { exact: true })).toHaveCount(0);
+  await expect(details.locator(".population-evidence-item")).toHaveCount(2);
+  const stratzEvidence = details.locator(".population-evidence-item").filter({
+    has: page.getByRole("link", { name: "STRATZ", exact: true })
+  });
+  await expect(stratzEvidence.getByRole("link", { name: "STRATZ" })).toHaveAttribute(
+    "href",
+    "https://stratz.com/api"
+  );
+  await expect(stratzEvidence).toContainText("Accumulated sample for this patch.");
+  await expect(stratzEvidence).toContainText("50.0%");
 
   await page.setViewportSize({ width: 390, height: 844 });
   await details.scrollIntoViewIfNeeded();

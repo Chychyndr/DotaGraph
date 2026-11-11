@@ -2,9 +2,11 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from io import BytesIO
+import json
 import logging
 import os
 from pathlib import Path
+from tempfile import TemporaryDirectory
 import unittest
 from unittest.mock import MagicMock, patch
 from urllib.error import HTTPError
@@ -17,8 +19,14 @@ from dotagraph_pipeline.generate_current_bundle import (
     _request_json,
     _retry_after_seconds,
     _select_layout_relationships,
+    add_stratz_evidence,
+    collect_stratz_history,
+    project_stratz_history,
+    read_stratz_history,
     generate,
+    previous_stratz_evidence,
 )
+from dotagraph_pipeline.config import CURRENT_SCOPE
 from dotagraph_pipeline.layout import layout_metrics
 from dotagraph_pipeline.logging_utils import configure_logging
 from dotagraph_pipeline.ranking import RankedRelationship
@@ -307,6 +315,125 @@ class CurrentBundleTests(unittest.TestCase):
             payload["coverage"]["immortalEvidenceCount"],
             len(payload["evidenceObservations"]),
         )
+
+    def test_stratz_enrichment_replaces_its_own_evidence_only(self) -> None:
+        payload = {
+            "relationships": [],
+            "evidenceObservations": [{"provider": "OpenDota"}, {"provider": "STRATZ", "old": True}],
+            "coverage": {"immortalEvidenceCount": 2},
+        }
+        payload["relationships"] = [{"sourceSlug": "axe", "targetSlug": "viper"}]
+        history = {
+            "patch": CURRENT_SCOPE.patch, "gameVersionId": 190,
+            "start": CURRENT_SCOPE.start_epoch, "endExclusive": CURRENT_SCOPE.start_epoch + 1,
+            "collectedAt": "2026-09-16T00:01:00Z", "matchCount": 1,
+            "pairs": [[2, 47, 1, 1]],
+        }
+        with patch(
+            "dotagraph_pipeline.generate_current_bundle.collect_stratz_history",
+            return_value=history,
+        ):
+            count = add_stratz_evidence(
+                payload, {2: "axe", 47: "viper"}, end_epoch=CURRENT_SCOPE.start_epoch + 7201,
+                collected_at="2026-09-16T02:00:01Z", token="test-token",
+                logger=configure_logging(),
+            )
+        self.assertEqual(count, 1)
+        self.assertEqual(payload["evidenceObservations"][0], {"provider": "OpenDota"})
+        self.assertEqual(payload["evidenceObservations"][1]["sampleSize"], 1)
+        self.assertEqual(payload["coverage"]["immortalEvidenceCount"], 2)
+
+    def test_stratz_outage_retains_only_fresh_current_patch_visible_evidence(self) -> None:
+        end = int(datetime(2026, 11, 11, tzinfo=timezone.utc).timestamp())
+        relationships = [{"sourceSlug": "axe", "targetSlug": "viper"}]
+        fresh = {
+            **relationships[0], "provider": "STRATZ",
+            "scope": {
+                "patch": CURRENT_SCOPE.patch, "rankScope": "immortal",
+                "observationWindowEndExclusive": "2026-11-10T12:00:00Z",
+            },
+        }
+        stale = dict(fresh, scope={
+            **fresh["scope"], "observationWindowEndExclusive": "2026-11-09T10:00:00Z",
+        })
+        old_patch = dict(fresh, scope={**fresh["scope"], "patch": "7.41e"})
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            snapshot = root / "public/data/current-matchups.json"
+            snapshot.parent.mkdir(parents=True)
+            snapshot.write_text(json.dumps({
+                "patch": CURRENT_SCOPE.patch,
+                "evidenceObservations": [fresh, stale, old_patch, dict(fresh, targetSlug="lion")],
+            }), encoding="utf-8")
+            self.assertEqual(previous_stratz_evidence(
+                root, {"patch": CURRENT_SCOPE.patch, "relationships": relationships}, end,
+            ), [fresh])
+
+    def test_stratz_evidence_confirms_patch_and_keeps_headline_direction(self) -> None:
+        module = "dotagraph_pipeline.generate_current_bundle"
+        start = CURRENT_SCOPE.start_epoch
+        end = start + 60
+        players = [
+            {"heroId": hero, "isRadiant": hero <= 5} for hero in range(1, 11)
+        ]
+        match = {
+            "id": 100, "gameVersionId": 190, "rank": 80, "bracket": 8,
+            "gameMode": 22, "lobbyType": 7, "didRadiantWin": True,
+            "players": players,
+        }
+        rows = [
+            {"match_id": 100, "start_time": start},
+            {"match_id": 101, "start_time": start + 1},
+            {"match_id": 102, "start_time": end},
+        ]
+        relationships = [{"sourceSlug": "dire-hero", "targetSlug": "radiant-hero"}]
+        with (
+            patch(f"{module}._request_json", return_value={"rows": rows}) as discovery,
+            patch(f"{module}.game_version_id", return_value=190),
+            patch(f"{module}.time.sleep"),
+            patch(f"{module}.fetch_matches", return_value=[
+                match, dict(match, id=101, gameVersionId=191),
+            ]) as fetch,
+        ):
+            history = collect_stratz_history(
+                None, end_epoch=end, collected_at="2026-09-16T00:01:00Z",
+                token="test-token", logger=configure_logging(),
+            )
+            self.assertIsNotNone(history)
+            self.assertIn("avg_rank_tier%20%3D%2075", discovery.call_args.args[0].replace("+", "%20"))
+            fetch.assert_called_once_with([100, 101], "test-token")
+            self.assertEqual(history["matchCount"], 1)
+
+            # A replay of the same endpoint cannot re-fetch or double count.
+            self.assertIs(collect_stratz_history(
+                history, end_epoch=end, collected_at="2026-09-16T00:01:00Z",
+                token="test-token", logger=configure_logging(),
+            ), history)
+            self.assertEqual(fetch.call_count, 1)
+
+            # The old rows are outside the new window. The boundary match
+            # belongs to this interval and contributes exactly once.
+            fetch.return_value = [dict(match, id=102, didRadiantWin=False)]
+            combined = collect_stratz_history(
+                history, end_epoch=end + 60, collected_at="2026-09-16T00:02:00Z",
+                token="test-token", logger=configure_logging(),
+            )
+            fetch.assert_called_with([102], "test-token")
+
+        self.assertEqual(combined["matchCount"], 2)
+        self.assertEqual(combined["start"], start)
+        self.assertEqual(combined["endExclusive"], end + 60)
+        payload = {"relationships": relationships, "coverage": {}}
+        project_stratz_history(payload, {6: "dire-hero", 1: "radiant-hero"}, combined)
+        evidence = payload["evidenceObservations"]
+        self.assertEqual(len(evidence), 1)
+        self.assertEqual(evidence[0]["provider"], "STRATZ")
+        self.assertEqual(evidence[0]["sampleSize"], 2)
+        self.assertEqual(evidence[0]["sourceWinRate"], 0.5)
+        self.assertEqual(evidence[0]["scope"]["patch"], CURRENT_SCOPE.patch)
+        self.assertIsNone(read_stratz_history({
+            "stratzImmortalHistory": dict(combined, patch="7.41e"),
+        }, end + 60))
 
     def test_generate_warns_when_immortal_evidence_is_empty(self) -> None:
         repo_root = Path(__file__).resolve().parents[2]

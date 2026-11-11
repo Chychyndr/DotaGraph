@@ -22,6 +22,8 @@ from .layout import (
 from .logging_utils import configure_logging, log_event
 from .ranking import PairObservation, RankedRelationship, hero_totals, rank_relationships
 
+from .stratz_preview import aggregate_immortal_pairs, fetch_matches, game_version_id
+
 
 OPENDOTA_BASE_URL = "https://api.opendota.com/api"
 USER_AGENT = "DotaGraph/0.1 (+https://github.com/Chychyndr/DotaGraph)"
@@ -107,7 +109,7 @@ def _request_json(
             )
             if exc.code != 429 and not 500 <= exc.code < 600:
                 raise last_error from exc
-        except (URLError, TimeoutError) as exc:
+        except (URLError, TimeoutError, ConnectionError) as exc:
             last_error = exc
             log_event(
                 logger,
@@ -522,11 +524,234 @@ def _iso_from_epoch(epoch: int) -> str:
     )
 
 
+STRATZ_BOOTSTRAP_SECONDS = 24 * 60 * 60
+STRATZ_SETTLEMENT_SECONDS = 2 * 60 * 60
+STRATZ_CANDIDATE_LIMIT = 240
+STRATZ_HISTORY_KEY = "stratzImmortalHistory"
+
+
+def collect_stratz_history(
+    previous: dict[str, Any] | None,
+    *,
+    end_epoch: int,
+    collected_at: str,
+    token: str,
+    logger: logging.Logger,
+) -> dict[str, Any] | None:
+    scope = CURRENT_SCOPE
+    start_epoch = (
+        previous["endExclusive"] if previous else
+        max(scope.start_epoch, end_epoch - STRATZ_BOOTSTRAP_SECONDS)
+    )
+    if start_epoch >= end_epoch:
+        return previous
+
+    # OpenDota folds Immortal 80 into medal 75. Rank and patch are verified
+    # by STRATZ. A deterministic sample spreads the request budget across
+    # this disjoint time interval even when the provider has more matches.
+    sql = f"""
+SELECT match_id, start_time FROM public_matches
+WHERE avg_rank_tier = 75
+  AND start_time >= {start_epoch} AND start_time < {end_epoch}
+  AND game_mode = {scope.game_mode} AND lobby_type = {scope.lobby_type}
+  AND array_length(radiant_team, 1) = 5 AND array_length(dire_team, 1) = 5
+ORDER BY md5(match_id::text), match_id
+LIMIT {STRATZ_CANDIDATE_LIMIT}
+""".strip()
+    data = _request_json(_api_url("/explorer", {"sql": sql}), logger=logger, attempts=3)
+    rows = data.get("rows") if isinstance(data, dict) else None
+    if not isinstance(rows, list):
+        raise RuntimeError("OpenDota did not return STRATZ candidate rows.")
+    try:
+        candidates = {
+            int(row["match_id"]): int(row["start_time"])
+            for row in rows[:STRATZ_CANDIDATE_LIMIT]
+        }
+    except (KeyError, TypeError, ValueError):
+        raise RuntimeError("OpenDota returned invalid STRATZ candidate rows.") from None
+    candidates = {
+        match_id: started for match_id, started in candidates.items()
+        if match_id > 0 and start_epoch <= started < end_epoch
+    }
+    if not candidates:
+        log_event(logger, "stratz_no_candidates", level=logging.WARNING)
+        return previous
+
+    version = game_version_id(scope.patch, token)
+    if previous and previous["gameVersionId"] != version:
+        raise RuntimeError("STRATZ game version changed without a patch change.")
+    time.sleep(1)
+    matches = fetch_matches(list(candidates), token)
+    if not matches:
+        raise RuntimeError("STRATZ returned no records for the sampled match IDs.")
+    counts = aggregate_immortal_pairs(
+        match for match in matches if match.get("gameVersionId") == version
+    )
+    accepted = sum(pair.matches for pair in counts.values()) // 25
+    totals = {
+        (first, second): (games, wins)
+        for first, second, games, wins in (previous["pairs"] if previous else [])
+    }
+    for (_, first, second), pair in counts.items():
+        games, wins = totals.get((first, second), (0, 0))
+        totals[(first, second)] = (games + pair.matches, wins + pair.first_wins)
+    total_matches = (previous["matchCount"] if previous else 0) + accepted
+    log_event(
+        logger, "stratz_history_updated",
+        candidateCount=len(candidates), returnedMatchCount=len(matches),
+        newImmortalMatches=accepted, totalImmortalMatches=total_matches,
+    )
+    return {
+        "patch": scope.patch,
+        "gameVersionId": version,
+        "start": previous["start"] if previous else start_epoch,
+        "endExclusive": end_epoch,
+        "collectedAt": collected_at,
+        "matchCount": total_matches,
+        "pairs": [
+            [first, second, games, wins]
+            for (first, second), (games, wins) in sorted(totals.items())
+        ],
+    }
+
+
+def project_stratz_history(
+    payload: dict[str, Any], hero_map: dict[int, str], history: dict[str, Any],
+) -> int:
+    ids_by_slug = {slug: hero_id for hero_id, slug in hero_map.items()}
+    totals = {
+        (first, second): (games, wins)
+        for first, second, games, wins in history["pairs"]
+    }
+    evidence = []
+    scope = {
+        "patch": history["patch"],
+        "rankScope": "immortal",
+        "matchPopulation": "ranked_all_draft_5v5",
+        "observationWindowStart": _iso_from_epoch(history["start"]),
+        "observationWindowEndExclusive": _iso_from_epoch(history["endExclusive"]),
+    }
+    provenance = {
+        "sourceUrl": "https://stratz.com/api",
+        "queryScope": (
+            "cumulative OpenDota medal-75 sample; STRATZ ranked All Draft;"
+            f" rank=80; bracket=8; gameVersionId={history['gameVersionId']}"
+        ),
+        "collectedAt": history["collectedAt"],
+    }
+    for row in payload["relationships"]:
+        source, target = row["sourceSlug"], row["targetSlug"]
+        source_id, target_id = ids_by_slug[source], ids_by_slug[target]
+        first, second = sorted((source_id, target_id))
+        pair = totals.get((first, second))
+        if pair is None:
+            continue
+        games, first_wins = pair
+        wins = first_wins if source_id == first else games - first_wins
+        evidence.append({
+            "id": f"stratz-immortal-{source}--{target}",
+            "provider": "STRATZ",
+            "sourceSlug": source,
+            "targetSlug": target,
+            "sourceWinRate": wins / games,
+            "sampleSize": games,
+            "scope": scope,
+            "provenance": provenance,
+        })
+    payload[STRATZ_HISTORY_KEY] = history
+    replace_stratz_evidence(payload, evidence)
+    return len(evidence)
+
+
+def read_stratz_history(
+    payload: dict[str, Any], end_epoch: int,
+) -> dict[str, Any] | None:
+    history = payload.get(STRATZ_HISTORY_KEY)
+    if (
+        isinstance(history, dict)
+        and history.get("patch") == CURRENT_SCOPE.patch
+        and type(history.get("endExclusive")) is int
+        and history["endExclusive"] <= end_epoch
+    ):
+        return history
+    return None
+
+
+def add_stratz_evidence(
+    payload: dict[str, Any],
+    hero_map: dict[int, str],
+    *,
+    end_epoch: int,
+    collected_at: str,
+    token: str,
+    logger: logging.Logger,
+) -> int:
+    history = collect_stratz_history(
+        read_stratz_history(payload, end_epoch),
+        end_epoch=end_epoch - STRATZ_SETTLEMENT_SECONDS,
+        collected_at=collected_at, token=token, logger=logger,
+    )
+    return project_stratz_history(payload, hero_map, history) if history else 0
+
+
+def replace_stratz_evidence(
+    payload: dict[str, Any], evidence: list[dict[str, Any]]
+) -> None:
+    observations = [
+        row for row in payload.get("evidenceObservations", [])
+        if row["provider"] != "STRATZ"
+    ]
+    observations.extend(evidence)
+    payload["evidenceObservations"] = observations
+    payload["coverage"]["immortalEvidenceCount"] = len(observations)
+
+
+def read_previous_bundle(repo_root: Path) -> dict[str, Any]:
+    try:
+        previous = json.loads(
+            (repo_root / "public" / "data" / "current-matchups.json").read_text(encoding="utf-8")
+        )
+    except (OSError, ValueError):
+        return {}
+    return previous if isinstance(previous, dict) else {}
+
+
+def previous_stratz_evidence(
+    repo_root: Path, payload: dict[str, Any], end_epoch: int,
+) -> list[dict[str, Any]]:
+    previous = read_previous_bundle(repo_root)
+    if previous.get("patch") != payload["patch"]:
+        return []
+    observations = previous.get("evidenceObservations", [])
+    if not isinstance(observations, list):
+        return []
+    directions = {
+        (row["sourceSlug"], row["targetSlug"]) for row in payload["relationships"]
+    }
+    retained = []
+    cutoff = max(CURRENT_SCOPE.start_epoch, end_epoch - 36 * 60 * 60)
+    for row in observations:
+        if not isinstance(row, dict) or row.get("provider") != "STRATZ":
+            continue
+        if (row.get("sourceSlug"), row.get("targetSlug")) not in directions:
+            continue
+        try:
+            scope = row["scope"]
+            observed_end = datetime.fromisoformat(scope["observationWindowEndExclusive"])
+            observed_epoch = observed_end.timestamp() if observed_end.tzinfo else 0
+            if scope["patch"] == payload["patch"] and scope["rankScope"] == "immortal" and cutoff <= observed_epoch <= end_epoch:
+                retained.append(row)
+        except (KeyError, TypeError, ValueError):
+            continue
+    return retained
+
+
 def generate(
     repo_root: Path,
     *,
     now: datetime | None = None,
     logger: logging.Logger,
+    stratz_token: str = "",
 ) -> dict[str, Any]:
     generated_at = now or datetime.now(timezone.utc)
     end_epoch = generation_end_epoch(generated_at)
@@ -675,21 +900,6 @@ def generate(
             }
         )
 
-    if not evidence_observations:
-        log_event(
-            logger,
-            "immortal_evidence_empty",
-            level=logging.WARNING,
-            reason=(
-                "no_ranked_pair_overlap" if immortal_pairs else "no_immortal_pairs"
-            ),
-            immortalPairCount=len(immortal_pairs),
-            rankedRelationshipCount=len(ranked),
-            avgRankTierMin=CURRENT_SCOPE.immortal_avg_rank_tier_min,
-            windowStart=CURRENT_SCOPE.start_iso,
-            windowEnd=observation_end_iso,
-        )
-
     payload = {
         "schemaVersion": 2,
         "kind": "current-production-matchups",
@@ -742,6 +952,42 @@ def generate(
         },
     }
 
+    history = read_stratz_history(read_previous_bundle(repo_root), end_epoch)
+    if history:
+        project_stratz_history(payload, hero_map, history)
+    if stratz_token:
+        try:
+            add_stratz_evidence(
+                payload, hero_map, end_epoch=end_epoch,
+                collected_at=generated_at_iso, token=stratz_token, logger=logger,
+            )
+        except RuntimeError as exc:
+            if not history:
+                retained = previous_stratz_evidence(repo_root, payload, end_epoch)
+                replace_stratz_evidence(payload, retained)
+            log_event(
+                logger, "stratz_evidence_unavailable", level=logging.WARNING,
+                detail=str(exc),
+                retainedEvidenceCount=sum(
+                    row["provider"] == "STRATZ" for row in payload["evidenceObservations"]
+                ),
+            )
+
+    if not payload["evidenceObservations"]:
+        log_event(
+            logger,
+            "immortal_evidence_empty",
+            level=logging.WARNING,
+            reason=(
+                "no_ranked_pair_overlap" if immortal_pairs else "no_immortal_pairs"
+            ),
+            immortalPairCount=len(immortal_pairs),
+            rankedRelationshipCount=len(ranked),
+            avgRankTierMin=CURRENT_SCOPE.immortal_avg_rank_tier_min,
+            windowStart=CURRENT_SCOPE.start_iso,
+            windowEnd=observation_end_iso,
+        )
+
     log_event(
         logger,
         "generation_complete",
@@ -771,7 +1017,9 @@ def main() -> None:
         output_path = repo_root / output_path
 
     try:
-        payload = generate(repo_root, logger=logger)
+        payload = generate(
+            repo_root, logger=logger, stratz_token=os.getenv("STRATZ_API_TOKEN", "").strip(),
+        )
         output_path.parent.mkdir(parents=True, exist_ok=True)
         output_path.write_text(
             json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
