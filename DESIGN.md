@@ -55,7 +55,8 @@ The accepted current behavior is source-anchored, collision-aware placement on t
 
 ## Product chrome decisions
 
-- Use the transparent network/shield DotaGraph mark as both favicon and header logo.
+- Use the owner-approved geometric three-pillar DotaGraph emblem (concept 07) throughout the site. All logo variants share the same symmetric SVG geometry; black and white are the only logo colors.
+- Use `public/logo.svg` (white, transparent background) in the dark header, `public/logo-black.svg` on light surfaces, and `public/favicon.svg` with system-color-scheme-aware monochrome fill for the browser tab.
 - Keep internal/debug labels such as “Fixture data”, “Hero counters”, and direction-debug copy out of the normal product UI.
 - Keep HeroCard compact but comfortably readable; do not repeat the global rank/patch line inside the selected-hero card.
 - Do not show “x/5” counters beside the Countered by / Counters section headings.

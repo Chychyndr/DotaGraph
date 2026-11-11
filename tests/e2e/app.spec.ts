@@ -1189,14 +1189,30 @@ test("reduced-motion desktop selection applies only the card pan immediately", a
   expect(await camera.getAttribute("transform")).toBe(afterSelection);
 });
 
-test("site exposes the DotaGraph logo as favicon and header brand", async ({ page }) => {
+test("site uses the same monochrome emblem for favicon and header", async ({ page }) => {
   await page.goto("/");
   const iconHref = await page.locator('link[rel="icon"]').getAttribute("href");
   expect(iconHref).toMatch(/favicon\.svg$/);
 
   const logo = page.locator(".brand-logo");
   await expect(logo).toBeVisible();
-  await expect(logo).toHaveAttribute("src", /favicon\.svg$/);
+  await expect(logo).toHaveAttribute("src", /logo\.svg$/);
+  expect(await logo.evaluate((image: HTMLImageElement) => image.naturalWidth)).toBeGreaterThan(0);
+
+  const [faviconResponse, logoResponse] = await Promise.all([
+    page.request.get(iconHref!),
+    page.request.get((await logo.getAttribute("src"))!)
+  ]);
+  expect(faviconResponse.ok()).toBe(true);
+  expect(logoResponse.ok()).toBe(true);
+
+  const faviconSvg = await faviconResponse.text();
+  const logoSvg = await logoResponse.text();
+  const extractPaths = (svg: string) => [...svg.matchAll(/<path d="([^"]+)"/g)].map((match) => match[1]);
+  expect(extractPaths(faviconSvg)).toHaveLength(3);
+  expect(extractPaths(logoSvg)).toEqual(extractPaths(faviconSvg));
+  expect(faviconSvg).toContain("prefers-color-scheme: dark");
+  expect(logoSvg).toContain('fill="#ffffff"');
 });
 
 test("hero search results stay contained at the minimum supported width", async ({ page }) => {

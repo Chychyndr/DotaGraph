@@ -45,8 +45,10 @@ for (const assetPath of assetPaths) {
   }
 }
 
-if (!existsSync(join(dist, "favicon.svg"))) {
-  fail("dist/favicon.svg is missing.");
+for (const name of ["favicon.svg", "logo.svg", "logo-black.svg"]) {
+  if (!existsSync(join(dist, name))) {
+    fail(`dist/${name} is missing.`);
+  }
 }
 
 const atlasPath = join(dist, "assets", "heroes-atlas.webp");
