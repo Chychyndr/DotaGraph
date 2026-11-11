@@ -84,6 +84,8 @@ Metadata schema v2 contains:
 - `observationWindowEndExclusive`;
 - freshness state.
 
+Provider provenance links in headline metadata and detail evidence must use HTTP or HTTPS.
+
 The frontend may expose the headline provenance in matchup details. `secondarySources` is registry metadata only: a provider listed there is not presented as matchup evidence until a real `MatchupEvidenceObservation` exists for that provider.
 
 A snapshot is treated as stale after 36 hours without regeneration. Stale data remains usable with a visible warning; malformed data blocks the graph.

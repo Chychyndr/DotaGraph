@@ -125,40 +125,51 @@ describe("validateDataset", () => {
     });
   });
 
-  it("rejects malformed detail evidence provenance", () => {
-    const dataset = validDataset();
-    dataset.evidenceObservations = [
-      {
-        id: "broken-evidence",
-        provider: "OpenDota",
-        sourceHeroId: "viper",
-        targetHeroId: "huskar",
-        sourceWinRate: 0.58,
-        sampleSize: 240,
-        scope: {
-          patch: "7.41e",
-          rankScope: "immortal",
-          matchPopulation: "ranked_all_draft_5v5",
-          observationWindowStart: "2026-09-16T00:00:00Z",
-          observationWindowEndExclusive: "2026-09-18T00:00:00Z"
-        },
-        provenance: {
-          sourceUrl: "not-a-url",
-          queryScope: "public_matches:avg_rank_tier>=80",
-          collectedAt: "2026-09-18T00:05:00Z"
+  it.each(["not-a-url", "javascript:alert(1)", "data:text/plain,example", "file:///example"])(
+    "rejects non-web headline and detail provenance: %s",
+    (sourceUrl) => {
+      const dataset = validDataset();
+      dataset.metadata = {
+        ...dataset.metadata,
+        schemaVersion: 2,
+        source: "OpenDota",
+        observationWindowStart: "2026-09-16T00:00:00Z",
+        observationWindowEndExclusive: "2026-09-18T00:00:00Z",
+        provenance: { headlineSource: "OpenDota", sourceUrl }
+      };
+      dataset.evidenceObservations = [
+        {
+          id: "broken-evidence",
+          provider: "OpenDota",
+          sourceHeroId: "viper",
+          targetHeroId: "huskar",
+          sourceWinRate: 0.58,
+          sampleSize: 240,
+          scope: {
+            patch: "7.41e",
+            rankScope: "immortal",
+            matchPopulation: "ranked_all_draft_5v5",
+            observationWindowStart: "2026-09-16T00:00:00Z",
+            observationWindowEndExclusive: "2026-09-18T00:00:00Z"
+          },
+          provenance: {
+            sourceUrl,
+            queryScope: "public_matches:avg_rank_tier>=80",
+            collectedAt: "2026-09-18T00:05:00Z"
+          }
         }
+      ];
+
+      const result = validateDataset(dataset);
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.issues).toEqual(expect.arrayContaining([
+          "Dataset provenance sourceUrl must be a valid HTTP(S) URL.",
+          "Evidence observation at index 0 provenance sourceUrl must be a valid HTTP(S) URL."
+        ]));
       }
-    ];
-
-    const result = validateDataset(dataset);
-
-    expect(result.ok).toBe(false);
-    if (!result.ok) {
-      expect(result.issues).toContain(
-        "Evidence observation at index 0 provenance sourceUrl must be a valid URL."
-      );
     }
-  });
+  );
 
   it("requires an explanation when upstream marks data stale", () => {
     const dataset = validDataset();
