@@ -105,7 +105,7 @@ jobs:
 
           sample = query("""{
               heroStats {
-                  matchUp(heroId: 2, bracketBasicIds: [DIVINE_IMMORTAL], take: 20) {
+                  matchUp(heroId: 2, heroIds: [47], bracketBasicIds: [DIVINE_IMMORTAL], take: 5) {
                       vs { heroId1 heroId2 bracketBasicIds matchCount winCount }
                   }
               }
@@ -114,8 +114,55 @@ jobs:
           pairs = [pair for row in rows for pair in row.get("vs") or []]
           print("Sample opponent rows:", len(pairs))
           print("Sample bracket labels:", sorted({
-              label for pair in pairs for label in pair.get("bracketBasicIds") or []
+              str(pair["bracketBasicIds"]) for pair in pairs if pair.get("bracketBasicIds")
           }))
           axe_viper = [p for p in pairs if {p["heroId1"], p["heroId2"]} == {2, 47}]
           print("Axe vs Viper counts from sample:", json.dumps(axe_viper))
+          from collections import Counter
+          from datetime import datetime, timedelta, timezone
+          from urllib.parse import urlencode
+
+          match_type = query(f'{{ __type(name: "MatchType") {{ {fields} }} }}')["__type"]
+          rank_fields = [
+              field["name"] for field in match_type["fields"]
+              if field["name"] in {"rank", "actualRank", "averageRank", "bracket"}
+              and field["type"]["kind"] in {"SCALAR", "ENUM", "NON_NULL"}
+          ]
+          print("Selectable match rank fields:", rank_fields)
+          start = int((datetime.now(timezone.utc) - timedelta(days=7)).timestamp())
+          sql = f"""
+              SELECT match_id FROM public_matches
+              WHERE avg_rank_tier = 75 AND start_time >= {start}
+                AND game_mode = 22 AND lobby_type = 7
+              ORDER BY match_id DESC LIMIT 20
+          """
+          url = "https://api.opendota.com/api/explorer?" + urlencode({"sql": sql})
+          try:
+              with opener.open(url, timeout=25) as response:
+                  candidate_rows = json.load(response).get("rows") or []
+          except urllib.error.HTTPError as exc:
+              raise SystemExit(f"OpenDota candidate query failed with HTTP {exc.code}.") from None
+          ids = [int(row["match_id"]) for row in candidate_rows]
+          if not ids or not rank_fields:
+              raise SystemExit("No candidate IDs or selectable STRATZ rank fields.")
+          print("OpenDota Divine 5 candidate matches:", len(ids))
+          result = query(
+              "{ matches(ids: [" + ",".join(map(str, ids)) + "]) { "
+              + " ".join(rank_fields)
+              + " gameMode lobbyType gameVersionId didRadiantWin players { heroId isRadiant } } }"
+          )
+          matches = [match for match in result.get("matches") or [] if match]
+          print("STRATZ matches found:", len(matches))
+          for name in rank_fields:
+              print(name, json.dumps(Counter(str(match.get(name)) for match in matches), sort_keys=True))
+          print("Modes and lobbies:", json.dumps(Counter(
+              f"{match.get('gameMode')}/{match.get('lobbyType')}" for match in matches
+          )))
+          print("Patch IDs:", sorted({str(match.get("gameVersionId")) for match in matches}))
+          print("Matches with result and two complete teams:", sum(
+              isinstance(match.get("didRadiantWin"), bool)
+              and sum(player.get("isRadiant") is True and bool(player.get("heroId")) for player in match.get("players") or []) == 5
+              and sum(player.get("isRadiant") is False and bool(player.get("heroId")) for player in match.get("players") or []) == 5
+              for match in matches
+          ))
           PY
