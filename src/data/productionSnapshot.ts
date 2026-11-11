@@ -7,6 +7,7 @@ import type {
 import { buildHeroes } from "./heroes";
 import type { DatasetBundle } from "./dataset";
 
+const CLOCK_SKEW_TOLERANCE_MS = 5 * 60 * 1000;
 const STALE_AFTER_MS = 36 * 60 * 60 * 1000;
 
 type ConversionResult =
@@ -82,6 +83,11 @@ export function buildDatasetFromProductionSnapshot(
     return { ok: false, issues };
   }
 
+  const generatedAtMs = Date.parse(value.generatedAt);
+  if (generatedAtMs - now > CLOCK_SKEW_TOLERANCE_MS) {
+    issues.push("Production snapshot generatedAt is in the future.");
+  }
+
   if (scopeValue.rankScope !== "ancient_plus") {
     issues.push("Production snapshot rankScope is unsupported.");
   }
@@ -106,6 +112,17 @@ export function buildDatasetFromProductionSnapshot(
   }
   if (!timestampIsValid(scopeValue.observationWindowEndExclusive)) {
     issues.push("Production snapshot observationWindowEndExclusive is invalid.");
+  } else {
+    const endMs = Date.parse(scopeValue.observationWindowEndExclusive);
+    if (
+      timestampIsValid(scopeValue.observationWindowStart) &&
+      endMs <= Date.parse(scopeValue.observationWindowStart)
+    ) {
+      issues.push("Production snapshot observation window must have positive duration.");
+    }
+    if (endMs > generatedAtMs) {
+      issues.push("Production snapshot observation window ends after generatedAt.");
+    }
   }
   if (
     typeof provenance.headlineSource !== "string" ||
@@ -385,7 +402,6 @@ export function buildDatasetFromProductionSnapshot(
     return { ok: false, issues };
   }
 
-  const generatedAtMs = Date.parse(value.generatedAt);
   const ageMs = Math.max(0, now - generatedAtMs);
   const stale = ageMs > STALE_AFTER_MS;
 
