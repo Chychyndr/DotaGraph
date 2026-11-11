@@ -39,6 +39,8 @@ The default branch requires pull requests, so scheduled refreshes never push gen
 8. A fresh Chromium browser opens the public canonical URL.
 9. Deployment verification waits until the page renders DotaGraph and exposes the exact expected build SHA.
 
+CI and post-deployment verification run Playwright on GitHub's Ubuntu 26.04 image. The jobs use the image's system libraries and download the Chromium build selected by the locked Playwright version.
+
 ## Why the build marker matters
 
 A successful HTTP request is insufficient for a single-page application.
