@@ -1,3 +1,4 @@
+import { isWebUrl } from "./provenanceUrl";
 import type {
   Hero,
   MatchupEvidenceObservation,
@@ -53,19 +54,6 @@ const STATISTICAL_PROVIDERS = new Set([
 
 const isValidTimestamp = (value: unknown): value is string =>
   typeof value === "string" && !Number.isNaN(Date.parse(value));
-
-const isValidUrl = (value: unknown): value is string => {
-  if (typeof value !== "string" || !value.trim()) {
-    return false;
-  }
-
-  try {
-    new URL(value);
-    return true;
-  } catch {
-    return false;
-  }
-};
 
 export function validateDataset(value: unknown): DatasetValidationResult {
   const issues: string[] = [];
@@ -139,20 +127,8 @@ export function validateDataset(value: unknown): DatasetValidationResult {
         ) {
           issues.push("Dataset provenance headlineSource must be a non-empty string.");
         }
-        if (
-          provenance.sourceUrl !== undefined &&
-          (typeof provenance.sourceUrl !== "string" ||
-            !provenance.sourceUrl.trim() ||
-            (() => {
-              try {
-                new URL(provenance.sourceUrl);
-                return false;
-              } catch {
-                return true;
-              }
-            })())
-        ) {
-          issues.push("Dataset provenance sourceUrl must be a valid URL.");
+        if (provenance.sourceUrl !== undefined && !isWebUrl(provenance.sourceUrl)) {
+          issues.push("Dataset provenance sourceUrl must be a valid HTTP(S) URL.");
         }
         for (const key of ["endpoint", "queryMode"] as const) {
           const entry = provenance[key];
@@ -317,8 +293,8 @@ export function validateDataset(value: unknown): DatasetValidationResult {
       if (!isRecord(evidenceProvenance)) {
         issues.push(`${prefix} has malformed provenance.`);
       } else {
-        if (!isValidUrl(evidenceProvenance.sourceUrl)) {
-          issues.push(`${prefix} provenance sourceUrl must be a valid URL.`);
+        if (!isWebUrl(evidenceProvenance.sourceUrl)) {
+          issues.push(`${prefix} provenance sourceUrl must be a valid HTTP(S) URL.`);
         }
         if (
           typeof evidenceProvenance.queryScope !== "string" ||

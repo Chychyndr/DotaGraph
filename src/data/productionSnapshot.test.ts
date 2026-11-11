@@ -138,17 +138,31 @@ describe("buildDatasetFromProductionSnapshot", () => {
     ]);
   });
 
-  it("rejects malformed provenance links", () => {
-    const raw = snapshot();
-    raw.provenance.sourceUrl = "not a url";
+  it.each(["not a url", "javascript:alert(1)", "data:text/plain,example", "file:///example"])(
+    "rejects non-web provenance links: %s",
+    (url) => {
+      const raw = snapshot();
+      raw.provenance.sourceUrl = url;
+      const headline = buildDatasetFromProductionSnapshot(raw);
+      expect(headline).toEqual({
+        ok: false,
+        issues: ["Production snapshot provenance sourceUrl must be a valid HTTP(S) URL."]
+      });
 
-    const result = buildDatasetFromProductionSnapshot(raw);
-    expect(result.ok).toBe(false);
-    if (!result.ok) {
-      expect(result.issues).toContain(
-        "Production snapshot provenance sourceUrl is invalid."
-      );
+      const evidence = snapshot();
+      evidence.evidenceObservations[0].provenance.sourceUrl = url;
+      expect(buildDatasetFromProductionSnapshot(evidence)).toEqual({
+        ok: false,
+        issues: ["Production evidence observation at index 0 is invalid."]
+      });
     }
+  );
+
+  it("accepts HTTP provenance links", () => {
+    const raw = snapshot();
+    raw.provenance.sourceUrl = "http://www.opendota.com/";
+    raw.evidenceObservations[0].provenance.sourceUrl = "http://www.opendota.com/";
+    expect(buildDatasetFromProductionSnapshot(raw).ok).toBe(true);
   });
 
   it("marks snapshots stale after 36 hours", () => {

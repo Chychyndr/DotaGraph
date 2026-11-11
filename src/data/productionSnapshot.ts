@@ -6,6 +6,7 @@ import type {
 } from "../domain/types";
 import { buildHeroes } from "./heroes";
 import type { DatasetBundle } from "./dataset";
+import { isWebUrl } from "./provenanceUrl";
 
 const STALE_AFTER_MS = 36 * 60 * 60 * 1000;
 
@@ -113,20 +114,8 @@ export function buildDatasetFromProductionSnapshot(
   ) {
     issues.push("Production snapshot headlineSource is missing.");
   }
-  if (
-    provenance.sourceUrl !== undefined &&
-    (typeof provenance.sourceUrl !== "string" ||
-      !provenance.sourceUrl.trim() ||
-      (() => {
-        try {
-          new URL(provenance.sourceUrl);
-          return false;
-        } catch {
-          return true;
-        }
-      })())
-  ) {
-    issues.push("Production snapshot provenance sourceUrl is invalid.");
+  if (provenance.sourceUrl !== undefined && !isWebUrl(provenance.sourceUrl)) {
+    issues.push("Production snapshot provenance sourceUrl must be a valid HTTP(S) URL.");
   }
   if (
     provenance.endpoint !== undefined &&
@@ -275,16 +264,7 @@ export function buildDatasetFromProductionSnapshot(
         Date.parse(evidenceScope.observationWindowEndExclusive) <=
           Date.parse(evidenceScope.observationWindowStart) ||
         !isRecord(evidenceProvenance) ||
-        typeof evidenceProvenance.sourceUrl !== "string" ||
-        !evidenceProvenance.sourceUrl.trim() ||
-        (() => {
-          try {
-            new URL(evidenceProvenance.sourceUrl);
-            return false;
-          } catch {
-            return true;
-          }
-        })() ||
+        !isWebUrl(evidenceProvenance.sourceUrl) ||
         typeof evidenceProvenance.queryScope !== "string" ||
         !evidenceProvenance.queryScope.trim() ||
         !timestampIsValid(evidenceProvenance.collectedAt)
