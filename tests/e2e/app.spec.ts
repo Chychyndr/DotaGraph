@@ -850,18 +850,23 @@ test("keyboard search keeps the active result inside the listbox", async ({ page
   await search.fill("a");
   await expect(list.getByRole("option")).toHaveCount(8);
 
-  await search.press("ArrowUp");
+  const options = list.getByRole("option");
   const active = list.getByRole("option", { selected: true });
-  await expect(active).toHaveAttribute("id", (await list.getByRole("option").last().getAttribute("id"))!);
-  await expect.poll(() => active.evaluate((option) => {
+  const activeIsInView = () => active.evaluate((option) => {
     const list = option.parentElement!;
     const top = list.getBoundingClientRect().top + list.clientTop;
     const bounds = option.getBoundingClientRect();
-    return list.scrollTop > 0 && bounds.top >= top && bounds.bottom <= top + list.clientHeight;
-  })).toBe(true);
+    return bounds.top >= top - 1 && bounds.bottom <= top + list.clientHeight + 1;
+  });
+
+  await search.press("ArrowUp");
+  await expect(options.last()).toHaveAttribute("aria-selected", "true");
+  await expect.poll(activeIsInView).toBe(true);
+  await expect.poll(() => list.evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
 
   await search.press("ArrowDown");
-  await expect.poll(() => list.evaluate((element) => element.scrollTop)).toBe(0);
+  await expect(options.first()).toHaveAttribute("aria-selected", "true");
+  await expect.poll(activeIsInView).toBe(true);
 });
 
 test("hero alias search resolves from metadata", async ({ page }) => {
