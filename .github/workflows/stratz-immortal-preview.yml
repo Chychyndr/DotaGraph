@@ -1,0 +1,38 @@
+name: STRATZ Immortal preview
+
+on:
+  workflow_dispatch:
+    inputs:
+      match_ids:
+        description: "Up to 20 public match IDs separated by spaces"
+        required: true
+        default: "9085800147 9085798479 9085791811"
+  pull_request:
+    branches: [main]
+    paths:
+      - .github/workflows/stratz-immortal-preview.yml
+      - pipeline/dotagraph_pipeline/stratz_preview.py
+
+permissions:
+  contents: read
+
+jobs:
+  preview:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.pull_request.head.repo.full_name == github.repository &&
+       github.head_ref == 'feat/stratz-immortal-preview')
+    runs-on: ubuntu-26.04
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Fetch and process a bounded match sample
+        env:
+          STRATZ_API_TOKEN: ${{ secrets.STRATZ_API_TOKEN }}
+          STRATZ_MATCH_IDS: ${{ inputs.match_ids || '9085800147 9085798479 9085791811' }}
+          PYTHONPATH: pipeline
+        run: |
+          read -r -a match_ids <<< "$STRATZ_MATCH_IDS"
+          python3 -m dotagraph_pipeline.stratz_preview "${match_ids[@]}"

@@ -177,6 +177,13 @@ DotaGraph decision:
 
 Review date: 2026-09-18.
 
+The `STRATZ Immortal preview` workflow checks up to 20 known public match IDs
+using the `STRATZ_API_TOKEN` repository secret. It counts opposing hero pairs
+by game version only when STRATZ returns the explicit `IMMORTAL` match bracket,
+a ranked All Draft lobby, a result, and two complete lineups. This small
+diagnostic sample is independent of the production data refresh.
+
+
 ## DOTABUFF
 
 **Decision: Owner-approved direct statistical source. Public DOTABUFF statistics may be used/cited directly; automated collection still requires a provider-compatible access path.**
