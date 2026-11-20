@@ -482,8 +482,14 @@ test("focused win-rate labels stay source-anchored and do not overlap", async ({
   });
 });
 
-test("focus win-rate badges stay attached to rendered relationship paths", async ({ page }) => {
+test("focus win-rate badges stay attached to rendered relationship paths", async ({ page, request }) => {
   await page.setViewportSize({ width: 1366, height: 768 });
+  const response = await request.get("/data/current-matchups.json");
+  expect(response.ok()).toBe(true);
+  const snapshot = await response.json() as {
+    relationships: Array<{ sourceSlug: string; targetSlug: string }>;
+  };
+  let heroesWithBadges = 0;
 
   for (const heroId of [
     "dragon-knight",
@@ -494,6 +500,21 @@ test("focus win-rate badges stay attached to rendered relationship paths", async
   ]) {
     await page.goto(`/?hero=${heroId}`);
     await page.waitForTimeout(520);
+
+    // A new patch can leave a low-sample hero with no eligible counters.
+    // Check that empty state against the data before testing badge geometry.
+    const slug = heroId.replaceAll("-", "_");
+    const hasRelationships = snapshot.relationships.some(
+      (row) => row.sourceSlug === slug || row.targetSlug === slug
+    );
+    await expect(page.locator(".context-card")).toBeVisible();
+    if (!hasRelationships) {
+      await expect(page.locator(".context-card .card-empty")).toHaveCount(2);
+      await expect(page.locator(".relation-row")).toHaveCount(0);
+      await expect(page.locator(".edge-label")).toHaveCount(0);
+      continue;
+    }
+    heroesWithBadges += 1;
 
     const geometry = await page.evaluate(() => {
       const labels = [...document.querySelectorAll<SVGGElement>(".edge-label")];
@@ -690,6 +711,7 @@ test("focus win-rate badges stay attached to rendered relationship paths", async
       expect(row.overlapsPortrait).toBe(false);
     }
   }
+  expect(heroesWithBadges).toBeGreaterThan(0);
 });
 
 test("mobile Focus uses compact win-rate badges", async ({ page }) => {

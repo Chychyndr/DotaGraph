@@ -51,9 +51,9 @@ The Claude artifact is an interaction reference only. DotaGraph has its own visu
 
 DotaGraph now has a real current-patch data path.
 
-For patch **7.41f**:
+For patch **7.42**:
 - headline data comes from OpenDota `public_matches`;
-- observation window begins at `2026-09-16T00:00:00Z`;
+- observation window begins at `2026-11-18T21:28:08Z`;
 - headline scope is Ancient+ using `avg_rank_tier >= 60`, ranked all-draft matches;
 - matchup details can show a separate OpenDota Immortal subset using `avg_rank_tier >= 80` when matches are available;
 - a hero pair needs at least 500 qualifying matches;

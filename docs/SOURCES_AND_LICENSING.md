@@ -119,13 +119,13 @@ Scope limitation:
 
 Review date: 2026-09-18.
 
-### Current patch 7.41f production pipeline
+### Current patch 7.42 production pipeline
 
 Issue #28 / PR #29 use the OpenDota hosted API as the reproducible headline numeric source.
 
 Current query scope:
 - OpenDota Explorer over `public_matches`;
-- observation start: `2026-09-16T00:00:00Z`;
+- observation start: `2026-11-18T21:28:08Z`;
 - observation end: generation time;
 - `avg_rank_tier >= 60` for the Ancient+ headline;
 - conditional `avg_rank_tier >= 80` aggregates for separate Immortal detail evidence;
@@ -135,6 +135,8 @@ Current query scope:
 - minimum 500 pair observations before a relationship can qualify.
 
 Published output contains aggregate hero statistics, qualified hero-vs-hero headline observations, separate aggregate Immortal detail observations where available, provenance, and deterministic graph coordinates. The Immortal subset is computed inside the same Explorer query, so no additional provider access method or request is introduced. The output does not publish player identities or raw match IDs.
+
+Patch boundary checked on 2026-11-20 against [OpenDota dotaconstants patch metadata](https://github.com/odota/dotaconstants/blob/master/build/patch.json): patch 7.42 (ID 61) starts at `2026-11-18T21:28:07.019Z`. The integer-second Explorer query starts at the next whole second, `2026-11-18T21:28:08Z`, to exclude pre-patch matches. Valve announced the update on [2026-11-18](https://www.dota2.com/newsentry/689773669992367212). Previous-patch STRATZ history and evidence are discarded by the existing patch checks. Production explanations are absent, so no old mechanical explanation is carried forward.
 
 The twice-daily workflow uses bounded retries, time-range splitting for expensive Explorer queries, structured logs, and a static generated JSON artifact. Provider availability never becomes a runtime dependency for the frontend.
 

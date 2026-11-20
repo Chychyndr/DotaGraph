@@ -10,14 +10,14 @@ test("published current matchup bundle satisfies production invariants", async (
 
   expect(data.schemaVersion).toBe(2);
   expect(data.kind).toBe("current-production-matchups");
-  expect(data.patch).toBe("7.41f");
+  expect(data.patch).toBe("7.42");
   expect(Number.isNaN(Date.parse(data.generatedAt))).toBe(false);
 
   expect(data.scope.rankScope).toBe("ancient_plus");
   expect(data.scope.rankLabel).toBe("Ancient+");
   expect(data.scope.minimumSample).toBe(500);
   expect(data.scope.maxVisiblePerDirection).toBe(5);
-  expect(data.scope.observationWindowStart).toBe("2026-09-16T00:00:00Z");
+  expect(data.scope.observationWindowStart).toBe("2026-11-18T21:28:08Z");
   expect(Date.parse(data.scope.observationWindowEndExclusive)).toBeLessThanOrEqual(
     Date.parse(data.generatedAt)
   );
