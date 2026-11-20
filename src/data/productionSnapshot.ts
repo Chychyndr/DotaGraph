@@ -1,3 +1,4 @@
+import { isRankWinRates } from "./rankWinRates";
 import type {
   MatchupEvidenceObservation,
   MatchupRelationship,
@@ -359,6 +360,12 @@ export function buildDatasetFromProductionSnapshot(
       continue;
     }
 
+    const rankWinRates = raw.rankWinRates;
+    if (rankWinRates !== undefined && !isRankWinRates(rankWinRates, raw.sampleSize, raw.sourceWinRate)) {
+      issues.push(`Production relationship at index ${index} has an invalid rank split.`);
+      continue;
+    }
+
     relationships.push({
       id: `${sourceHeroId}--${targetHeroId}`,
       sourceHeroId,
@@ -368,6 +375,7 @@ export function buildDatasetFromProductionSnapshot(
       patch: value.patch,
       rankScope: "ancient_plus",
       sourceKind: "generated",
+      ...(rankWinRates ? { rankWinRates } : {}),
       rankingScore: raw.rankingScore,
       baselineAdjustedDelta: raw.baselineAdjustedDelta,
       expectedWinRate: raw.expectedWinRate,

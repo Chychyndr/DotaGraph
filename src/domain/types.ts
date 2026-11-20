@@ -12,6 +12,16 @@ export interface Hero {
   sampleSize?: number;
 }
 
+export interface RankWinRateSample {
+  sourceWinRate: number;
+  sampleSize: number;
+}
+
+export interface RankWinRates {
+  ancient: RankWinRateSample | null;
+  divinePlus: RankWinRateSample | null;
+}
+
 export interface MatchupRelationship {
   id: string;
   sourceHeroId: HeroId;
@@ -29,6 +39,7 @@ export interface MatchupRelationship {
   observationWindowStart?: string;
   observationWindowEndExclusive?: string;
   explanation?: string;
+  rankWinRates?: RankWinRates;
 }
 
 export interface ScopeConfig {

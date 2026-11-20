@@ -200,6 +200,11 @@ SELECT
   COUNT(*)::bigint AS matches,
   SUM(CASE WHEN radiant_win THEN 1 ELSE 0 END)::bigint AS radiant_wins,
   COUNT(*) FILTER (
+    WHERE avg_rank_tier < {scope.divine_avg_rank_tier_min}
+  )::bigint AS ancient_matches,
+  SUM(CASE WHEN avg_rank_tier < {scope.divine_avg_rank_tier_min} AND radiant_win
+      THEN 1 ELSE 0 END)::bigint AS ancient_radiant_wins,
+  COUNT(*) FILTER (
     WHERE avg_rank_tier >= {scope.immortal_avg_rank_tier_min}
   )::bigint AS immortal_matches,
   SUM(
@@ -353,6 +358,46 @@ def _normalize_pairs(
         )
         for (first_slug, second_slug), values in sorted(aggregated.items())
     ]
+
+
+def _normalize_rank_pairs(
+    rows: list[dict[str, Any]], hero_map: dict[int, str],
+) -> dict[str, dict[tuple[str, str], PairObservation]]:
+    groups: dict[str, list[dict[str, Any]]] = {"ancient": [], "divinePlus": []}
+    for row in rows:
+        values = [row.get(key) for key in ("matches", "radiant_wins", "ancient_matches", "ancient_radiant_wins")]
+        if any(type(value) is not int for value in values):
+            raise RuntimeError("OpenDota rank split requires integer counts.")
+        total, wins, ancient, ancient_wins = values
+        if not (0 <= ancient <= total and 0 <= ancient_wins <= ancient
+                and 0 <= wins - ancient_wins <= total - ancient):
+            raise RuntimeError("OpenDota rank split does not partition the headline matches.")
+        for key, count, won in (
+            ("ancient", ancient, ancient_wins),
+            ("divinePlus", total - ancient, wins - ancient_wins),
+        ):
+            if count:
+                groups[key].append(dict(row, matches=count, radiant_wins=won))
+    return {
+        key: {(pair.first_slug, pair.second_slug): pair for pair in _normalize_pairs(values, hero_map)}
+        for key, values in groups.items()
+    }
+
+
+def _rank_win_rates(
+    relationship: RankedRelationship,
+    groups: dict[str, dict[tuple[str, str], PairObservation]],
+) -> dict[str, Any]:
+    result = {}
+    key = tuple(sorted((relationship.source, relationship.target)))
+    for scope, pairs in groups.items():
+        pair = pairs.get(key)
+        if pair is None:
+            result[scope] = None
+            continue
+        wins = pair.first_wins if relationship.source == pair.first_slug else pair.matches - pair.first_wins
+        result[scope] = {"sourceWinRate": wins / pair.matches, "sampleSize": pair.matches}
+    return result
 
 
 def _normalize_immortal_pairs(
@@ -773,6 +818,7 @@ def generate(
     hero_map = _load_opendota_hero_map(repo_root, catalog_slugs)
     rows = _fetch_pair_rows(end_epoch, logger=logger)
     pairs = _normalize_pairs(rows, hero_map)
+    rank_pairs = _normalize_rank_pairs(rows, hero_map)
     immortal_pairs = _normalize_immortal_pairs(rows, hero_map)
     totals = hero_totals(pairs)
     ranked = rank_relationships(
@@ -846,6 +892,7 @@ def generate(
             "standardError": item.standard_error,
             "rankingScore": item.ranking_score,
             "source": "OpenDota",
+            "rankWinRates": _rank_win_rates(item, rank_pairs),
         }
         for item in ranked
     ]

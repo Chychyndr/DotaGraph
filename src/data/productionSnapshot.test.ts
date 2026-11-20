@@ -87,6 +87,22 @@ const snapshot = (generatedAt = "2026-09-19T08:00:00Z") => {
 };
 
 describe("buildDatasetFromProductionSnapshot", () => {
+  it("retains a validated disjoint rank comparison and rejects corrupt partitions", () => {
+    const value = snapshot();
+    const rate = value.relationships[0];
+    rate.sourceWinRate = (400 * 0.6 + 252 * 0.7) / 652;
+    const rankWinRates = {
+      ancient: { sourceWinRate: 0.6, sampleSize: 400 },
+      divinePlus: { sourceWinRate: 0.7, sampleSize: 252 }
+    };
+    const withRanks = { ...value, relationships: [{ ...rate, rankWinRates }] };
+    const result = buildDatasetFromProductionSnapshot(withRanks);
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.data.relationships[0].rankWinRates).toEqual(rankWinRates);
+    rankWinRates.divinePlus.sampleSize = 400;
+    expect(buildDatasetFromProductionSnapshot(withRanks).ok).toBe(false);
+  });
+
   it("maps current generated data into app relationships", () => {
     const result = buildDatasetFromProductionSnapshot(
       snapshot(),

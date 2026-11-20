@@ -15,6 +15,7 @@ from dotagraph_pipeline.generate_current_bundle import (
     _ensure_layout_neighbors,
     _normalize_immortal_pairs,
     _normalize_pairs,
+    _normalize_rank_pairs,
     _pair_query,
     _request_json,
     _retry_after_seconds,
@@ -233,6 +234,12 @@ class CurrentBundleTests(unittest.TestCase):
             self.assertEqual(observation["scope"]["patch"], CURRENT_SCOPE.patch)
         if "stratzImmortalHistory" in payload:
             self.assertEqual(payload["stratzImmortalHistory"]["patch"], CURRENT_SCOPE.patch)
+        for relationship in payload["relationships"]:
+            samples = [sample for sample in relationship["rankWinRates"].values() if sample]
+            count = sum(sample["sampleSize"] for sample in samples)
+            wins = sum(sample["sampleSize"] * sample["sourceWinRate"] for sample in samples)
+            self.assertEqual(count, relationship["sampleSize"])
+            self.assertAlmostEqual(wins / count, relationship["sourceWinRate"])
         metrics = payload["layoutMetrics"]
         positions = {
             slug: (point["x"], point["y"])
@@ -260,6 +267,8 @@ class CurrentBundleTests(unittest.TestCase):
                 "dire_hero_id": 47,
                 "matches": 1000,
                 "radiant_wins": 620,
+                "ancient_matches": 600,
+                "ancient_radiant_wins": 360,
                 "immortal_matches": 240,
                 "immortal_radiant_wins": 156,
             },
@@ -268,6 +277,8 @@ class CurrentBundleTests(unittest.TestCase):
                 "dire_hero_id": 59,
                 "matches": 5000,
                 "radiant_wins": 2500,
+                "ancient_matches": 3000,
+                "ancient_radiant_wins": 1500,
                 "immortal_matches": 900,
                 "immortal_radiant_wins": 450,
             },
@@ -276,6 +287,8 @@ class CurrentBundleTests(unittest.TestCase):
                 "dire_hero_id": 59,
                 "matches": 5000,
                 "radiant_wins": 2500,
+                "ancient_matches": 3000,
+                "ancient_radiant_wins": 1500,
                 "immortal_matches": 850,
                 "immortal_radiant_wins": 425,
             },
@@ -304,6 +317,11 @@ class CurrentBundleTests(unittest.TestCase):
             "2026-11-18T21:28:08Z",
         )
         self.assertEqual(payload["scope"]["minimumSample"], 500)
+        comparison = payload["relationships"][0]["rankWinRates"]
+        self.assertEqual(comparison["ancient"]["sampleSize"], 600)
+        self.assertAlmostEqual(comparison["ancient"]["sourceWinRate"], 0.6)
+        self.assertEqual(comparison["divinePlus"]["sampleSize"], 400)
+        self.assertAlmostEqual(comparison["divinePlus"]["sourceWinRate"], 0.65)
         self.assertEqual(payload["provenance"]["headlineSource"], "OpenDota")
         self.assertEqual(payload["coverage"]["catalogHeroCount"], 127)
         self.assertEqual(len(payload["positions"]), 127)
@@ -477,3 +495,27 @@ class CurrentBundleTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class RankComparisonTests(unittest.TestCase):
+    def test_partition_preserves_source_direction_across_sides_and_chunks(self):
+        rows = [
+            {"radiant_hero_id": 1, "dire_hero_id": 2, "matches": 600, "radiant_wins": 360,
+             "ancient_matches": 400, "ancient_radiant_wins": 260},
+            {"radiant_hero_id": 2, "dire_hero_id": 1, "matches": 400, "radiant_wins": 180,
+             "ancient_matches": 100, "ancient_radiant_wins": 30},
+        ]
+        groups = _normalize_rank_pairs(rows, {1: "axe", 2: "viper"})
+        ancient, divine = groups["ancient"][("axe", "viper")], groups["divinePlus"][("axe", "viper")]
+        self.assertEqual((ancient.matches, ancient.first_wins), (500, 330))
+        self.assertEqual((divine.matches, divine.first_wins), (500, 250))
+        self.assertEqual(ancient.first_wins + divine.first_wins, 580)
+
+    def test_no_matches_is_an_absent_population_and_invalid_counts_fail(self):
+        row = {"radiant_hero_id": 1, "dire_hero_id": 2, "matches": 600, "radiant_wins": 360,
+               "ancient_matches": 0, "ancient_radiant_wins": 0}
+        self.assertEqual(_normalize_rank_pairs([row], {1: "axe", 2: "viper"})["ancient"], {})
+        for overrides in ({"ancient_matches": 700}, {"ancient_radiant_wins": 1},
+                          {"ancient_matches": 500, "ancient_radiant_wins": 100}):
+            with self.subTest(overrides=overrides), self.assertRaises(RuntimeError):
+                _normalize_rank_pairs([dict(row, **overrides)], {1: "axe", 2: "viper"})

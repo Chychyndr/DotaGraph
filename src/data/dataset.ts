@@ -1,3 +1,4 @@
+import { isRankWinRates } from "./rankWinRates";
 import { isWebUrl } from "./provenanceUrl";
 import type {
   Hero,
@@ -355,6 +356,11 @@ export function validateDataset(value: unknown): DatasetValidationResult {
         if (relationship.rankScope !== scope.rankScope) {
           issues.push(`${prefix} rank scope does not match dataset scope.`);
         }
+      }
+      if (relationship.rankWinRates !== undefined && !isRankWinRates(
+        relationship.rankWinRates, relationship.sampleSize, relationship.sourceWinRate
+      )) {
+        issues.push(`${prefix} has an invalid rank split.`);
       }
       if (relationship.sourceKind !== "fixture" && relationship.sourceKind !== "generated") {
         issues.push(`${prefix} has an unsupported sourceKind.`);
