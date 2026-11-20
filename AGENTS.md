@@ -89,7 +89,7 @@ Do not over-generalize current code in anticipation of every future node type. K
 
 The public product represents the current Dota patch.
 
-At the time this contract was written, the planning patch is 7.41e. Do not hardcode business logic around that exact string. Patch is configuration/data metadata.
+The current configured patch is 7.42. Do not hardcode business logic around that exact string. Patch is configuration/data metadata.
 
 When a new patch arrives:
 - update data;

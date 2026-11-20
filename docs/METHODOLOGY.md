@@ -7,12 +7,12 @@ Status: current-patch sample-size, counter-ranking, and cross-source detail aggr
 The published graph uses generated current-patch matchup observations rather than development fixtures.
 
 Current production scope:
-- patch 7.41f;
+- patch 7.42;
 - OpenDota `public_matches` as the headline source;
 - ranked All Draft only (`game_mode = 22`, `lobby_type = 7`);
 - OpenDota average rank tier >= 60 as the Ancient+ adapter predicate;
 - detail evidence also derives a separate Immortal subset from the same query with average rank tier >= 80;
-- observation window starts at the recorded 7.41f patch boundary and ends at generation time;
+- observation window starts at `2026-11-18T21:28:08Z` and ends at generation time;
 - generation targets a 12-hour cadence in GitHub Actions.
 
 Development fixtures may still exist in tests, but they must never be substituted for the published production bundle.
@@ -145,7 +145,7 @@ The graph displays source-hero matchup win rate.
 Graph geometry is derived from real current-patch matchup evidence, but layout eligibility is deliberately separate from headline-counter publication.
 
 Primary layout affinity:
-- source corpus and scope are the same current 7.41f OpenDota ranked Ancient+ observations used by the production pipeline;
+- source corpus and scope are the same current 7.42 OpenDota ranked Ancient+ observations used by the production pipeline;
 - a pair needs at least 500 observed matches;
 - layout ranking uses the baseline-adjusted matchup delta without the one-sided 95% headline confidence penalty (`confidence_z = 0`);
 - up to five strongest incident affinity relationships are retained per hero;

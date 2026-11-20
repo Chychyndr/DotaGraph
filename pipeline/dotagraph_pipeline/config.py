@@ -19,10 +19,13 @@ class PatchScope:
     max_visible_per_direction: int = 5
 
 
+# OpenDota dotaconstants patch 61: 2026-11-18T21:28:07.019Z.
+# Match start_time is integer seconds; round up to exclude pre-patch matches.
+# https://github.com/odota/dotaconstants/blob/master/build/patch.json
 CURRENT_SCOPE = PatchScope(
-    patch="7.41f",
-    start_iso="2026-09-16T00:00:00Z",
-    start_epoch=1789516800,
+    patch="7.42",
+    start_iso="2026-11-18T21:28:08Z",
+    start_epoch=1795037288,
 )
 
 

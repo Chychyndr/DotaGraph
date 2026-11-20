@@ -33,6 +33,16 @@ from dotagraph_pipeline.ranking import RankedRelationship
 
 
 class CurrentBundleTests(unittest.TestCase):
+    def test_current_patch_query_uses_consistent_post_release_boundary(self) -> None:
+        self.assertEqual(
+            int(datetime.fromisoformat(CURRENT_SCOPE.start_iso).timestamp()),
+            CURRENT_SCOPE.start_epoch,
+        )
+        self.assertEqual(CURRENT_SCOPE.start_epoch, 1795037288)
+        query = _pair_query(CURRENT_SCOPE.start_epoch, CURRENT_SCOPE.start_epoch + 86400)
+        self.assertIn("start_time >= 1795037288", query)
+        self.assertIn("start_time < 1795123688", query)
+
     def test_retry_after_seconds_reads_provider_hint(self) -> None:
         self.assertEqual(
             _retry_after_seconds(
@@ -215,6 +225,14 @@ class CurrentBundleTests(unittest.TestCase):
                 encoding="utf-8"
             )
         )
+        self.assertEqual(payload["patch"], CURRENT_SCOPE.patch)
+        self.assertEqual(
+            payload["scope"]["observationWindowStart"], CURRENT_SCOPE.start_iso,
+        )
+        for observation in payload.get("evidenceObservations", []):
+            self.assertEqual(observation["scope"]["patch"], CURRENT_SCOPE.patch)
+        if "stratzImmortalHistory" in payload:
+            self.assertEqual(payload["stratzImmortalHistory"]["patch"], CURRENT_SCOPE.patch)
         metrics = payload["layoutMetrics"]
         positions = {
             slug: (point["x"], point["y"])
@@ -263,9 +281,9 @@ class CurrentBundleTests(unittest.TestCase):
             },
         ]
 
-    def test_generate_emits_741f_production_contract(self) -> None:
+    def test_generate_emits_742_production_contract(self) -> None:
         repo_root = Path(__file__).resolve().parents[2]
-        now = datetime(2026, 9, 19, 8, 0, tzinfo=timezone.utc)
+        now = datetime(2026, 11, 20, 8, 0, tzinfo=timezone.utc)
         rows = self.production_pair_rows()
 
         with patch(
@@ -280,10 +298,10 @@ class CurrentBundleTests(unittest.TestCase):
 
         self.assertEqual(payload["schemaVersion"], 2)
         self.assertEqual(payload["kind"], "current-production-matchups")
-        self.assertEqual(payload["patch"], "7.41f")
+        self.assertEqual(payload["patch"], "7.42")
         self.assertEqual(
             payload["scope"]["observationWindowStart"],
-            "2026-09-16T00:00:00Z",
+            "2026-11-18T21:28:08Z",
         )
         self.assertEqual(payload["scope"]["minimumSample"], 500)
         self.assertEqual(payload["provenance"]["headlineSource"], "OpenDota")
@@ -326,7 +344,7 @@ class CurrentBundleTests(unittest.TestCase):
         history = {
             "patch": CURRENT_SCOPE.patch, "gameVersionId": 190,
             "start": CURRENT_SCOPE.start_epoch, "endExclusive": CURRENT_SCOPE.start_epoch + 1,
-            "collectedAt": "2026-09-16T00:01:00Z", "matchCount": 1,
+            "collectedAt": "2026-11-18T21:29:08Z", "matchCount": 1,
             "pairs": [[2, 47, 1, 1]],
         }
         with patch(
@@ -335,7 +353,7 @@ class CurrentBundleTests(unittest.TestCase):
         ):
             count = add_stratz_evidence(
                 payload, {2: "axe", 47: "viper"}, end_epoch=CURRENT_SCOPE.start_epoch + 7201,
-                collected_at="2026-09-16T02:00:01Z", token="test-token",
+                collected_at="2026-11-18T23:28:09Z", token="test-token",
                 logger=configure_logging(),
             )
         self.assertEqual(count, 1)
@@ -344,19 +362,19 @@ class CurrentBundleTests(unittest.TestCase):
         self.assertEqual(payload["coverage"]["immortalEvidenceCount"], 2)
 
     def test_stratz_outage_retains_only_fresh_current_patch_visible_evidence(self) -> None:
-        end = int(datetime(2026, 11, 11, tzinfo=timezone.utc).timestamp())
+        end = int(datetime(2026, 11, 20, tzinfo=timezone.utc).timestamp())
         relationships = [{"sourceSlug": "axe", "targetSlug": "viper"}]
         fresh = {
             **relationships[0], "provider": "STRATZ",
             "scope": {
                 "patch": CURRENT_SCOPE.patch, "rankScope": "immortal",
-                "observationWindowEndExclusive": "2026-11-10T12:00:00Z",
+                "observationWindowEndExclusive": "2026-11-19T12:00:00Z",
             },
         }
         stale = dict(fresh, scope={
-            **fresh["scope"], "observationWindowEndExclusive": "2026-11-09T10:00:00Z",
+            **fresh["scope"], "observationWindowEndExclusive": "2026-11-18T10:00:00Z",
         })
-        old_patch = dict(fresh, scope={**fresh["scope"], "patch": "7.41e"})
+        old_patch = dict(fresh, scope={**fresh["scope"], "patch": "7.41f"})
         with TemporaryDirectory() as directory:
             root = Path(directory)
             snapshot = root / "public/data/current-matchups.json"
@@ -396,7 +414,7 @@ class CurrentBundleTests(unittest.TestCase):
             ]) as fetch,
         ):
             history = collect_stratz_history(
-                None, end_epoch=end, collected_at="2026-09-16T00:01:00Z",
+                None, end_epoch=end, collected_at="2026-11-18T21:29:08Z",
                 token="test-token", logger=configure_logging(),
             )
             self.assertIsNotNone(history)
@@ -406,7 +424,7 @@ class CurrentBundleTests(unittest.TestCase):
 
             # A replay of the same endpoint cannot re-fetch or double count.
             self.assertIs(collect_stratz_history(
-                history, end_epoch=end, collected_at="2026-09-16T00:01:00Z",
+                history, end_epoch=end, collected_at="2026-11-18T21:29:08Z",
                 token="test-token", logger=configure_logging(),
             ), history)
             self.assertEqual(fetch.call_count, 1)
@@ -415,7 +433,7 @@ class CurrentBundleTests(unittest.TestCase):
             # belongs to this interval and contributes exactly once.
             fetch.return_value = [dict(match, id=102, didRadiantWin=False)]
             combined = collect_stratz_history(
-                history, end_epoch=end + 60, collected_at="2026-09-16T00:02:00Z",
+                history, end_epoch=end + 60, collected_at="2026-11-18T21:30:08Z",
                 token="test-token", logger=configure_logging(),
             )
             fetch.assert_called_with([102], "test-token")
@@ -432,12 +450,12 @@ class CurrentBundleTests(unittest.TestCase):
         self.assertEqual(evidence[0]["sourceWinRate"], 0.5)
         self.assertEqual(evidence[0]["scope"]["patch"], CURRENT_SCOPE.patch)
         self.assertIsNone(read_stratz_history({
-            "stratzImmortalHistory": dict(combined, patch="7.41e"),
+            "stratzImmortalHistory": dict(combined, patch="7.41f"),
         }, end + 60))
 
     def test_generate_warns_when_immortal_evidence_is_empty(self) -> None:
         repo_root = Path(__file__).resolve().parents[2]
-        now = datetime(2026, 9, 19, 8, 0, tzinfo=timezone.utc)
+        now = datetime(2026, 11, 20, 8, 0, tzinfo=timezone.utc)
         rows = [
             dict(row, immortal_matches=0, immortal_radiant_wins=0)
             for row in self.production_pair_rows()
