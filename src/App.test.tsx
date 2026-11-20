@@ -79,7 +79,7 @@ describe("App data states", () => {
     render(<App datasetLoader={datasetLoader} />);
 
     await screen.findByLabelText("Viper counter summary");
-    expect(screen.getAllByText("No reliable relationships.")).toHaveLength(2);
+    expect(screen.getAllByText("No statistically confirmed counters yet.")).toHaveLength(2);
   });
 
   it("keeps stale data usable while showing the upstream reason", async () => {

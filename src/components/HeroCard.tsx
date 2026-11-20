@@ -22,7 +22,7 @@ function RelationRows({
   heroesById: ReadonlyMap<string, Hero>;
 }) {
   if (!relationships.length) {
-    return <p className="card-empty">No reliable relationships.</p>;
+    return <p className="card-empty">No statistically confirmed counters yet.</p>;
   }
 
   return (
