@@ -16,6 +16,7 @@ from urllib.request import HTTPRedirectHandler, Request, build_opener
 
 ENDPOINT = "https://api.stratz.com/graphql"
 MAX_MATCH_IDS = 20
+MATCH_BATCH_SIZE = 100
 IMMORTAL_RANK = 80
 IMMORTAL_BRACKET = 8
 RANK_FIELDS = "actualRank averageRank rank bracket"
@@ -99,18 +100,41 @@ def query_stratz(selection: str, token: str) -> dict:
 def fetch_matches(ids: list[int], token: str, *, rank_only: bool = False) -> list[dict]:
     if not ids or any(type(match_id) is not int or match_id <= 0 for match_id in ids):
         raise ValueError("Provide positive match IDs.")
-    fields = RANK_FIELDS if rank_only else MATCH_FIELDS
+    unique_ids = list(dict.fromkeys(ids))
+    if rank_only:
+        # Keep the small diagnostic query independent of bulk collection.
+        matches = []
+        for match_id in unique_ids:
+            data = query_stratz(f"match(id: {match_id}) {{ {RANK_FIELDS} }}", token)
+            row = data.get("match")
+            if not isinstance(row, dict):
+                raise RuntimeError("STRATZ returned an invalid rank probe.")
+            matches.append(row)
+        return matches
+
     matches = []
-    for index, match_id in enumerate(dict.fromkeys(ids)):
-        if index:
+    for offset in range(0, len(unique_ids), MATCH_BATCH_SIZE):
+        if offset:
             time.sleep(1)
-        data = query_stratz(f"match(id: {match_id}) {{ {fields} }}", token)
-        row = data.get("match")
-        if row is None:
-            continue
-        if not isinstance(row, dict) or (not rank_only and row.get("id") != match_id):
-            raise RuntimeError("STRATZ returned an invalid match.")
-        matches.append(row)
+        batch = unique_ids[offset:offset + MATCH_BATCH_SIZE]
+        data = query_stratz(
+            f"matches(ids: {json.dumps(batch)}) {{ {MATCH_FIELDS} }}", token,
+        )
+        rows = data.get("matches")
+        if not isinstance(rows, list):
+            raise RuntimeError("STRATZ returned an invalid match batch.")
+        expected = set(batch)
+        seen: set[int] = set()
+        for row in rows:
+            if not isinstance(row, dict):
+                raise RuntimeError("STRATZ omitted a requested match; checkpoint unchanged.")
+            match_id = row.get("id")
+            if type(match_id) is not int or match_id not in expected or match_id in seen:
+                raise RuntimeError("STRATZ returned duplicate or unrequested match IDs.")
+            seen.add(match_id)
+        if seen != expected:
+            raise RuntimeError("STRATZ omitted requested matches; checkpoint unchanged.")
+        matches.extend(rows)
     return matches
 
 

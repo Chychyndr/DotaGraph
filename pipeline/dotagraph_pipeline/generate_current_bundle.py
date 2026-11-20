@@ -524,9 +524,9 @@ def _iso_from_epoch(epoch: int) -> str:
     )
 
 
-STRATZ_BOOTSTRAP_SECONDS = 24 * 60 * 60
 STRATZ_SETTLEMENT_SECONDS = 2 * 60 * 60
-STRATZ_CANDIDATE_LIMIT = 240
+STRATZ_CANDIDATE_LIMIT = 20_000
+STRATZ_COLLECTION_MODE = "complete-intervals-bulk"
 STRATZ_HISTORY_KEY = "stratzImmortalHistory"
 
 
@@ -539,40 +539,48 @@ def collect_stratz_history(
     logger: logging.Logger,
 ) -> dict[str, Any] | None:
     scope = CURRENT_SCOPE
-    start_epoch = (
-        previous["endExclusive"] if previous else
-        max(scope.start_epoch, end_epoch - STRATZ_BOOTSTRAP_SECONDS)
-    )
+    # The old sampler skipped most candidates and cannot be continued as a
+    # complete interval. Rebuild from the patch boundary on this transition.
+    if previous and previous.get("collectionMode") != STRATZ_COLLECTION_MODE:
+        previous = None
+    start_epoch = previous["endExclusive"] if previous else scope.start_epoch
     if start_epoch >= end_epoch:
         return previous
 
-    # OpenDota folds Immortal 80 into medal 75. Rank and patch are verified
-    # by STRATZ. A deterministic sample spreads the request budget across
-    # this disjoint time interval even when the provider has more matches.
+    # Take every candidate in chronological order. The extra row defines a
+    # whole-second boundary so a capped run never skips unprocessed matches.
     sql = f"""
 SELECT match_id, start_time FROM public_matches
 WHERE avg_rank_tier = 75
   AND start_time >= {start_epoch} AND start_time < {end_epoch}
   AND game_mode = {scope.game_mode} AND lobby_type = {scope.lobby_type}
   AND array_length(radiant_team, 1) = 5 AND array_length(dire_team, 1) = 5
-ORDER BY md5(match_id::text), match_id
-LIMIT {STRATZ_CANDIDATE_LIMIT}
+ORDER BY start_time, match_id
+LIMIT {STRATZ_CANDIDATE_LIMIT + 1}
 """.strip()
     data = _request_json(_api_url("/explorer", {"sql": sql}), logger=logger, attempts=3)
     rows = data.get("rows") if isinstance(data, dict) else None
-    if not isinstance(rows, list):
+    if not isinstance(rows, list) or data.get("err"):
         raise RuntimeError("OpenDota did not return STRATZ candidate rows.")
-    try:
-        candidates = {
-            int(row["match_id"]): int(row["start_time"])
-            for row in rows[:STRATZ_CANDIDATE_LIMIT]
-        }
-    except (KeyError, TypeError, ValueError):
-        raise RuntimeError("OpenDota returned invalid STRATZ candidate rows.") from None
-    candidates = {
-        match_id: started for match_id, started in candidates.items()
-        if match_id > 0 and start_epoch <= started < end_epoch
-    }
+    candidates: dict[int, int] = {}
+    for row in rows:
+        if not isinstance(row, dict):
+            raise RuntimeError("OpenDota returned invalid STRATZ candidate rows.")
+        match_id, started = row.get("match_id"), row.get("start_time")
+        if type(match_id) is not int or type(started) is not int or match_id <= 0:
+            raise RuntimeError("OpenDota returned invalid STRATZ candidate rows.")
+        if start_epoch <= started < end_epoch:
+            if match_id in candidates:
+                raise RuntimeError("OpenDota returned duplicate STRATZ candidates.")
+            candidates[match_id] = started
+    ordered = sorted(candidates.items(), key=lambda row: (row[1], row[0]))
+    requested_end = end_epoch
+    if len(ordered) > STRATZ_CANDIDATE_LIMIT:
+        end_epoch = ordered[STRATZ_CANDIDATE_LIMIT][1]
+        if end_epoch <= start_epoch:
+            raise RuntimeError("Too many candidates in one second; checkpoint unchanged.")
+        ordered = [(match_id, started) for match_id, started in ordered if started < end_epoch]
+    candidates = dict(ordered)
     if not candidates:
         log_event(logger, "stratz_no_candidates", level=logging.WARNING)
         return previous
@@ -582,8 +590,9 @@ LIMIT {STRATZ_CANDIDATE_LIMIT}
         raise RuntimeError("STRATZ game version changed without a patch change.")
     time.sleep(1)
     matches = fetch_matches(list(candidates), token)
-    if not matches:
-        raise RuntimeError("STRATZ returned no records for the sampled match IDs.")
+    returned_ids = [match.get("id") for match in matches]
+    if len(returned_ids) != len(candidates) or set(returned_ids) != set(candidates):
+        raise RuntimeError("STRATZ did not return the complete candidate interval.")
     counts = aggregate_immortal_pairs(
         match for match in matches if match.get("gameVersionId") == version
     )
@@ -600,10 +609,15 @@ LIMIT {STRATZ_CANDIDATE_LIMIT}
         logger, "stratz_history_updated",
         candidateCount=len(candidates), returnedMatchCount=len(matches),
         newImmortalMatches=accepted, totalImmortalMatches=total_matches,
+        processedThrough=_iso_from_epoch(end_epoch),
+        backlogSeconds=requested_end - end_epoch,
     )
     return {
         "patch": scope.patch,
         "gameVersionId": version,
+        "collectionMode": STRATZ_COLLECTION_MODE,
+        "candidateCount": (previous.get("candidateCount", 0) if previous else 0) + len(candidates),
+        "backlogSeconds": requested_end - end_epoch,
         "start": previous["start"] if previous else start_epoch,
         "endExclusive": end_epoch,
         "collectedAt": collected_at,
@@ -634,7 +648,7 @@ def project_stratz_history(
     provenance = {
         "sourceUrl": "https://stratz.com/api",
         "queryScope": (
-            "cumulative OpenDota medal-75 sample; STRATZ ranked All Draft;"
+            "cumulative OpenDota medal-75 candidates; STRATZ ranked All Draft;"
             f" rank=80; bracket=8; gameVersionId={history['gameVersionId']}"
         ),
         "collectedAt": history["collectedAt"],

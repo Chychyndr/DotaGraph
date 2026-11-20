@@ -11,7 +11,7 @@ on:
     branches: [main]
     paths:
       - .github/workflows/stratz-immortal-preview.yml
-      - scripts/probe_stratz_schema.py
+      - scripts/collect_immortal.py
       - pipeline/dotagraph_pipeline/stratz_preview.py
       - pipeline/dotagraph_pipeline/generate_current_bundle.py
       - .github/workflows/update-current-data.yml
@@ -103,13 +103,13 @@ jobs:
         if: steps.enrichment.outputs.live != 'true'
         run: npm run test:e2e -- tests/e2e/app.spec.ts -g 'matchup details keep Immortal evidence separate from the headline'
 
-  immortal-schema:
+  immortal-volume:
     if: >-
       github.event_name == 'pull_request' &&
       github.event.pull_request.head.repo.full_name == github.repository &&
       github.head_ref == 'feat/immortal-volume'
     runs-on: ubuntu-26.04
-    timeout-minutes: 5
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v7
         with:
@@ -118,7 +118,19 @@ jobs:
         with:
           python-version: "3.13"
       - uses: astral-sh/setup-uv@v10.2.0
-      - name: Inspect official bulk query schema
+      - name: Collect verified Immortal intervals through official bulk API
         env:
           STRATZ_API_TOKEN: ${{ secrets.STRATZ_API_TOKEN }}
-        run: uv run --locked --project pipeline python scripts/probe_stratz_schema.py
+          OPENDOTA_API_KEY: ${{ secrets.OPENDOTA_API_KEY }}
+        run: |
+          set -o pipefail
+          mkdir -p artifacts/immortal
+          uv run --locked --project pipeline python scripts/collect_immortal.py \
+            2>&1 | tee artifacts/immortal/collection.log
+      - name: Upload aggregate evidence and collection log
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: immortal-verified-aggregates
+          path: artifacts/immortal/
+          retention-days: 7
