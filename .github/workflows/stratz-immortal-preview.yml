@@ -11,6 +11,7 @@ on:
     branches: [main]
     paths:
       - .github/workflows/stratz-immortal-preview.yml
+      - scripts/probe_stratz_schema.py
       - pipeline/dotagraph_pipeline/stratz_preview.py
       - pipeline/dotagraph_pipeline/generate_current_bundle.py
       - .github/workflows/update-current-data.yml
@@ -101,3 +102,23 @@ jobs:
       - name: Verify the matchup card with fixture data
         if: steps.enrichment.outputs.live != 'true'
         run: npm run test:e2e -- tests/e2e/app.spec.ts -g 'matchup details keep Immortal evidence separate from the headline'
+
+  immortal-schema:
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.head_ref == 'feat/immortal-volume'
+    runs-on: ubuntu-26.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - uses: astral-sh/setup-uv@v10.2.0
+      - name: Inspect official bulk query schema
+        env:
+          STRATZ_API_TOKEN: ${{ secrets.STRATZ_API_TOKEN }}
+        run: uv run --locked --project pipeline python scripts/probe_stratz_schema.py
