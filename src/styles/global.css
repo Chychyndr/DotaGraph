@@ -686,23 +686,85 @@ button:focus-visible, input:focus-visible, [role="button"]:focus-visible {
 
 .matchup-arrow { color: var(--selected); }
 
-.matchup-stat {
-  display: flex;
-  align-items: baseline;
-  gap: 7px;
-  margin: 3px 0 12px;
+.rank-comparison {
+  margin: 4px 0 16px;
 }
 
-.matchup-stat strong {
-  color: var(--positive);
+.rank-comparison-caption {
+  margin: 0 0 12px;
+  color: var(--secondary);
+  font-size: 12px;
+}
+
+.rank-winrates {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px;
+  margin: 0;
+}
+
+.rank-winrate + .rank-winrate {
+  border-left: 1px solid var(--border);
+  padding-left: 16px;
+}
+
+.rank-winrate dt,
+.rank-winrate dd {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+  margin: 0;
+}
+
+.rank-winrate-label {
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.rank-winrate-description,
+.rank-winrate-sample,
+.rank-winrate-limited {
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.rank-winrate-value {
+  margin-top: 8px;
+  color: var(--text);
   font-size: 28px;
+  font-weight: 600;
+  line-height: 1.25;
   letter-spacing: -.035em;
   font-variant-numeric: tabular-nums;
 }
 
-.matchup-stat span {
+.rank-winrate-sample {
+  margin-top: 4px;
+  font-variant-numeric: tabular-nums;
+}
+
+.rank-winrate-limited {
+  color: var(--selected);
+}
+
+.rank-comparison-difference {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 12px 0 0;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-muted);
   color: var(--muted);
-  font-size: 9px;
+  font-size: 10px;
+}
+
+.rank-comparison-difference strong {
+  color: var(--secondary);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
 }
 
 .matchup-meta {

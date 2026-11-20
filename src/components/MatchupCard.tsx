@@ -8,6 +8,7 @@ import type {
 import type { DatasetMetadata } from "../data/dataset";
 import { formatPercent, formatSample } from "../domain/relationships";
 import { HeroPortrait } from "./HeroPortrait";
+import { RankWinRateComparison } from "./RankWinRateComparison";
 
 interface MatchupCardProps {
   source: Hero;
@@ -77,14 +78,15 @@ export function MatchupCard({
         </span>
       </div>
 
-      <div className="matchup-stat">
-        <strong>{formatPercent(relationship.sourceWinRate)}</strong>
-        <span>{source.name} win rate</span>
-      </div>
+      <RankWinRateComparison
+        sourceName={source.name}
+        rates={relationship.rankWinRates}
+        minimumSample={scope.minimumSample}
+      />
 
       <dl className="matchup-meta">
         <div><dt>Matches</dt><dd>{formatSample(relationship.sampleSize)}</dd></div>
-        <div><dt>Scope</dt><dd>{scope.rankLabel}</dd></div>
+        <div><dt>Graph · {scope.rankLabel}</dt><dd>{formatPercent(relationship.sourceWinRate)}</dd></div>
         <div><dt>Patch</dt><dd>{scope.patch}</dd></div>
         {relationship.provenanceSource && (
           <div><dt>Source</dt><dd>{relationship.provenanceSource}</dd></div>

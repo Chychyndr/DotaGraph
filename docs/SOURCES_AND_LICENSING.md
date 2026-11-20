@@ -132,7 +132,8 @@ Current query scope:
 - `game_mode_all_draft` (22);
 - `lobby_type_ranked` (7);
 - valid 5v5 hero arrays;
-- minimum 500 pair observations before a relationship can qualify.
+- minimum 500 pair observations before a relationship can qualify;
+- same-query conditional aggregates partition the Ancient+ sample into Ancient (`avg_rank_tier < 70`) and Divine+ (`avg_rank_tier >= 70`, including Immortal) for the owner-requested card comparison. This is not a separate Immortal dataset.
 
 Published output contains aggregate hero statistics, qualified hero-vs-hero headline observations, separate aggregate Immortal detail observations where available, provenance, and deterministic graph coordinates. The Immortal subset is computed inside the same Explorer query, so no additional provider access method or request is introduced. The output does not publish player identities or raw match IDs.
 

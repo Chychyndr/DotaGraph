@@ -57,7 +57,8 @@ For patch **7.42**:
 - headline scope is Ancient+ using `avg_rank_tier >= 60`, ranked all-draft matches;
 - matchup details can show a separate OpenDota Immortal subset using `avg_rank_tier >= 80` when matches are available;
 - a hero pair needs at least 500 qualifying matches;
-- the displayed percentage is the raw source-hero matchup win rate;
+- graph percentages use the raw source-hero Ancient+ matchup win rate;
+- matchup cards compare Ancient and Divine+ win rates side by side, with separate match counts;
 - counter ordering uses the documented baseline-adjusted one-sided 95% lower confidence bound;
 - the same eligible relationships drive deterministic offline graph geometry;
 - generated data is refreshed every 12 hours through GitHub Actions;

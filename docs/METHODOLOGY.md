@@ -264,6 +264,27 @@ If collection fails, the published sample and checkpoint are retained.
 The next successful run samples the missed interval within the same request
 budget. A patch change starts a new sample.
 
+## Rank comparison in matchup cards
+
+The owner-approved comparison shows **Ancient** and **Divine+** side by side.
+Ancient means the current corpus below Divine (`60 <= avg_rank_tier < 70`).
+Divine+ means `avg_rank_tier >= 70`, including the provider's combined Divine /
+Immortal population. Ranks below Ancient remain outside the product scope.
+This comparison does not claim an isolated Immortal sample.
+
+Both percentages belong to the source hero of the displayed arrow. The same
+OpenDota query, patch boundary and observation window produce both disjoint
+subsets. Their sample counts sum to the Ancient+ headline count, and their
+sample-weighted percentages reconstruct the headline win rate. The generated
+`rankWinRates` field is additive to the existing schema; legacy snapshots
+without it show an explicit unavailable state rather than reusing the headline.
+
+Each column shows its source-local match count. Samples below 500 are labelled
+small; a missing population uses an em dash. The card shows the descriptive
+Divine+ minus Ancient difference in percentage points only when both samples
+reach 500. This is not a significance test or a new counter-ranking method.
+Graph labels, eligibility and ordering retain the approved Ancient+ headline.
+
 ## Cross-source detail aggregation
 
 Status: **approved for secondary-source detail views**.

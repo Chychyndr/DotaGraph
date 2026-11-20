@@ -12,6 +12,7 @@ class PatchScope:
     rank_scope: str = "ancient_plus"
     avg_rank_tier_min: int = 60
     immortal_avg_rank_tier_min: int = 80
+    divine_avg_rank_tier_min: int = 70
     game_mode: int = 22
     lobby_type: int = 7
     minimum_sample: int = 500
