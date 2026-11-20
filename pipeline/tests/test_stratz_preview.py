@@ -4,7 +4,7 @@ import unittest
 from unittest.mock import patch
 from urllib.error import HTTPError
 
-from dotagraph_pipeline.stratz_preview import PairCount, StratzNetworkDenied, aggregate_immortal_pairs, fetch_matches
+from dotagraph_pipeline.stratz_preview import PairCount, StratzNetworkDenied, aggregate_immortal_pairs, fetch_matches, verified_immortal_pairs
 
 
 def match(match_id=1, patch=190, *, bracket=8, rank=80, radiant_won=True):
@@ -78,3 +78,47 @@ class StratzPreviewTests(unittest.TestCase):
         )
         with self.assertRaises(StratzNetworkDenied):
             fetch_matches([9085800147], "test-token", rank_only=True)
+
+
+class StratzBulkTests(unittest.TestCase):
+    @patch("dotagraph_pipeline.stratz_preview.time.sleep")
+    @patch("dotagraph_pipeline.stratz_preview.query_stratz")
+    def test_batches_and_deduplicates_requests_without_dropping_matches(self, query, sleep):
+        ids = list(range(1, 206))
+        query.side_effect = [{"matches": [{"id": i} for i in ids[start:start + 100]]} for start in (0, 100, 200)]
+        result = fetch_matches(ids + [1], "test-token")
+        self.assertEqual([row["id"] for row in result], ids)
+        self.assertEqual(query.call_count, 3)
+        self.assertEqual(sleep.call_count, 2)
+        self.assertIn("matches(ids:", query.call_args_list[0].args[0])
+
+    @patch("dotagraph_pipeline.stratz_preview.query_stratz")
+    def test_rejects_missing_duplicate_and_unrequested_records(self, query):
+        for rows in ([{"id": 1}], [{"id": 1}, {"id": 1}], [{"id": 1}, {"id": 3}], [{"id": 1}, None]):
+            with self.subTest(rows=rows):
+                query.return_value = {"matches": rows}
+                with self.assertRaises(RuntimeError):
+                    fetch_matches([1, 2], "test-token")
+
+    @patch("dotagraph_pipeline.stratz_preview.time.sleep")
+    @patch("dotagraph_pipeline.stratz_preview.build_opener")
+    def test_long_provider_retry_never_retries_before_the_allowed_time(self, opener, sleep):
+        opener.return_value.open.side_effect = HTTPError(
+            "https://api.stratz.com/graphql", 429, "Too Many Requests",
+            {"Retry-After": "3600"}, BytesIO(b""),
+        )
+        with self.assertRaisesRegex(RuntimeError, "later retry"):
+            fetch_matches([1], "test-token")
+        self.assertEqual(opener.return_value.open.call_count, 1)
+        sleep.assert_not_called()
+
+    def test_incomplete_classification_blocks_checkpoint_but_known_exclusions_do_not(self):
+        self.assertEqual(verified_immortal_pairs([match(rank=75), match(patch=191)], 190), {})
+        for record in (
+            dict(match(), rank=None), dict(match(), gameVersionId=None),
+            dict(match(), didRadiantWin=None), dict(match(), players=[]),
+            dict(match(), gameMode=None),
+        ):
+            with self.subTest(record=record):
+                with self.assertRaisesRegex(RuntimeError, "checkpoint unchanged"):
+                    verified_immortal_pairs([record], 190)

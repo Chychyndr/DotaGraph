@@ -477,3 +477,76 @@ class CurrentBundleTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ImmortalIntervalTests(unittest.TestCase):
+    def setUp(self):
+        self.module = "dotagraph_pipeline.generate_current_bundle"
+        self.start = CURRENT_SCOPE.start_epoch
+        self.end = self.start + 100
+        self.match = {
+            "id": 1, "gameVersionId": 190, "rank": 80, "bracket": 8,
+            "gameMode": 22, "lobbyType": 7, "didRadiantWin": True,
+            "players": [{"heroId": i, "isRadiant": i <= 5} for i in range(1, 11)],
+        }
+
+    def collect(self, rows, records, previous=None, limit=2):
+        with (
+            patch(f"{self.module}._request_json", return_value={"rows": rows}) as discovery,
+            patch(f"{self.module}.game_version_id", return_value=190),
+            patch(f"{self.module}.fetch_matches", return_value=records) as fetch,
+            patch(f"{self.module}.time.sleep"),
+            patch(f"{self.module}.STRATZ_CANDIDATE_LIMIT", limit),
+        ):
+            result = collect_stratz_history(
+                previous, end_epoch=self.end, collected_at=CURRENT_SCOPE.start_iso,
+                token="test-token", logger=configure_logging(),
+            )
+            return result, discovery.call_args.args[0], fetch
+
+    def test_cap_keeps_whole_second_and_resumes_without_loss_or_double_count(self):
+        rows = [{"match_id": i, "start_time": self.start + second} for i, second in [(1, 0), (2, 1), (3, 1)]]
+        history, query, fetch = self.collect(rows, [self.match])
+        fetch.assert_called_once_with([1], "test-token")
+        self.assertEqual(history["endExclusive"], self.start + 1)
+        self.assertEqual(history["backlogSeconds"], 99)
+        self.assertNotIn("md5", query)
+        history2, _, fetch2 = self.collect(rows[1:], [dict(self.match, id=2), dict(self.match, id=3)], history)
+        fetch2.assert_called_once_with([2, 3], "test-token")
+        self.assertEqual(history2["endExclusive"], self.end)
+        self.assertEqual(history2["backlogSeconds"], 0)
+        self.assertEqual(history2["candidateCount"], 3)
+        self.assertEqual(history2["matchCount"], 3)
+        self.assertTrue(all(pair[2] == 3 for pair in history2["pairs"]))
+
+    def test_rebuilds_old_sample_from_patch_start(self):
+        old = {"endExclusive": self.end - 1, "matchCount": 1000, "pairs": []}
+        history, query, _ = self.collect([{"match_id": 1, "start_time": self.start}], [self.match], old)
+        self.assertEqual(history["start"], self.start)
+        self.assertEqual(history["matchCount"], 1)
+        self.assertIn(str(self.start), query)
+
+    def test_incomplete_interval_cannot_advance_checkpoint(self):
+        previous = {"collectionMode": "complete-intervals-bulk", "start": self.start,
+                    "endExclusive": self.start + 1, "gameVersionId": 190, "matchCount": 1,
+                    "pairs": [[1, 6, 1, 1]]}
+        original = json.loads(json.dumps(previous))
+        with self.assertRaises(RuntimeError):
+            self.collect([{"match_id": 2, "start_time": self.start + 2}], [], previous)
+        self.assertEqual(previous, original)
+
+    def test_same_second_overflow_refuses_to_skip_records(self):
+        rows = [{"match_id": i, "start_time": self.start} for i in (1, 2, 3)]
+        with self.assertRaisesRegex(RuntimeError, "one second"):
+            self.collect(rows, [])
+
+    def test_empty_processed_interval_advances_without_recounting(self):
+        previous = {"collectionMode": "complete-intervals-bulk", "start": self.start,
+                    "endExclusive": self.start + 1, "gameVersionId": 190, "matchCount": 1,
+                    "candidateCount": 1, "pairs": [[1, 6, 1, 1]], "backlogSeconds": 99}
+        history, _, fetch = self.collect([], [], previous)
+        fetch.assert_not_called()
+        self.assertEqual(history["endExclusive"], self.end)
+        self.assertEqual(history["matchCount"], 1)
+        self.assertEqual(history["backlogSeconds"], 0)
+        self.assertEqual(previous["endExclusive"], self.start + 1)

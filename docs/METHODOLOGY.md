@@ -249,20 +249,35 @@ The refresh workflow reports the published Immortal observation count.
 
 [OpenDota's average-medal regression test](https://github.com/odota/core/blob/728b5f320fd0c16b3557d6465b9589b89465b32a/test/test.ts#L185-L191)
 
-The scheduled refresh accumulates STRATZ Immortal evidence across the current
-patch. The first successful refresh starts with a 24-hour interval. Subsequent
-refreshes sample only the interval after the previous checkpoint. The latest
-two hours are held back to give STRATZ time to index completed matches. Each
-refresh samples at most 240 OpenDota public matches with average medal 75 using
-a stable hash of the match ID across the interval. STRATZ verifies rank 80,
-bracket 8, patch, ranked All Draft, and a complete 5v5 result.
+The scheduled refresh accumulates verified STRATZ Immortal matches from the
+current patch boundary. It discovers OpenDota medal-75 candidates in
+`(start_time, match_id)` order and uses the official STRATZ `matches(ids: ...)`
+bulk query, with at most 100 matches per request and a one-second pause between
+batches. STRATZ must confirm rank 80, bracket 8, the exact game version,
+ranked All Draft, a completed result, and ten unique heroes in two teams of five.
+The latest two hours remain outside collection to allow provider indexing.
 
-The published snapshot stores aggregate pair counts and the exclusive
-checkpoint time, so reruns do not count a time interval twice. This is a
-sample of eligible matches and does not influence the Ancient+ ranking.
-If collection fails, the published sample and checkpoint are retained.
-The next successful run samples the missed interval within the same request
-budget. A patch change starts a new sample.
+A refresh handles at most 20,000 candidates. One extra discovery row determines
+the first unprocessed whole second. All candidates in that second remain for
+the next refresh, so hitting the budget cannot skip the rest of an interval.
+The initial collection command can complete up to four such intervals. It
+publishes aggregate counts only; raw match IDs and player records stay private.
+The aggregate history records accepted match count, candidate count, processed
+boundary, and backlog in seconds. It never adds Immortal counts to Ancient+.
+
+Every requested match ID must be returned exactly once. Missing, duplicate,
+or unrequested records fail that interval without advancing its checkpoint.
+An unindexed rank/version or an incomplete result/team also blocks the interval;
+only a known different rank, patch, or match population is safely excluded.
+Provider failures retain the previously published aggregate history. Retries
+use the same unprocessed interval. The old 240-candidate hash sample is rebuilt
+from the patch boundary when switching to this collection mode; its counts
+cannot be added to the new complete intervals. A patch change resets history.
+
+The official schema was checked on 2026-11-20: `heroStats.matchUp` exposes
+`RankBracketBasicEnum`, whose highest normal category is `DIVINE_IMMORTAL`,
+and has no game-version argument. That aggregate cannot represent exact
+current-patch Immortal evidence, so individual match verification is retained.
 
 ## Cross-source detail aggregation
 

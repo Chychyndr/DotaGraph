@@ -55,7 +55,7 @@ For patch **7.42**:
 - headline data comes from OpenDota `public_matches`;
 - observation window begins at `2026-11-18T21:28:08Z`;
 - headline scope is Ancient+ using `avg_rank_tier >= 60`, ranked all-draft matches;
-- matchup details can show a separate OpenDota Immortal subset using `avg_rank_tier >= 80` when matches are available;
+- matchup details show separate verified STRATZ Immortal evidence when available; collection checks exact rank and patch in batches and preserves its processed interval;
 - a hero pair needs at least 500 qualifying matches;
 - the displayed percentage is the raw source-hero matchup win rate;
 - counter ordering uses the documented baseline-adjusted one-sided 95% lower confidence bound;

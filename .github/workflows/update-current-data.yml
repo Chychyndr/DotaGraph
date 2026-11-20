@@ -106,6 +106,8 @@ jobs:
           print(f"- STRATZ evidence observations: **{stratz_count}**")
           stratz_history = data.get("stratzImmortalHistory") or {}
           print(f"- Accumulated STRATZ Immortal matches: **{stratz_history.get('matchCount', 0)}**")
+          print(f"- Verified STRATZ candidates: **{stratz_history.get('candidateCount', 0)}**")
+          print(f"- Immortal collection backlog: **{stratz_history.get('backlogSeconds', 0)} seconds**")
           if coverage["immortalEvidenceCount"] == 0:
               print("- Warning: no Immortal evidence. See the generation logs for the reason.")
           print(f"- Layout median distance: **{metrics['medianDistance']} px**")

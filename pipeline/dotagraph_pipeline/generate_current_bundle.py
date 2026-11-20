@@ -22,7 +22,7 @@ from .layout import (
 from .logging_utils import configure_logging, log_event
 from .ranking import PairObservation, RankedRelationship, hero_totals, rank_relationships
 
-from .stratz_preview import aggregate_immortal_pairs, fetch_matches, game_version_id
+from .stratz_preview import verified_immortal_pairs, fetch_matches, game_version_id
 
 
 OPENDOTA_BASE_URL = "https://api.opendota.com/api"
@@ -583,7 +583,10 @@ LIMIT {STRATZ_CANDIDATE_LIMIT + 1}
     candidates = dict(ordered)
     if not candidates:
         log_event(logger, "stratz_no_candidates", level=logging.WARNING)
-        return previous
+        return (
+            dict(previous, endExclusive=end_epoch, collectedAt=collected_at, backlogSeconds=0)
+            if previous else None
+        )
 
     version = game_version_id(scope.patch, token)
     if previous and previous["gameVersionId"] != version:
@@ -593,9 +596,7 @@ LIMIT {STRATZ_CANDIDATE_LIMIT + 1}
     returned_ids = [match.get("id") for match in matches]
     if len(returned_ids) != len(candidates) or set(returned_ids) != set(candidates):
         raise RuntimeError("STRATZ did not return the complete candidate interval.")
-    counts = aggregate_immortal_pairs(
-        match for match in matches if match.get("gameVersionId") == version
-    )
+    counts = verified_immortal_pairs(matches, version)
     accepted = sum(pair.matches for pair in counts.values()) // 25
     totals = {
         (first, second): (games, wins)

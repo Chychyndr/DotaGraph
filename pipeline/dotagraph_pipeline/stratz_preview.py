@@ -81,7 +81,9 @@ def query_stratz(selection: str, token: str) -> dict:
             if attempt == 2 or (exc.code != 429 and not 500 <= exc.code < 600):
                 raise RuntimeError(message) from None
             retry_after = (exc.headers.get("Retry-After") or "").strip()
-            delay = min(60, int(retry_after)) if retry_after.isascii() and retry_after.isdecimal() else 0
+            delay = int(retry_after) if retry_after.isascii() and retry_after.isdecimal() else 0
+            if delay > 60:
+                raise RuntimeError("STRATZ requested a later retry; checkpoint unchanged.") from None
             time.sleep(max(delay, 2 ** (attempt + 1)))
         except (URLError, TimeoutError, ConnectionError):
             if attempt == 2:
@@ -196,6 +198,30 @@ def aggregate_immortal_pairs(matches: Iterable[dict]) -> dict[tuple[int, int, in
                 count.matches += 1
                 count.first_wins += int(radiant_won == (first == radiant_hero))
     return pairs
+
+
+def verified_immortal_pairs(matches: Iterable[dict], version: int) -> dict[tuple[int, int, int], PairCount]:
+    eligible = []
+    for match in matches:
+        patch_id = match.get("gameVersionId")
+        if type(patch_id) is not int or patch_id <= 0:
+            raise RuntimeError("STRATZ match version is not indexed; checkpoint unchanged.")
+        if patch_id != version:
+            continue
+        rank, bracket = match.get("rank"), match.get("bracket")
+        if type(rank) is not int or type(bracket) is not int:
+            raise RuntimeError("STRATZ match rank is not indexed; checkpoint unchanged.")
+        if rank != IMMORTAL_RANK or bracket != IMMORTAL_BRACKET:
+            continue
+        mode, lobby = match.get("gameMode"), match.get("lobbyType")
+        if mode is None or lobby is None:
+            raise RuntimeError("STRATZ match population is not indexed; checkpoint unchanged.")
+        if mode not in (22, "ALL_PICK_RANKED") or lobby not in (7, "RANKED"):
+            continue
+        if not aggregate_immortal_pairs([match]):
+            raise RuntimeError("STRATZ match result or teams are incomplete; checkpoint unchanged.")
+        eligible.append(match)
+    return aggregate_immortal_pairs(eligible)
 
 
 def main() -> None:
